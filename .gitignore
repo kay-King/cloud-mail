@@ -26,3 +26,6 @@ mail-vue/dist
 .wrangler
 .venv
 git-tools.js
+
+# 本地凭证与服务商记录，绝不提交
+*-api-key.txt

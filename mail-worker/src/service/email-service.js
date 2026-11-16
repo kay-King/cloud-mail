@@ -417,7 +417,7 @@ const emailService = {
 		ccEmail.forEach(address => takenAddress.add(address.toLowerCase()));
 		bccEmail = bccEmail.filter(address => !takenAddress.has(address.toLowerCase()));
 
-		const { resendTokens, r2Domain, send, domainList } = await settingService.query(c);
+		const { resendTokens, sendkitTokens, brevoTokens, r2Domain, send, domainList } = await settingService.query(c);
 
 		let { imageDataList, html } = await attService.toImageUrlHtml(c, content);
 
@@ -493,10 +493,12 @@ const emailService = {
 
 		const domain = emailUtils.getDomain(accountRow.email);
 		const resendToken = resendTokens[domain];
+		const sendkitToken = (sendkitTokens || {})[domain];
+		const brevoToken = (brevoTokens || {})[domain];
 		const useCloudflareEmail = !!c.env.email;
 
 		//如果接收方存在站外邮箱，又没有发信服务
-		if (!useCloudflareEmail && !resendToken && !allInternal) {
+		if (!useCloudflareEmail && !resendToken && !sendkitToken && !brevoToken && !allInternal) {
 			throw new BizError(t('noSendProvider'));
 		}
 
@@ -550,7 +552,7 @@ const emailService = {
 
 		// sendParams 用于渠道请求，saveParams 保留保存记录所需的账号、权限和附件数据。
 		const context = {
-			separate, allInternal, useCloudflareEmail, resendToken, sendParams,
+			separate, allInternal, useCloudflareEmail, resendToken, sendkitToken, brevoToken, sendParams,
 			saveParams: {
 				accountId, userId, name, subject, text, html,
 				sendEmail: accountRow.email,
@@ -561,14 +563,18 @@ const emailService = {
 			}
 		};
 
-		// 全部站内收件人走本地投递；存在站外收件人时优先 CF，其次 Resend。
+		// 全部站内收件人走本地投递；存在站外收件人时优先 CF，其次 Resend，再次 Sendkit，最后 Brevo。
 		let deliveries;
 		if (allInternal) {
 			deliveries = this.sendInternal(c, context);
 		} else if (useCloudflareEmail) {
 			deliveries = this.sendCloudflare(c, context);
-		} else {
+		} else if (resendToken) {
 			deliveries = this.sendResend(c, context);
+		} else if (sendkitToken) {
+			deliveries = this.sendSendkit(c, context);
+		} else {
+			deliveries = this.sendBrevo(c, context);
 		}
 
 		const emailResults = [];
@@ -672,6 +678,64 @@ const emailService = {
 			}));
 		}
 		yield { emails };
+	},
+
+	// Sendkit 无批量接口：普通发送一次提交所有收件人，分开发送逐人调用单封接口。
+	async *sendSendkit(c, { separate, sendkitToken, sendParams, saveParams }) {
+		if (separate && sendParams.receiveEmail.length > 100) {
+			throw new BizError(t('sendkitRecipientLimit'));
+		}
+		const recipientGroups = separate
+			? sendParams.receiveEmail.map(address => [address])
+			: [sendParams.receiveEmail];
+		for (const receiveEmail of recipientGroups) {
+			let result;
+			try {
+				result = await this.sendBySendkit(sendkitToken, { ...sendParams, receiveEmail });
+			} catch (error) {
+				if (!separate) throw error;
+				// 分开发送遇到渠道错误即停止，已成功的记录由入口汇总。
+				yield { error: { message: error.message } };
+				return;
+			}
+			if (result.error) {
+				yield { error: result.error };
+				return;
+			}
+			const emailResult = await this.saveSentEmail(c, {
+				...saveParams, receiveEmail, providerId: result.data?.id
+			});
+			yield { emails: [emailResult] };
+		}
+	},
+
+	// Brevo 支持一次提交多收件人：普通发送一次提交所有收件人，分开发送逐人调用单封接口。
+	async *sendBrevo(c, { separate, brevoToken, sendParams, saveParams }) {
+		if (separate && sendParams.receiveEmail.length > 100) {
+			throw new BizError(t('brevoRecipientLimit'));
+		}
+		const recipientGroups = separate
+			? sendParams.receiveEmail.map(address => [address])
+			: [sendParams.receiveEmail];
+		for (const receiveEmail of recipientGroups) {
+			let result;
+			try {
+				result = await this.sendByBrevo(brevoToken, { ...sendParams, receiveEmail });
+			} catch (error) {
+				if (!separate) throw error;
+				// 分开发送遇到渠道错误即停止，已成功的记录由入口汇总。
+				yield { error: { message: error.message } };
+				return;
+			}
+			if (result.error) {
+				yield { error: result.error };
+				return;
+			}
+			const emailResult = await this.saveSentEmail(c, {
+				...saveParams, receiveEmail, providerId: result.data?.id
+			});
+			yield { emails: [emailResult] };
+		}
 	},
 
 	// 三个渠道共用的发件记录保存：恢复正文图片 URL、保存附件并更新发送计数。
@@ -826,6 +890,136 @@ const emailService = {
 		}
 
 		return await resend.emails.send(sendForm);
+	},
+
+	async sendBySendkit(sendkitToken, params) {
+		const sendForm = {
+			from: `${params.name} <${params.accountEmail}>`,
+			to: [...params.receiveEmail],
+			subject: params.subject,
+			text: params.text,
+			html: params.html
+		};
+
+		if (params.ccEmail.length > 0) {
+			sendForm.cc = [...params.ccEmail];
+		}
+
+		if (params.bccEmail.length > 0) {
+			sendForm.bcc = [...params.bccEmail];
+		}
+
+		const attachments = await this.toSendkitAttachments(params.attachments);
+		if (attachments.length > 0) {
+			sendForm.attachments = attachments;
+		}
+
+		if (params.sendType === 'reply' && params.messageId) {
+			sendForm.headers = {
+				'in-reply-to': params.messageId,
+				'references': params.messageId
+			};
+		}
+
+		const response = await fetch('https://api.sendkit.dev/emails', {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${sendkitToken}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(sendForm)
+		});
+
+		const result = await response.json().catch(() => ({}));
+
+		if (!response.ok) {
+			return { error: { message: result.message || result.error || `Sendkit error: ${response.status}` } };
+		}
+
+		return { data: { id: result.id } };
+	},
+
+	async toSendkitAttachments(attachments = []) {
+		const resendAttachments = await this.toResendAttachments(attachments);
+
+		return resendAttachments.map(attachment => {
+			const item = {
+				filename: attachment.filename,
+				content: attachment.content,
+				content_type: attachment.contentType
+			};
+
+			if (attachment.contentId) {
+				item.content_id = attachment.contentId.replace(/^<|>$/g, '');
+			}
+
+			return item;
+		});
+	},
+
+	async sendByBrevo(brevoToken, params) {
+		const sendForm = {
+			sender: { name: params.name, email: params.accountEmail },
+			to: params.receiveEmail.map(email => ({ email })),
+			subject: params.subject,
+			textContent: params.text,
+			htmlContent: params.html
+		};
+
+		if (params.ccEmail.length > 0) {
+			sendForm.cc = params.ccEmail.map(email => ({ email }));
+		}
+
+		if (params.bccEmail.length > 0) {
+			sendForm.bcc = params.bccEmail.map(email => ({ email }));
+		}
+
+		const attachments = await this.toBrevoAttachments(params.attachments);
+		if (attachments.length > 0) {
+			sendForm.attachment = attachments;
+		}
+
+		if (params.sendType === 'reply' && params.messageId) {
+			sendForm.headers = {
+				'In-Reply-To': params.messageId,
+				'References': params.messageId
+			};
+		}
+
+		const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+			method: 'POST',
+			headers: {
+				'accept': 'application/json',
+				'api-key': brevoToken,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(sendForm)
+		});
+
+		const result = await response.json().catch(() => ({}));
+
+		if (!response.ok) {
+			return { error: { message: result.message || result.error || `Brevo error: ${response.status}` } };
+		}
+
+		return { data: { id: result.messageId } };
+	},
+
+	async toBrevoAttachments(attachments = []) {
+		const resendAttachments = await this.toResendAttachments(attachments);
+
+		return resendAttachments.map(attachment => {
+			const item = {
+				name: attachment.filename,
+				content: attachment.content
+			};
+
+			if (attachment.contentId) {
+				item.contentId = attachment.contentId.replace(/^<|>$/g, '');
+			}
+
+			return item;
+		});
 	},
 
 	async toCloudflareAttachments(attachments) {

@@ -16,6 +16,8 @@ const settingService = {
 	async refresh(c) {
 		const settingRow = await orm(c).select().from(setting).get();
 		settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
+		settingRow.sendkitTokens = JSON.parse(settingRow.sendkitTokens || '{}');
+		settingRow.brevoTokens = JSON.parse(settingRow.brevoTokens || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -85,6 +87,14 @@ const settingService = {
 			settingRow.resendTokens[key] = `${settingRow.resendTokens[key].slice(0, 12)}******`;
 		});
 
+		Object.keys(settingRow.sendkitTokens || {}).forEach(key => {
+			settingRow.sendkitTokens[key] = `${settingRow.sendkitTokens[key].slice(0, 12)}******`;
+		});
+
+		Object.keys(settingRow.brevoTokens || {}).forEach(key => {
+			settingRow.brevoTokens[key] = `${settingRow.brevoTokens[key].slice(0, 12)}******`;
+		});
+
 		settingRow.s3AccessKey = settingRow.s3AccessKey ? `${settingRow.s3AccessKey.slice(0, 12)}******` : null;
 		settingRow.s3SecretKey = settingRow.s3SecretKey ? `${settingRow.s3SecretKey.slice(0, 12)}******` : null;
 		settingRow.tgBotToken = settingRow.tgBotToken ? `${settingRow.tgBotToken.slice(0, 20)}******` : null;
@@ -117,6 +127,14 @@ const settingService = {
 		Object.keys(resendTokens).forEach(domain => {
 			if (!resendTokens[domain]) delete resendTokens[domain];
 		});
+		let sendkitTokens = { ...(settingData.sendkitTokens || {}), ...params.sendkitTokens };
+		Object.keys(sendkitTokens).forEach(domain => {
+			if (!sendkitTokens[domain]) delete sendkitTokens[domain];
+		});
+		let brevoTokens = { ...(settingData.brevoTokens || {}), ...params.brevoTokens };
+		Object.keys(brevoTokens).forEach(domain => {
+			if (!brevoTokens[domain]) delete brevoTokens[domain];
+		});
 
 		if (Array.isArray(params.emailPrefixFilter)) {
 			params.emailPrefixFilter = params.emailPrefixFilter + '';
@@ -131,6 +149,8 @@ const settingService = {
 		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
+		params.sendkitTokens = JSON.stringify(sendkitTokens);
+		params.brevoTokens = JSON.stringify(brevoTokens);
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);
