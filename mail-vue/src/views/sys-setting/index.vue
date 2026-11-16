@@ -514,7 +514,7 @@
               <div class="setting-item">
                 <div><span>Site key</span></div>
                 <div class="bot-verify">
-                  <span>{{ setting.siteKey }}</span>
+                  <span>{{ maskSiteKey(setting.siteKey) }}</span>
                   <el-button class="opt-button" size="small" type="primary" @click="turnstileShow = true">
                     <Icon icon="lsicon:edit-outline" width="16" height="16"/>
                   </el-button>
@@ -1610,6 +1610,10 @@ getSettings()
 getUpdate()
 loadAttStatus()
 loadBackupStatus()
+
+function maskSiteKey(value) {
+  return value ? `${String(value).slice(0, 6)}******` : ''
+}
 
 function getSettings() {
   settingReady.value = false
