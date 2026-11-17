@@ -23,3 +23,11 @@ export function deleteBackground() {
 export function setBlackList(params) {
     return http.put('/setting/setBlacklist', params)
 }
+
+export function attKeyStatus() {
+    return http.get('/att/status')
+}
+
+export function attRotateKey() {
+    return http.post('/att/rotate')
+}

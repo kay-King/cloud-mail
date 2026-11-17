@@ -326,6 +326,45 @@
             </div>
           </div>
 
+          <!-- Attachment Encryption Card -->
+          <div class="settings-card">
+            <div class="card-title">{{ $t('attEncrypt') }}</div>
+            <div class="card-content">
+              <div class="setting-item">
+                <div>
+                  <span>{{ $t('attEncrypt') }}</span>
+                  <el-tooltip effect="dark" :content="$t('attEncryptDesc')">
+                    <Icon class="warning" icon="fe:warning" width="18" height="18"/>
+                  </el-tooltip>
+                </div>
+                <div>
+                  <el-switch @change="change" :before-change="beforeChange" :active-value="1" :inactive-value="0"
+                             v-model="setting.attEncrypt"/>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div>
+                  <span>{{ $t('attKeyFingerprint') }}</span>
+                </div>
+                <div class="r2domain">
+                  <el-tag v-if="attStatus.fingerprint">{{ attStatus.fingerprint }}</el-tag>
+                  <el-tag v-else type="info">{{ $t('attNoKey') }}</el-tag>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div>
+                  <span>{{ $t('attRotateKey') }}</span>
+                </div>
+                <div class="r2domain">
+                  <el-button class="opt-button" size="small" type="primary" :loading="attRotateLoading"
+                             @click="rotateAttKey">
+                    {{ $t('attRotateKey') }}
+                  </el-button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Turnstile Verification Card -->
           <div class="settings-card">
             <div class="card-title">{{ $t('turnstileSetting') }}</div>
@@ -982,7 +1021,7 @@ Authorization: &lt;secret&gt;</pre>
 
 <script setup>
 import {computed, defineOptions, nextTick, reactive, ref} from "vue";
-import {deleteBackground, setBackground, setBlackList, settingQuery, settingSet} from "@/request/setting.js";
+import {attKeyStatus, attRotateKey, deleteBackground, setBackground, setBlackList, settingQuery, settingSet} from "@/request/setting.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useUiStore} from "@/store/ui.js";
 import {useUserStore} from "@/store/user.js";
@@ -1034,6 +1073,8 @@ const uiStore = useUiStore();
 const {settings: setting} = storeToRefs(settingStore);
 const editTitle = ref('')
 const settingLoading = ref(false)
+const attStatus = ref({enabled: true, fingerprint: null, hasKey: false})
+const attRotateLoading = ref(false)
 const clearS3Loading = ref(false)
 const loginOpacity = ref(0)
 const minEmailPrefix = ref(0)
@@ -1160,6 +1201,7 @@ const tgMsgLabelWidth = computed(() => locale.value === 'en' ? '120px' : '100px'
 
 getSettings()
 getUpdate()
+loadAttStatus()
 
 function getSettings() {
   settingReady.value = false
@@ -1844,6 +1886,31 @@ function changeField(key, value) {
   if (!settingReady.value) return
   setting.value[key] = value
   editSetting({[key]: value}, false)
+}
+
+function loadAttStatus() {
+  attKeyStatus().then(data => {
+    attStatus.value = data
+  }).catch(() => {
+  })
+}
+
+function rotateAttKey() {
+  ElMessageBox.confirm(t('attRotateConfirm'), t('attRotateKey'), {type: 'warning'}).then(() => {
+    attRotateLoading.value = true
+    attRotateKey().then(data => {
+      attStatus.value.fingerprint = data.fingerprint
+      attStatus.value.hasKey = true
+      ElMessage({
+        message: t('attRotateSuccess'),
+        type: "success",
+        plain: true
+      })
+    }).finally(() => {
+      attRotateLoading.value = false
+    })
+  }).catch(() => {
+  })
 }
 
 function saveTitle() {

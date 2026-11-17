@@ -4,7 +4,8 @@ const KvConst = {
 	SEND_DAY_COUNT: 'send_day_count:',
 	ANALYSIS_ECHARTS: 'analysis_echarts:',
 	PUBLIC_KEY: "public_key:",
-	ATT_KEY_HISTORY: 'att-key-history:'
+	ATT_KEY_HISTORY: 'att-key-history:',
+	ATT_CURRENT_KEY: 'att-current-key:'
 }
 
 export default KvConst;

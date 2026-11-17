@@ -1,6 +1,18 @@
 // 附件客户端加密：上传到对象存储前在 Worker 里用 AES-256-GCM 加密，
-// 下载时解密，服务商只能看到密文。密钥来自 Worker secret
-// ATTACH_ENCRYPTION_KEY（base64 编码的 32 字节），不要写进代码或仓库。
+// 下载时解密，服务商只能看到密文。
+//
+// 钥匙管理（用户不用手动填钥匙）：
+// - 当前钥匙存在 KV 里（att-current-key:），第一次需要加密时 Worker 自己
+//   随机生成一把（32 字节），存进 KV；以后一直用它。
+// - 旧部署的 Worker secret ATTACH_ENCRYPTION_KEY 只作迁移来源：KV 里还没
+//   有当前钥匙时，第一次用到就把 secret 的值搬进 KV，以后以 KV 为主；
+//   secret 留着当后备，删了也不影响（KV 里已有钥匙时 secret 不再被读）。
+// - 每次换钥匙，旧钥匙自动记进 KV 钥匙历史（att-key-history:，新在前）。
+//   旧附件一直用旧钥匙解，不做重加密迁移。
+// - 怀疑泄露时，管理员在设置页点「重新生成」，Worker 生成一把新钥匙当
+//   当前钥匙，旧钥匙进历史，旧附件不受影响。
+// - 设置里的 attEncrypt 开关（默认开）控制是否加密：关掉后新附件明文存储，
+//   已加密的旧附件照常解密。
 //
 // 密文格式 v2（当前）：'CMA2'(4 字节) + 钥匙标记(8 字节，钥匙 SHA-256 前 8 字节)
 // + IV(12 字节随机) + ciphertext + GCM tag(16 字节，WebCrypto 追加在密文末尾)。
@@ -8,15 +20,11 @@
 // 密文格式 v1（旧对象）：'CMA1'(4 字节) + IV(12 字节) + ciphertext + tag，无标记，
 // 解密时按历史从新到旧逐个试。
 //
-// 钥匙轮换：Worker 在 KV 里维护一份钥匙历史（att-key-history:，新在前）。
-// 每次加解密时，若当前 secret 钥匙还没记下来就自动记一笔；旧附件一直用旧钥匙
-// 解，不做重加密迁移，新附件用当前钥匙加密。用户在 CF 后台直接改 secret 就能
-// 换钥匙，全程不断。注意：历史存在 KV 里，CF 账号能读 KV 的人就能看到钥匙——
-// 本部署的邮件正文与发信 key 本来就明文在 CF 里，这套加密防的是对象存储
-// 服务商，不是 CF。
-//
 // 只加密 attachments/ 前缀的对象（邮件附件与正文内嵌图）；static/ 等其他
 // 前缀（如登录页背景图）不加密，避免影响公开访问与缓存语义。
+//
+// 注意：钥匙存在 KV 里，CF 账号能读 KV 的人就能看到钥匙——本部署的邮件正文
+// 与发信 key 本来就明文在 CF 里，这套加密防的是对象存储服务商，不是 CF。
 import constant from '../const/constant';
 import KvConst from '../const/kv-const';
 
@@ -46,8 +54,64 @@ function base64ToBytes(base64) {
 	return bytes;
 }
 
-function getCurrentKeyB64(c) {
+function bytesToBase64(bytes) {
+	if (typeof Buffer !== 'undefined') {
+		return Buffer.from(bytes).toString('base64');
+	}
+	let bin = '';
+	for (let i = 0; i < bytes.length; i++) {
+		bin += String.fromCharCode(bytes[i]);
+	}
+	return btoa(bin);
+}
+
+function generateKeyB64() {
+	return bytesToBase64(crypto.getRandomValues(new Uint8Array(KEY_LEN)));
+}
+
+async function setCurrentKey(c, b64) {
+	try {
+		await c.env.kv.put(KvConst.ATT_CURRENT_KEY, b64);
+	} catch (e) {
+		console.error('Failed to store attachment current key', e);
+	}
+}
+
+// 只读当前钥匙，不生成、不写 KV（供解密与状态查询用，避免读操作产生副作用）
+async function readCurrentKeyB64(c) {
+	try {
+		const kvKey = await c.env.kv.get(KvConst.ATT_CURRENT_KEY);
+		if (kvKey) {
+			return kvKey;
+		}
+	} catch (e) {
+		console.error('Failed to read attachment current key', e);
+	}
 	return c?.env?.ATTACH_ENCRYPTION_KEY || null;
+}
+
+// 取当前钥匙：KV 里有就用 KV 的；没有则把 secret 搬进 KV（旧部署迁移）；
+// 两者都没有就随机生成一把存进 KV
+async function getCurrentKeyB64(c) {
+	let kvKey = null;
+	try {
+		kvKey = await c.env.kv.get(KvConst.ATT_CURRENT_KEY);
+	} catch (e) {
+		console.error('Failed to read attachment current key', e);
+	}
+	if (kvKey) {
+		return kvKey;
+	}
+	const secret = c?.env?.ATTACH_ENCRYPTION_KEY || null;
+	if (secret) {
+		await setCurrentKey(c, secret);
+		await ensureKeyRecorded(c, secret);
+		return secret;
+	}
+	const generated = generateKeyB64();
+	await setCurrentKey(c, generated);
+	await ensureKeyRecorded(c, generated);
+	return generated;
 }
 
 async function importKeyFromB64(b64) {
@@ -70,7 +134,7 @@ async function keyIdBytes(b64) {
 	return keyIdCache.get(b64);
 }
 
-// 钥匙指纹（SHA-256 前 8 位 hex），只用于日志，绝不记钥匙本身
+// 钥匙指纹（SHA-256 前 8 位 hex），只用于展示与日志，绝不记钥匙本身
 async function fingerprint(b64) {
 	const id = await keyIdBytes(b64);
 	return Array.from(id.slice(0, 4)).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -122,6 +186,20 @@ async function ensureKeyRecorded(c, b64) {
 	} catch (e) {
 		console.error('Failed to record attachment key', e);
 		return [];
+	}
+}
+
+// 附件加密开关：读 KV 里的设置缓存；缺字段或读不到时默认开启（保持现有行为）
+async function isEncryptionEnabled(c) {
+	try {
+		const setting = await c.env.kv.get(KvConst.SETTING, { type: 'json' });
+		if (!setting || setting.attEncrypt === undefined || setting.attEncrypt === null) {
+			return true;
+		}
+		return setting.attEncrypt !== 0;
+	} catch (e) {
+		console.error('Failed to read attachment encryption setting', e);
+		return true;
 	}
 }
 
@@ -205,6 +283,8 @@ const attCrypto = {
 
 	getCurrentKeyB64,
 
+	readCurrentKeyB64,
+
 	getHistory,
 
 	setHistory,
@@ -217,16 +297,37 @@ const attCrypto = {
 
 	keyIdBytes,
 
-	// 加密：非附件 key 或未配密钥时原样返回；加密一律用当前 secret 钥匙，写 CMA2 格式
+	isEncryptionEnabled,
+
+	// 当前钥匙指纹（无钥匙时返回 null，不触发生成）
+	async getCurrentFingerprint(c) {
+		const b64 = await readCurrentKeyB64(c);
+		if (!b64) {
+			return null;
+		}
+		return fingerprint(b64);
+	},
+
+	// 重新生成钥匙：生成一把新的当当前钥匙，旧钥匙留在历史里，旧附件不受影响
+	async rotateKey(c) {
+		const generated = generateKeyB64();
+		await setCurrentKey(c, generated);
+		await ensureKeyRecorded(c, generated);
+		return generated;
+	},
+
+	// 加密：非附件 key、未配密钥或开关关闭时原样返回；否则用当前钥匙写 CMA2 格式
 	async encrypt(c, key, content) {
 		if (!isAttachmentKey(key)) {
 			return content;
 		}
-		const b64 = getCurrentKeyB64(c);
+		if (!await isEncryptionEnabled(c)) {
+			return content;
+		}
+		const b64 = await getCurrentKeyB64(c);
 		if (!b64) {
 			return content;
 		}
-		await ensureKeyRecorded(c, b64);
 		const cryptoKey = await importKeyFromB64(b64);
 		const keyId = await keyIdBytes(b64);
 		const plain = await toUint8Array(content);
@@ -244,11 +345,11 @@ const attCrypto = {
 		if (!header) {
 			return bytes;
 		}
-		const b64 = getCurrentKeyB64(c);
+		const b64 = await readCurrentKeyB64(c);
 		const history = await ensureKeyRecorded(c, b64);
 		const candidates = [...new Set([b64, ...history].filter(Boolean))];
 		if (candidates.length === 0) {
-			throw new Error('Attachment is encrypted but ATTACH_ENCRYPTION_KEY is not configured');
+			throw new Error('Attachment is encrypted but no attachment key is configured');
 		}
 		// v2 先按标记直找对应钥匙
 		if (header.version === 2 && header.keyId) {
