@@ -42,7 +42,7 @@
               <div class="address-actions">
                 <button type="button" class="address-toggle" v-if="form.manyType !== 'divide' && !showCc" @click.stop="openCc">CC</button>
                 <button type="button" class="address-toggle" v-if="form.manyType !== 'divide' && !showBcc" @click.stop="openBcc">BCC</button>
-                <el-tooltip effect="dark" :content="$t('selectContacts')">
+                <el-tooltip effect="dark" :content="$t('chooseContacts')">
                   <Icon icon="fa7-solid:user-plus" width="20" height="20" class="add-contact" @click.stop="openContacts('receive')" />
                 </el-tooltip>
               </div>
@@ -72,7 +72,7 @@
             </template>
             <template #suffix>
               <div class="address-actions">
-                <el-tooltip effect="dark" :content="$t('selectContacts')">
+                <el-tooltip effect="dark" :content="$t('chooseContacts')">
                   <Icon icon="fa7-solid:user-plus" width="20" height="20" class="add-contact" @click.stop="openContacts('cc')" />
                 </el-tooltip>
               </div>
@@ -102,7 +102,7 @@
             </template>
             <template #suffix>
               <div class="address-actions">
-                <el-tooltip effect="dark" :content="$t('selectContacts')">
+                <el-tooltip effect="dark" :content="$t('chooseContacts')">
                   <Icon icon="fa7-solid:user-plus" width="20" height="20" class="add-contact" @click.stop="openContacts('bcc')" />
                 </el-tooltip>
               </div>

@@ -32,7 +32,7 @@ const zh = {
     deleteSelectedUsers: '删除选中用户',
     back: '返回',
     copyEmail: '复制邮箱地址',
-    selectContacts: '选择联系人',
+    chooseContacts: '选择联系人',
     starIt: '标为星标',
     unstar: '取消星标',
     removeAttachment: '移除附件',

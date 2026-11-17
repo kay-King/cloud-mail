@@ -32,7 +32,7 @@ const en = {
     deleteSelectedUsers: 'Delete selected users',
     back: 'Back',
     copyEmail: 'Copy email address',
-    selectContacts: 'Select contacts',
+    chooseContacts: 'Select contacts',
     starIt: 'Star',
     unstar: 'Unstar',
     removeAttachment: 'Remove attachment',
