@@ -108,7 +108,9 @@ const emailService = {
 		const query = orm(c)
 			.select({
 				...columns,
-				starId: star.starId
+				starId: star.starId,
+				// 列表回形针标识：只算真正附件（type=ATT），正文内嵌图不算
+				hasAttachment: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.ATT})`.as('hasAttachment')
 			})
 			.from(email)
 			.leftJoin(

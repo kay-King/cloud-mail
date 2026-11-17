@@ -5,7 +5,8 @@ import BizError from '../error/biz-error';
 import { and, desc, eq, lt, sql, inArray } from 'drizzle-orm';
 import email from '../entity/email';
 import { emailListColumns, emailBriefColumns } from '../lib/email-list-columns';
-import { isDel } from '../const/entity-const';
+import { attConst, isDel } from '../const/entity-const';
+import { att } from '../entity/att';
 import attService from "./att-service";
 import { t } from '../i18n/i18n'
 const starService = {
@@ -51,6 +52,8 @@ const starService = {
 		const list = await orm(c).select({
 			isStar: sql`1`.as('isStar'),
 			starId: star.starId,
+			// 列表回形针标识：只算真正附件（type=ATT），正文内嵌图不算
+			hasAttachment: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.ATT})`.as('hasAttachment'),
 			...columns
 		}).from(star)
 			.leftJoin(email, eq(email.emailId, star.emailId))

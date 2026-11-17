@@ -89,6 +89,7 @@
                           <span v-html="item.subjectHtml"></span>
                         </slot>
                       </span>
+                      <Icon v-if="item.hasAttachment" icon="iconamoon:attachment-fill" width="16" height="16" class="attachment-icon"/>
                     </span>
                     <span class="email-content" v-html="item.listHtml"></span>
                   </div>
