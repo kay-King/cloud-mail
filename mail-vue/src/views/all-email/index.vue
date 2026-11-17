@@ -19,7 +19,9 @@
 
     >
       <template #first>
-        <Icon class="icon" icon="fluent:broom-sparkle-16-regular" width="22" height="22" @click="openBathDelete"/>
+        <el-tooltip effect="dark" :content="t('clearEmail')">
+          <Icon class="icon" icon="fluent:broom-sparkle-16-regular" width="22" height="22" @click="openBathDelete"/>
+        </el-tooltip>
       </template>
     </emailScroll>
     <el-dialog v-model="showBathDelete" :title="$t('clearEmail')" width="335"

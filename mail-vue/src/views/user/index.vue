@@ -1,7 +1,9 @@
 <template>
   <div class="user-box">
     <div class="header-actions">
-      <Icon class="icon" icon="ion:add-outline" width="23" height="23" @click="openAdd"/>
+      <el-tooltip effect="dark" :content="$t('addUser')">
+        <Icon class="icon" icon="ion:add-outline" width="23" height="23" @click="openAdd"/>
+      </el-tooltip>
       <div class="search">
         <el-input
             v-model="params.email"
@@ -17,13 +19,23 @@
         <el-option :key="1" :label="$t('banned')" :value="1"/>
         <el-option :key="-2" :label="$t('deleted')" :value="-2"/>
       </el-select>
-      <Icon class="icon" icon="iconoir:search" @click="search" width="20" height="20"/>
-      <Icon class="icon" @click="changeTimeSort" icon="material-symbols-light:timer-arrow-down-outline"
-            v-if="params.timeSort === 1" width="28" height="28"/>
-      <Icon class="icon" @click="changeTimeSort" icon="material-symbols-light:timer-arrow-up-outline" v-else width="28"
-            height="28"/>
-      <Icon class="icon" icon="ion:reload" width="18" height="18" @click="refresh"/>
-      <Icon class="icon" icon="uiw:delete" width="16" height="16" @click="delUser"/>
+      <el-tooltip effect="dark" :content="$t('search')">
+        <Icon class="icon" icon="iconoir:search" @click="search" width="20" height="20"/>
+      </el-tooltip>
+      <el-tooltip v-if="params.timeSort === 1" effect="dark" :content="$t('sortByTime')">
+        <Icon class="icon" @click="changeTimeSort" icon="material-symbols-light:timer-arrow-down-outline"
+              width="28" height="28"/>
+      </el-tooltip>
+      <el-tooltip v-else effect="dark" :content="$t('sortByTime')">
+        <Icon class="icon" @click="changeTimeSort" icon="material-symbols-light:timer-arrow-up-outline" width="28"
+              height="28"/>
+      </el-tooltip>
+      <el-tooltip effect="dark" :content="$t('refresh')">
+        <Icon class="icon" icon="ion:reload" width="18" height="18" @click="refresh"/>
+      </el-tooltip>
+      <el-tooltip effect="dark" :content="$t('deleteSelectedUsers')">
+        <Icon class="icon" icon="uiw:delete" width="16" height="16" @click="delUser"/>
+      </el-tooltip>
     </div>
     <el-scrollbar ref="scrollbarRef" class="scrollbar">
       <div>
