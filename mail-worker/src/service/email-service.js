@@ -43,6 +43,7 @@ const emailService = {
 			searchType,
 			startDate,
 			endDate,
+			del,
 		} = params;
 
 		size = Number(size);
@@ -52,6 +53,8 @@ const emailService = {
 		accountId = Number(accountId);
 		allReceive = Number(allReceive);
 		full = Number(full);
+		// del=1 时只查已删除的邮件（回收站用）
+		del = Number(del) === 1;
 
 		if (isNaN(type)) {
 			type = 0;
@@ -91,6 +94,7 @@ const emailService = {
 			searchType,
 			startDate,
 			endDate,
+			del,
 		});
 		const countFilters = this.emailListFilters({
 			userId,
@@ -102,6 +106,7 @@ const emailService = {
 			searchType,
 			startDate,
 			endDate,
+			del,
 		});
 		const columns = full ? emailListColumns : emailBriefColumns;
 
@@ -225,11 +230,13 @@ const emailService = {
 		searchType,
 		startDate,
 		endDate,
+		del = false,
 	}) {
 		const conditions = [
 			eq(email.userId, userId),
-			eq(email.type, type),
-			eq(email.isDel, isDel.NORMAL),
+			// type=-1 表示收发都查（回收站用）
+			type === -1 ? undefined : eq(email.type, type),
+			eq(email.isDel, del ? isDel.DELETE : isDel.NORMAL),
 			eq(account.isDel, isDel.NORMAL),
 		];
 		if (!allReceive) {
@@ -364,6 +371,30 @@ const emailService = {
 				eq(email.userId, userId),
 				inArray(email.emailId, emailIdList)))
 			.run();
+	},
+
+	// 回收站恢复：只恢复自己的邮件
+	async restore(c, params, userId) {
+		const { emailIds } = params;
+		const emailIdList = (Array.isArray(emailIds) ? emailIds : String(emailIds).split(',')).map(Number);
+		await orm(c).update(email).set({ isDel: isDel.NORMAL }).where(
+			and(
+				eq(email.userId, userId),
+				inArray(email.emailId, emailIdList))
+		).run();
+	},
+
+	// 回收站彻底删除：只删自己的邮件，附件按去重规则连带删除
+	async physicsDeleteByUser(c, params, userId) {
+		const { emailIds } = params;
+		const emailIdList = emailIds.split(',').map(Number);
+		const owned = await orm(c).select({ emailId: email.emailId }).from(email)
+			.where(and(eq(email.userId, userId), inArray(email.emailId, emailIdList)))
+			.all();
+		const ownedIds = owned.map(row => row.emailId);
+		if (ownedIds.length) {
+			await this.physicsDelete(c, { emailIds: ownedIds.join(',') });
+		}
 	},
 
 	receive(c, params, cidAttList, r2domain) {
@@ -1484,7 +1515,12 @@ const emailService = {
 
 		const listWhere = and(...filters);
 		const countWhere = and(...countFilters);
-		const query = orm(c).select({ ...columns, userEmail: user.email })
+		const query = orm(c).select({
+			...columns,
+			userEmail: user.email,
+			// 列表回形针标识：只算真正附件（type=ATT），正文内嵌图不算
+			hasAttachment: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.ATT})`.as('hasAttachment')
+		})
 			.from(email)
 			.leftJoin(user, eq(email.userId, user.userId));
 		if (listWhere) query.where(listWhere);
@@ -1537,7 +1573,11 @@ const emailService = {
 
 		const { emailId } = params;
 
-		let list = await orm(c).select({ ...emailListColumns, userEmail: user.email }).from(email)
+		let list = await orm(c).select({
+			...emailListColumns,
+			userEmail: user.email,
+			hasAttachment: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.ATT})`.as('hasAttachment')
+		}).from(email)
 			.leftJoin(user, eq(email.userId, user.userId))
 			.where(
 				and(

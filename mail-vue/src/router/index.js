@@ -22,7 +22,7 @@ const routes = [
                 }
             },
             {
-                path: '/:mailbox(inbox|starred|sent|all-mail)/messages',
+                path: '/:mailbox(inbox|starred|sent|all-mail|trash)/messages',
                 name: 'content',
                 component: () => import('@/views/content/index.vue'),
                 meta: {
@@ -48,6 +48,16 @@ const routes = [
                 meta: {
                     title: 'starred',
                     name: 'star',
+                    menu: true
+                }
+            },
+            {
+                path: '/trash',
+                name: 'trash',
+                component: () => import('@/views/trash/index.vue'),
+                meta: {
+                    title: 'trash',
+                    name: 'trash',
                     menu: true
                 }
             },
@@ -163,7 +173,7 @@ router.afterEach((to) => {
 
     const uiStore = useUiStore()
     if (to.meta.menu) {
-        if (['content', 'email', 'send'].includes(to.meta.name)) {
+        if (['content', 'email', 'send', 'trash'].includes(to.meta.name)) {
             uiStore.accountShow = window.innerWidth > 767;
         } else {
             uiStore.accountShow = false

@@ -221,11 +221,19 @@
               </div>
             </template>
           </el-dropdown-item>
+          <el-dropdown-item v-if="props.type === 'trash'" @click="rightRestore(rightClickEmail.emailId)">
+            <template #default>
+              <div class="right-dropdown-item">
+                <Icon icon="mdi:restore" width="19" height="19" />
+                <span>{{t('restore')}}</span>
+              </div>
+            </template>
+          </el-dropdown-item>
           <el-dropdown-item @click="rightDelete(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
                 <Icon icon="uiw:delete" width="16" height="20" style="margin-left: 1px;margin-right: 3px" />
-                <span>{{t('delete')}}</span>
+                <span>{{props.type === 'trash' ? t('deleteForever') : t('delete')}}</span>
               </div>
             </template>
           </el-dropdown-item>
@@ -252,6 +260,7 @@ import { useScroll } from '@vueuse/core'
 const props = defineProps({
   getEmailList: Function,
   emailDelete: Function,
+  emailRestore: Function,
   emailRead: Function,
   starAdd: Function,
   starCancel: Function,
@@ -624,10 +633,17 @@ function localRead(emailIds) {
   })
 }
 
+function rightRestore(emailId) {
+  if (!props.emailRestore) {
+    return;
+  }
+  props.emailRestore([emailId])
+}
+
 function rightDelete(emailId) {
 
-  if (props.type === 'all-email') {
-    ElMessageBox.confirm(t('delOneEmailConfirm'), {
+  if (props.type === 'all-email' || props.type === 'trash') {
+    ElMessageBox.confirm(props.type === 'trash' ? t('delForeverOneConfirm') : t('delOneEmailConfirm'), {
       confirmButtonText: t('confirm'),
       cancelButtonText: t('cancel'),
       type: 'warning'
@@ -676,7 +692,7 @@ async function copyCode(code) {
 }
 
 function handleDelete() {
-  ElMessageBox.confirm(t('delEmailsConfirm'), {
+  ElMessageBox.confirm(props.type === 'trash' ? t('delForeverConfirm') : t('delEmailsConfirm'), {
     confirmButtonText: t('confirm'),
     cancelButtonText: t('cancel'),
     type: 'warning'

@@ -33,3 +33,8 @@ muse-account.txt
 b2-api-key.txt
 att-encryption-key.txt
 rotation-test-key.txt
+
+# 本地记录文件（DNS 抄录、接码记录、测试说明），不进仓库
+*-suny-dns.txt
+brevo-sms-verification.txt
+b2-attachment-test.txt
