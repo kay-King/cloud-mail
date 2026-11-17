@@ -5,7 +5,7 @@ import settingService from '../service/setting-service';
 import attService from '../service/att-service';
 import constant from '../const/constant';
 import fileUtils from '../utils/file-utils';
-import { emailConst, isDel, settingConst } from '../const/entity-const';
+import { emailConst, isDel, settingConst, attConst } from '../const/entity-const';
 import emailUtils from '../utils/email-utils';
 import roleService from '../service/role-service';
 import userService from '../service/user-service';
@@ -139,6 +139,8 @@ export async function email(message, env, ctx) {
 			attachment.size = item.content.length ?? item.content.byteLength;
 			attachments.push(attachment);
 			if (attachment.contentId) {
+				// 带 Content-ID 的是正文内嵌图，标成 EMBED，列表显示图片标志而不是回形针
+				attachment.type = attConst.type.EMBED;
 				cidAttachments.push(attachment);
 			}
 		}

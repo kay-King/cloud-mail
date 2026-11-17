@@ -649,7 +649,9 @@ const emailService = {
 		for (const receiveEmail of recipientGroups) {
 			const emailResult = await this.saveSentEmail(c, { ...saveParams, receiveEmail });
 			const inboxAddresses = [...receiveEmail, ...sendParams.ccEmail, ...sendParams.bccEmail];
-			const emailRowList = await this.HandleOnSiteEmail(c, inboxAddresses, emailResult, emailResult.attList);
+			// 收件副本要连内嵌图记录一起复制（emailResult.attList 只含真正附件），否则收件方看不到图片标志
+			const fullAttList = await attService.selectAllByEmailIds(c, [emailResult.emailId]);
+			const emailRowList = await this.HandleOnSiteEmail(c, inboxAddresses, emailResult, fullAttList);
 			//转发改后台跑：发件响应不等转发完成，转发失败仍记日志（本身无重试）
 			const forwardTask = this.forwardOnSiteEmail(c, emailRowList, { sendParams: { ...sendParams, receiveEmail } }).catch(e => console.error('转发失败：', e));
 			if (c.executionCtx?.waitUntil) {

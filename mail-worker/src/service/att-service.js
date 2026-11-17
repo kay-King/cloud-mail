@@ -215,6 +215,13 @@ const attService = {
 			.all();
 	},
 
+	// 含内嵌图的全量附件（站内投递复制给收件副本时用，selectByEmailIds 只返回真正附件）
+	selectAllByEmailIds(c, emailIds) {
+		return orm(c).select().from(att).where(
+			inArray(att.emailId, emailIds)
+		).all();
+	},
+
 	async removeAttByField(c, fieldName, fieldValues) {
 
 		const sqlList = [];
