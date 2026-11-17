@@ -115,7 +115,9 @@ const emailService = {
 				...columns,
 				starId: star.starId,
 				// 列表回形针标识：只算真正附件（type=ATT），正文内嵌图不算
-				hasAttachment: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.ATT})`.as('hasAttachment')
+				hasAttachment: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.ATT})`.as('hasAttachment'),
+				// 列表图片标识：正文有内嵌图（type=EMBED）时显示
+				hasInlineImage: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.EMBED})`.as('hasInlineImage')
 			})
 			.from(email)
 			.leftJoin(
@@ -1519,7 +1521,9 @@ const emailService = {
 			...columns,
 			userEmail: user.email,
 			// 列表回形针标识：只算真正附件（type=ATT），正文内嵌图不算
-			hasAttachment: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.ATT})`.as('hasAttachment')
+			hasAttachment: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.ATT})`.as('hasAttachment'),
+			// 列表图片标识：正文有内嵌图（type=EMBED）时显示
+			hasInlineImage: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.EMBED})`.as('hasInlineImage')
 		})
 			.from(email)
 			.leftJoin(user, eq(email.userId, user.userId));
@@ -1576,7 +1580,8 @@ const emailService = {
 		let list = await orm(c).select({
 			...emailListColumns,
 			userEmail: user.email,
-			hasAttachment: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.ATT})`.as('hasAttachment')
+			hasAttachment: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.ATT})`.as('hasAttachment'),
+			hasInlineImage: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.EMBED})`.as('hasInlineImage')
 		}).from(email)
 			.leftJoin(user, eq(email.userId, user.userId))
 			.where(
