@@ -24,6 +24,9 @@
       <el-tooltip effect="dark" :content="$t('forward')">
         <Icon class="icon" v-if="emailStore.contentData.showReply" v-perm="'email:send'"  @click="openForward" icon="iconoir:arrow-up-right" width="20" height="20" />
       </el-tooltip>
+      <el-tooltip effect="dark" :content="$t('exportMail')">
+        <Icon class="icon" @click="handleExport" icon="mdi:download" width="19" height="19" />
+      </el-tooltip>
     </div>
     <div></div>
     <el-scrollbar class="scrollbar">
@@ -108,7 +111,7 @@ import deleteNotifyDialog from "@/components/delete-notify-dialog/index.vue"
 import {computed, reactive, ref, watch, onMounted, onUnmounted, nextTick} from "vue";
 import {useRouter} from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import {emailDelete, emailRead, emailRestore, emailPhysicsDelete} from "@/request/email.js";
+import {emailDelete, emailRead, emailRestore, emailPhysicsDelete, emailExport, downloadExport} from "@/request/email.js";
 import {Icon} from "@iconify/vue";
 import {useEmailStore} from "@/store/email.js";
 import {useUserStore} from "@/store/user.js";
@@ -333,6 +336,16 @@ function changeStar() {
 
 const handleBack = () => {
   router.back()
+}
+
+const handleExport = () => {
+  if (!email.value?.emailId) return;
+  emailExport([email.value.emailId]).then(res => {
+    downloadExport(res);
+  }).catch(e => {
+    console.error(e);
+    ElMessage({message: t('exportFailed'), type: 'error', plain: true});
+  });
 }
 
 const handleDelete = () => {

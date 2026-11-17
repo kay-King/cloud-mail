@@ -37,3 +37,35 @@ export function emailSend(form,progress) {
         noMsg: true
     })
 }
+
+export function emailExport(emailIds) {
+    return http.get('/email/export?emailIds=' + emailIds, {responseType: 'blob', raw: true})
+}
+
+export function emailImport(accountId, files) {
+    const form = new FormData();
+    form.append('accountId', accountId);
+    files.forEach(f => form.append('files', f));
+    return http.post('/email/import', form, {noMsg: true, timeout: 120 * 1000})
+}
+
+// 把导出接口的 blob 响应存成文件（文件名取 Content-Disposition）
+export function downloadExport(res) {
+    const disposition = res.headers['content-disposition'] || '';
+    let filename = 'mail-export.zip';
+    const m = disposition.match(/filename\*=UTF-8''([^;]+)/);
+    const m2 = disposition.match(/filename="?([^";]+)"?/);
+    if (m) {
+        try { filename = decodeURIComponent(m[1]); } catch { /* keep default */ }
+    } else if (m2) {
+        filename = m2[1];
+    }
+    const url = URL.createObjectURL(new Blob([res.data]));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+}

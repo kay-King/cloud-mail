@@ -18,6 +18,12 @@ http.interceptors.response.use((res) => {
 
         return new Promise((resolve, reject) => {
 
+            // raw 请求（如文件下载）直接返回完整响应，不按业务码拆包
+            if (res.config.raw) {
+                resolve(res)
+                return
+            }
+
             const noMsg = res.config.noMsg;
             const data = res.data
 

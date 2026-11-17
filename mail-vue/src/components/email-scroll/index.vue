@@ -13,11 +13,20 @@
         <el-tooltip effect="dark" :content="$t('refresh')">
           <Icon class="icon reload" icon="ion:reload" width="18" height="18" @click="refresh"/>
         </el-tooltip>
+        <el-tooltip effect="dark" :content="$t('importMail')">
+          <Icon class="icon" icon="mdi:upload" width="18" height="18" @click="openImport"/>
+        </el-tooltip>
+        <input ref="importRef" type="file" accept=".eml,.zip" multiple style="display: none" @change="onImportFiles"/>
         <slot name="first"></slot>
         <el-tooltip effect="dark" :content="props.type === 'trash' ? $t('deleteForeverSelected') : $t('deleteSelected')">
           <Icon v-perm="'email:delete'" class="icon delete" icon="uiw:delete" width="16" height="16"
                 v-if="getSelectedMailsIds().length > 0"
                 @click="handleDelete"/>
+        </el-tooltip>
+        <el-tooltip effect="dark" :content="$t('exportSelected')">
+          <Icon class="icon" icon="mdi:download" width="18" height="18"
+                v-if="getSelectedMailsIds().length > 0 && props.type !== 'draft'"
+                @click="handleExport"/>
         </el-tooltip>
         <el-tooltip effect="dark" :content="$t('markAsRead')">
           <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-read-20-regular" width="21" height="21"
@@ -245,6 +254,14 @@
               </div>
             </template>
           </el-dropdown-item>
+          <el-dropdown-item v-if="props.type !== 'draft'" @click="rightExport(rightClickEmail.emailId)">
+            <template #default>
+              <div class="right-dropdown-item">
+                <Icon icon="mdi:download" width="19" height="19" />
+                <span>{{t('exportMail')}}</span>
+              </div>
+            </template>
+          </el-dropdown-item>
           <el-dropdown-item @click="rightDelete(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
@@ -267,6 +284,8 @@ import skeletonBlock from "@/components/email-scroll/skeleton/index.vue"
 import deleteNotifyDialog from "@/components/delete-notify-dialog/index.vue"
 import {computed, onActivated, reactive, ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import {useEmailStore} from "@/store/email.js";
+import {emailExport, emailImport, downloadExport} from "@/request/email.js";
+import {useAccountStore} from "@/store/account.js";
 import {useUserStore} from "@/store/user.js";
 import {useUiStore} from "@/store/ui.js";
 import {useSettingStore} from "@/store/setting.js";
@@ -338,6 +357,36 @@ const {t} = useI18n()
 const settingStore = useSettingStore()
 const uiStore = useUiStore();
 const emailStore = useEmailStore();
+const accountStore = useAccountStore();
+const importRef = ref(null);
+
+function openImport() {
+  importRef.value?.click();
+}
+
+function onImportFiles(e) {
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  if (files.length === 0) return;
+  const accountId = accountStore.currentAccountId;
+  if (!accountId) {
+    ElMessage({message: t('selectAccountFirst'), type: 'warning', plain: true});
+    return;
+  }
+  emailImport(accountId, files).then(summary => {
+    ElMessage({
+      message: t('importResult', {imported: summary.imported, skipped: summary.skipped, failed: summary.failed}),
+      type: summary.failed > 0 ? 'warning' : 'success',
+      plain: true,
+    });
+    if (summary.imported > 0) {
+      refresh();
+    }
+  }).catch(err => {
+    console.error(err);
+    ElMessage({message: err?.message || t('importFailed'), type: 'error', plain: true});
+  });
+}
 const userStore = useUserStore();
 
 // 管理员删除通知弹窗：仅全部邮件视图、开关开启、且删到别人的邮件时出现
@@ -697,6 +746,25 @@ function rightRestore(emailId) {
     return;
   }
   props.emailRestore([emailId])
+}
+
+function doExport(emailIds) {
+  emailExport(emailIds).then(res => {
+    downloadExport(res);
+  }).catch(e => {
+    console.error(e);
+    ElMessage({message: t('exportFailed'), type: 'error', plain: true});
+  });
+}
+
+function handleExport() {
+  const emailIds = getSelectedMailsIds();
+  if (emailIds.length === 0) return;
+  doExport(emailIds);
+}
+
+function rightExport(emailId) {
+  doExport([emailId]);
 }
 
 function rightDelete(emailId) {
