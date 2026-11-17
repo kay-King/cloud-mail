@@ -70,7 +70,7 @@ const zh = {
     r2AccountIdHint: 'Cloudflare 账号 ID，在仪表板首页右侧可以看到',
     attStorageR2ApiNote: '走 R2 的 S3 兼容 API；API 令牌在 Cloudflare 仪表板 → R2 → 管理 R2 API 令牌里创建。部署时绑定了 R2 bucket 的话，优先走绑定，不用填这里。',
     sendProvider: '发信服务商',
-    sendProviderDesc: '切换查看各服务商的密钥；多个服务商可同时配置，发送时按顺序用第一个可用的',
+    sendProviderDesc: '仅切换查看各服务商的密钥',
     backupBucket: '存储桶 Bucket',
     backupBucketHint: '在服务商控制台里建的桶名，例如 muse-mail',
     backupEndpoint: 'Endpoint 地址',
