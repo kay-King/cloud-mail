@@ -14,7 +14,7 @@
         </a>  
     </p>
     <p align="center" >
-        <a href="https://skymail.ink">在线演示</a> · <a href="https://docs.skymail.ink">部署文档</a> ·
+        <a href="https://skymail.ink">在线演示</a> · <a href="https://docs.skymail.ink">部署文档</a> · <a href="DEPLOY.md">本 fork 详细部署说明</a> ·
         <a align="center"><a href="README-en.md">English</a> | 简体中文 | <a href="README-ja.md">日本語</a></a>
     </p>
     <p align="center">

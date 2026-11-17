@@ -1,0 +1,69 @@
+# Cloud Mail 配置模板（命令行部署用）
+#
+# 用法：把这个文件复制一份，改名叫 wrangler.toml，
+# 再把下面标着 YOUR_ 的地方换成你自己的值。详细步骤见仓库根目录的 DEPLOY.md。
+#
+# 注意：不要把填好真实 ID 的 wrangler.toml 提交到公开仓库。
+
+name = "cloud-mail"
+main = "src/index.js"
+compatibility_date = "2025-06-04"
+keep_vars = true
+
+[observability]
+enabled = true
+
+# 后台访问域名。没有域名就把下面这三行整个删掉，部署后用 workers.dev 地址。
+[[routes]]
+pattern = "mail.example.com"
+custom_domain = true
+
+[[d1_databases]]
+binding = "db"
+database_name = "cloud-mail"
+database_id = "YOUR_D1_DATABASE_ID"
+
+[[kv_namespaces]]
+binding = "kv"
+id = "YOUR_KV_NAMESPACE_ID"
+
+# R2 附件存储（可选）。想用 R2 存附件时取消注释并填桶名；
+# 不用 R2 就保持注释，附件默认存 KV。
+#[[r2_buckets]]
+#binding = "r2"
+#bucket_name = ""
+
+# 注意：不要启用下面这个 CF 发信绑定。免费版只能发给已验证地址，
+# 且一旦启用会抢第一优先级、失败不回落，会堵死 Sendkit / Brevo 外发。
+#[[send_email]]
+#name = "email"
+
+[[send_email]]
+name = "forward"		#站内转发到已验证的其他邮箱，不限制单个地址
+
+[ai]
+binding = "ai"
+
+[assets]
+binding = "assets"		#静态资源绑定名默认不可修改
+directory = "./dist"	#前端vue项目打包的静态资源存放位置,默认dist
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+[triggers]
+crons = ["0 * * * *"]	#每小时执行；resetDaySendCount 仅在 UTC 0 点生效
+
+
+[vars]
+#ai_model = ""			#ai模型,不填默认使用@cf/meta/llama-3.1-8b-instruct-fast
+#analysis_cache = false			#是否开启分析数据缓存
+#orm_log = false			#是否sql日志
+domain = "[\"example.com\"]"	#邮件域名可配置多个 示例: ["example1.com","example2.com"]
+admin = "admin@example.com"		#管理员的邮箱，部署后用这个邮箱注册管理员账号
+# cf_account_id 只影响转发自动添加（保存转发时自动把目标邮箱加进验证名单）。
+# 不配这个也能用转发，只是目标邮箱要手动去 Cloudflare 后台验证。
+# 账号 ID 在 dash.cloudflare.com 首页右侧 Account ID。
+cf_account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+
+[build]
+command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run build"
