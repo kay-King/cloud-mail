@@ -21,8 +21,6 @@ export async function email(message, env, ctx) {
 			receive,
 			tgChatId,
 			tgBotStatus,
-			forwardStatus,
-			forwardEmail,
 			webhookStatus,
 			webhookUrl,
 			webhookRetry,
@@ -164,25 +162,18 @@ export async function email(message, env, ctx) {
 		emailRow = await emailService.completeReceive({ env }, account ? emailConst.status.RECEIVE : emailConst.status.NOONE, emailRow.emailId);
 
 
-		if (ruleType === settingConst.ruleType.RULE) {
-
-			const emails = ruleEmail.split(',');
-
-			if (!emails.includes(message.to)) {
-				return;
-			}
-
-		}
+		// 转发规则只影响 TG 与 Webhook 推送；邮件转发已改成按收件账号各自配置，不受规则限制
+		const ruleMatched = ruleType !== settingConst.ruleType.RULE || ruleEmail.split(',').includes(message.to);
 
 		//转发到TG
-		if (tgBotStatus === settingConst.tgBotStatus.OPEN && tgChatId) {
+		if (ruleMatched && tgBotStatus === settingConst.tgBotStatus.OPEN && tgChatId) {
 			await telegramService.sendEmailToBot({ env }, emailRow)
 		}
 
-		//转发到其他邮箱
-		if (forwardStatus === settingConst.forwardStatus.OPEN && forwardEmail) {
+		//按收件账号转发到其他邮箱
+		if (account && account.forwardStatus === settingConst.forwardStatus.OPEN && account.forwardEmail) {
 
-			const emails = forwardEmail.split(',');
+			const emails = account.forwardEmail.split(',').map(e => e.trim()).filter(Boolean);
 
 			await Promise.all(emails.map(async email => {
 
@@ -190,7 +181,7 @@ export async function email(message, env, ctx) {
 					await message.forward(email);
 				} catch (e) {
 					console.error(`转发邮箱 ${email} 失败：`, e);
-					await emailService.notifyForwardFailed({ env }, { address: email, rows: [emailRow], error: e });
+					await emailService.notifyForwardFailed({ env }, { address: email, rows: [emailRow], error: e, accountId: account.accountId });
 				}
 
 			}));
@@ -198,7 +189,7 @@ export async function email(message, env, ctx) {
 		}
 
 		//转发到 Webhook
-		if (webhookStatus === settingConst.webhookStatus.OPEN && webhookUrl) {
+		if (ruleMatched && webhookStatus === settingConst.webhookStatus.OPEN && webhookUrl) {
 			await webhookService.sendEmail({ env }, emailRow, webhookUrl, webhookRetry, webhookSecret);
 		}
 

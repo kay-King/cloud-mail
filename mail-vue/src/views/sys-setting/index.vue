@@ -256,15 +256,6 @@
                 </div>
               </div>
               <div class="setting-item">
-                <div><span>{{ $t('otherEmail') }}</span></div>
-                <div class="forward">
-                  <span>{{ setting.forwardStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
-                  <el-button class="opt-button" size="small" type="primary" @click="openThirdEmailSetting">
-                    <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
-                  </el-button>
-                </div>
-              </div>
-              <div class="setting-item">
                 <div><span>{{ $t('webhook') }}</span></div>
                 <div class="forward">
                   <span>{{ setting.webhookStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
@@ -274,10 +265,10 @@
                 </div>
               </div>
               <div class="setting-item">
-                <div><span>{{ $t('forwardingRules') }}</span></div>
+                <div><span>{{ $t('notifyEmail') }}</span></div>
                 <div class="forward">
-                  <span>{{ setting.ruleType === 0 ? $t('forwardAll') : $t('rules') }}</span>
-                  <el-button class="opt-button" size="small" type="primary" @click="openForwardRules">
+                  <span>{{ setting.notifyEmail || $t('notifyEmailDefault') }}</span>
+                  <el-button class="opt-button" size="small" type="primary" @click="openNotifySetting">
                     <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
                   </el-button>
                 </div>
@@ -775,26 +766,23 @@
         </template>
       </el-dialog>
       <el-dialog
-          v-model="thirdEmailShow"
+          v-model="notifySettingShow"
           class="forward-dialog"
       >
         <template #header>
           <div class="forward-head">
-            <span class="forward-set-title">{{ $t('otherEmail') }}</span>
-            <el-tooltip effect="dark" :content="$t('otherEmailDesc')">
+            <span class="forward-set-title">{{ $t('notifyEmail') }}</span>
+            <el-tooltip effect="dark" :content="$t('notifyEmailDesc')">
               <Icon class="warning" icon="fe:warning" width="18" height="18"/>
             </el-tooltip>
           </div>
         </template>
         <div class="forward-set-body">
-          <el-input-tag tag-type="warning" :placeholder="$t('otherEmailInputDesc')" v-model="forwardEmail"
-                        @add-tag="emailAddTag"></el-input-tag>
+          <el-input :placeholder="$t('notifyEmailPlaceholder')" v-model="notifyEmailInput" @keyup.enter="notifySave"></el-input>
         </div>
         <template #footer>
           <div class="dialog-footer">
-            <el-switch v-model="forwardStatus" :active-value="0" :inactive-value="1" :active-text="$t('enable')"
-                       :inactive-text="$t('disable')"/>
-            <el-button :loading="settingLoading" type="primary" @click="forwardEmailSave">
+            <el-button :loading="settingLoading" type="primary" @click="notifySave">
               {{ $t('save') }}
             </el-button>
           </div>
@@ -839,34 +827,6 @@ Authorization: &lt;secret&gt;</pre>
                 {{ $t('save') }}
               </el-button>
             </div>
-          </div>
-        </template>
-      </el-dialog>
-      <el-dialog
-          v-model="forwardRulesShow"
-          class="forward-dialog"
-      >
-        <template #header>
-          <div class="forward-head">
-            <span class="forward-set-title">{{ $t('forwardingRules') }}</span>
-            <el-tooltip effect="dark" :content="$t('forwardingRulesDesc')">
-              <Icon class="warning" icon="fe:warning" width="18" height="18"/>
-            </el-tooltip>
-          </div>
-        </template>
-        <div class="forward-set-body">
-          <el-input-tag :placeholder="$t('ruleEmailsInputDesc')" tag-type="success" v-model="ruleEmail"
-                        @add-tag="ruleEmailAddTag"/>
-        </div>
-        <template #footer>
-          <div class="dialog-footer">
-            <el-radio-group v-model="ruleType">
-              <el-radio :value="0">{{ $t('forwardAll') }}</el-radio>
-              <el-radio :value="1">{{ $t('rules') }}</el-radio>
-            </el-radio-group>
-            <el-button :loading="settingLoading" type="primary" @click="ruleEmailSave">
-              {{ $t('save') }}
-            </el-button>
           </div>
         </template>
       </el-dialog>
@@ -1333,10 +1293,10 @@ const autoCleanShow = ref(false)
 const aiCodeFilterShow = ref(false)
 const turnstileShow = ref(false)
 const tgSettingShow = ref(false)
+const notifySettingShow = ref(false)
+const notifyEmailInput = ref('')
 const noticePopupShow = ref(false)
-const thirdEmailShow = ref(false)
 const webhookShow = ref(false)
-const forwardRulesShow = ref(false)
 const emailPrefixShow = ref(false)
 const showResendList = ref(false)
 const showSendkitList = ref(false)
@@ -1500,8 +1460,6 @@ const tgChatId = ref([])
 const customDomain = ref('')
 const tgBotStatus = ref(0)
 const tgBotToken = ref('')
-const forwardEmail = ref([])
-const forwardStatus = ref(0)
 const webhookUrl = ref('')
 const webhookStatus = ref(1)
 const webhookRetry = ref(0)
@@ -1521,8 +1479,6 @@ const webhookPayloadExample = `{
 }`
 const emailColumnWidth = ref(0)
 const tokenColumnWidth = ref(0)
-const ruleType = ref(0)
-const ruleEmail = ref([])
 const tgMsgFrom = ref('')
 const tgMsgTo = ref('')
 const tgMsgText = ref('')
@@ -1720,6 +1676,20 @@ function openTgSetting() {
   tgSettingShow.value = true
 }
 
+function openNotifySetting() {
+  notifyEmailInput.value = setting.value.notifyEmail || ''
+  notifySettingShow.value = true
+}
+
+function notifySave() {
+  const email = notifyEmailInput.value.trim()
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    ElMessage({message: t('forwardEmailInvalid'), type: 'error', plain: true});
+    return
+  }
+  editSetting({notifyEmail: email})
+}
+
 function openNoticePopupSetting() {
   noticePopupShow.value = true
 }
@@ -1803,16 +1773,6 @@ function previewNoticePopup() {
   uiStore.previewNotice({...noticeForm})
 }
 
-function openThirdEmailSetting() {
-  forwardEmail.value = []
-  forwardStatus.value = setting.value.forwardStatus
-  if (setting.value.forwardEmail) {
-    const list = setting.value.forwardEmail.split(',')
-    forwardEmail.value.push(...list)
-  }
-  thirdEmailShow.value = true
-}
-
 function openWebhookSetting() {
   webhookStatus.value = setting.value.webhookStatus
   webhookUrl.value = setting.value.webhookUrl || ''
@@ -1831,44 +1791,6 @@ function openAutoClean() {
       ? setting.value.autoCleanExclude.split(',').filter(Boolean)
       : []
   autoCleanShow.value = true
-}
-
-function openForwardRules() {
-  ruleType.value = setting.value.ruleType
-  ruleEmail.value = []
-  if (setting.value.ruleEmail) {
-    const list = setting.value.ruleEmail.split(',')
-    ruleEmail.value.push(...list)
-  }
-  forwardRulesShow.value = true
-}
-
-function emailAddTag(val) {
-  const emails = Array.from(new Set(
-      val.split(/[,，]/).map(item => item.trim()).filter(item => item)
-  ));
-
-  forwardEmail.value.splice(forwardEmail.value.length - 1, 1)
-
-  emails.forEach(email => {
-    if (isEmail(email) && !forwardEmail.value.includes(email)) {
-      forwardEmail.value.push(email)
-    }
-  })
-}
-
-function ruleEmailAddTag(val) {
-  const emails = Array.from(new Set(
-      val.split(/[,，]/).map(item => item.trim()).filter(item => item)
-  ));
-
-  ruleEmail.value.splice(ruleEmail.value.length - 1, 1)
-
-  emails.forEach(email => {
-    if (isEmail(email) && !ruleEmail.value.includes(email)) {
-      ruleEmail.value.push(email)
-    }
-  })
 }
 
 function addChatTag(val) {
@@ -1953,14 +1875,6 @@ function tgBotSave() {
   editSetting(form)
 }
 
-function forwardEmailSave() {
-  const form = {
-    forwardStatus: forwardStatus.value,
-    forwardEmail: forwardEmail.value + ''
-  }
-  editSetting(form)
-}
-
 function webhookSave() {
   let retry = Number(webhookRetry.value)
   if (isNaN(retry) || retry < 0) {
@@ -1984,14 +1898,6 @@ function webhookSave() {
   editSetting(form)
 }
 
-
-function ruleEmailSave() {
-  const form = {
-    ruleEmail: ruleEmail.value + '',
-    ruleType: ruleType.value
-  }
-  editSetting(form)
-}
 
 function doOpacityChange() {
   if (!settingReady.value) return
@@ -2518,9 +2424,8 @@ function editSetting(settingForm, refreshStatus = true) {
     brevoTokenFormShow.value = false
     turnstileShow.value = false
     tgSettingShow.value = false
-    thirdEmailShow.value = false
+    notifySettingShow.value = false
     webhookShow.value = false
-    forwardRulesShow.value = false
     addVerifyCountShow.value = false
     regVerifyCountShow.value = false
     noticePopupShow.value = false

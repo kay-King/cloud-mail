@@ -12,6 +12,10 @@ export function accountSetName(accountId,name) {
     return http.put('/account/setName', {name,accountId})
 }
 
+export function accountSetForward(accountId, forwardEmail, forwardStatus) {
+    return http.put('/account/setForward', {accountId, forwardEmail, forwardStatus})
+}
+
 export function accountDelete(accountId) {
     return http.delete('/account/delete', {params: {accountId}})
 }

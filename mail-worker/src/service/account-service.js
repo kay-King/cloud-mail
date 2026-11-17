@@ -223,6 +223,35 @@ const accountService = {
 		await orm(c).update(account).set({isDel: isDel.NORMAL}).where(eq(account.userId, userId)).run();
 	},
 
+	async setForward(c, params, userId) {
+		const { accountId, forwardEmail, forwardStatus } = params;
+		const accountRow = await this.selectById(c, accountId);
+		if (!accountRow || accountRow.userId !== userId) {
+			throw new BizError(t('noUserAccount'));
+		}
+		const status = Number(forwardStatus) === settingConst.forwardStatus.OPEN
+			? settingConst.forwardStatus.OPEN : settingConst.forwardStatus.CLOSE;
+		let target = (forwardEmail || '').trim();
+		if (status === settingConst.forwardStatus.OPEN) {
+			if (!target || !verifyUtils.isEmail(target)) {
+				throw new BizError(t('notEmail'));
+			}
+		} else {
+			target = '';
+		}
+		await orm(c).update(account).set({ forwardEmail: target, forwardStatus: status })
+			.where(and(eq(account.userId, userId), eq(account.accountId, accountId))).run();
+		// 保存时就自动把目标地址加进 Cloudflare（CF 会自动发验证邮件），不用等到转发失败才加；
+		// 加不上也不影响保存，失败时由转发失败提醒兜底重试
+		if (status !== settingConst.forwardStatus.OPEN) {
+			return { verifyStatus: 'off' };
+		}
+		if (!c.env.cf_routing_token || !c.env.cf_account_id) {
+			return { verifyStatus: 'no-token' };
+		}
+		return { verifyStatus: await emailService.ensureDestinationVerified(c, target) };
+	},
+
 	async setName(c, params, userId) {
 		const { name, accountId } = params
 		if (name.length > 30) {

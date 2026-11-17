@@ -48,6 +48,7 @@ crons = ["0 * * * *"]	#每小时执行；resetDaySendCount 仅在 UTC 0 点生�
 #orm_log = false			#是否sql日志
 domain = "[\"suny.qzz.io\",\"setnote.de5.net\",\"sia.indevs.in\",\"tabs.qzz.io\",\"tato.dpdns.org\"]"	#邮件域名可可配置多个 示例: ["example1.com","example2.com"]
 admin = "admin@suny.qzz.io"		#管理员的邮箱	示例: admin@example.com
+cf_account_id = "***REMOVED***"	#Cloudflare 账号 ID，用于转发失败时自动添加目标地址；配合 cf_routing_token 密钥使用，不配则只提醒手动验证
 
 [build]
 command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run build"

@@ -1354,14 +1354,33 @@ const emailService = {
 	// 转发失败提醒：给管理员发一封站内通知（跳过转发，避免提醒本身再触发转发循环）。
 	// 同一转发地址 30 分钟内只提醒一次，避免转发持续故障时刷屏。
 	// 提醒本身绝不能抛错影响邮件流程，全程 try/catch，只记日志。
-	async notifyForwardFailed(c, { address, rows, error }) {
+	// 系统通知发件账号：优先用系统设置里的通知邮箱，留空或邮箱不存在时退回管理员账号；
+	// 发送时实时查设置，换邮箱只影响之后的新通知，已发送的通知不受影响
+	async getNotifySender(c) {
+		const setting = await settingService.query(c).catch(() => null);
+		const notifyEmail = setting?.notifyEmail?.trim();
+		if (notifyEmail) {
+			const notify = await orm(c).select().from(account).where(eq(account.email, notifyEmail)).get();
+			if (notify) return notify;
+			console.warn(`通知邮箱 ${notifyEmail} 不存在，退回管理员账号发送`);
+		}
+		return await orm(c).select().from(account).where(eq(account.email, c.env.admin)).get();
+	},
+
+	async notifyForwardFailed(c, { address, rows, error, accountId }) {
 		try {
-			const sender = await orm(c).select().from(account).where(eq(account.email, c.env.admin)).get();
+			const sender = await this.getNotifySender(c);
 			if (!sender) return;
+			// 通知发给该邮箱的拥有者；没带账号时退回管理员
+			let targetEmail = c.env.admin;
+			if (accountId) {
+				const owner = await accountService.selectById(c, accountId);
+				if (owner) targetEmail = owner.email;
+			}
 			const kv = c.env?.kv;
 			if (kv) {
 				try {
-					const throttleKey = `forward-notify-last:${address}`;
+					const throttleKey = `forward-notify-last:${accountId || 'admin'}:${address}`;
 					const last = await kv.get(throttleKey);
 					if (last && Date.now() - Number(last) < 30 * 60 * 1000) return;
 					await kv.put(throttleKey, String(Date.now()));
@@ -1369,11 +1388,20 @@ const emailService = {
 					console.error('转发提醒节流读写失败：', e);
 				}
 			}
-			const notice = buildForwardFailNotice(address, rows, error);
+			// 目标未验证时自动加进 Cloudflare 目标地址（CF 会自动发验证邮件）；没配 Token 时保持手动指引
+			let verifyAction = null;
+			if (/not (a )?verified|unverified/i.test(String(error?.message || error || ''))) {
+				verifyAction = 'manual';
+				if (c.env.cf_routing_token && c.env.cf_account_id) {
+					const auto = await this.ensureDestinationVerified(c, address);
+					if (auto !== 'failed') verifyAction = auto;
+				}
+			}
+			const notice = buildForwardFailNotice(address, rows, error, verifyAction);
 			await this.send(c, {
 				accountId: sender.accountId,
 				name: '系统通知',
-				receiveEmail: [c.env.admin],
+				receiveEmail: [targetEmail],
 				subject: notice.subject,
 				content: notice.html,
 				text: notice.text,
@@ -1384,17 +1412,61 @@ const emailService = {
 		}
 	},
 
+	// 把目标地址加进 Cloudflare 目标地址列表，CF 会自动往该邮箱发验证邮件
+	// 返回 added（已加，验证邮件已发）/ exists（之前已加过）/ verified（已验证通过）/ failed（没加上）
+	async ensureDestinationVerified(c, address) {
+		const kv = c.env?.kv;
+		const autoKey = `forward-autoadd:${address}`;
+		try {
+			if (kv) {
+				const prev = await kv.get(autoKey);
+				if (prev) {
+					const rec = JSON.parse(prev);
+					if (rec.status === 'added' && Date.now() - rec.time < 24 * 3600 * 1000) return 'exists';
+				}
+			}
+		} catch (e) {
+			console.error('自动添加节流读取失败：', e);
+		}
+		try {
+			const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${c.env.cf_account_id}/email/routing/addresses`, {
+				method: 'POST',
+				headers: { 'Authorization': `Bearer ${c.env.cf_routing_token}`, 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email: address })
+			});
+			const data = await res.json();
+			if (data.success) {
+				if (data.result?.verified) return 'verified';
+				try {
+					if (kv) await kv.put(autoKey, JSON.stringify({ status: 'added', time: Date.now() }));
+				} catch (e) {
+					console.error('自动添加节流写入失败：', e);
+				}
+				return 'added';
+			}
+			const msg = data.errors?.[0]?.message || '';
+			if (/already exists/i.test(msg)) return 'exists';
+			console.error('自动添加目标地址失败：', msg);
+			return 'failed';
+		} catch (e) {
+			console.error('自动添加目标地址异常：', e);
+			return 'failed';
+		}
+	},
+
 	//站内邮件不经过 email 事件，在这里按转发规则推送
 	async forwardOnSiteEmail(c, emailRowList, { sendParams }) {
 
-		const { tgBotStatus, tgChatId, forwardStatus, forwardEmail, webhookStatus, webhookUrl, webhookRetry, webhookSecret, ruleEmail, ruleType } = await settingService.query(c);
+		const { tgBotStatus, tgChatId, webhookStatus, webhookUrl, webhookRetry, webhookSecret, ruleEmail, ruleType } = await settingService.query(c);
 
+		// 转发规则只影响 TG 与 Webhook 推送
+		let notifyRows = emailRowList;
 		if (ruleType === settingConst.ruleType.RULE) {
 			const emails = ruleEmail.split(',');
-			emailRowList = emailRowList.filter(emailRow => emails.includes(emailRow.toEmail));
+			notifyRows = emailRowList.filter(emailRow => emails.includes(emailRow.toEmail));
 		}
 
-		for (const emailRow of emailRowList) {
+		for (const emailRow of notifyRows) {
 
 			//转发到TG
 			if (tgBotStatus === settingConst.tgBotStatus.OPEN && tgChatId) {
@@ -1408,32 +1480,55 @@ const emailService = {
 
 		}
 
-		//转发到其他邮箱。发件人用站内实际发件人，信头收件人保留原收件人，信封送到已验证地址。
-		if (forwardStatus === settingConst.forwardStatus.OPEN && forwardEmail && emailRowList.length > 0) {
-
-			const addresses = forwardEmail.split(',').map(address => address.trim()).filter(Boolean);
+		//按收件账号转发到其他邮箱。发件人用站内实际发件人，信头收件人保留原收件人，信封送到已验证地址。
+		//同一目标地址的收件行合并成一次发送，失败时按账号分别通知各自的拥有者。
+		const accountIds = [...new Set(emailRowList.map(row => row.accountId).filter(Boolean))];
+		if (accountIds.length === 0) {
+			return;
+		}
+		const accounts = await orm(c).select().from(account).where(inArray(account.accountId, accountIds)).all();
+		const accountById = new Map(accounts.map(a => [a.accountId, a]));
+		const groups = new Map();
+		for (const row of emailRowList) {
+			const acc = accountById.get(row.accountId);
+			if (!acc || acc.forwardStatus !== settingConst.forwardStatus.OPEN || !acc.forwardEmail) {
+				continue;
+			}
+			for (const target of acc.forwardEmail.split(',').map(s => s.trim()).filter(Boolean)) {
+				let group = groups.get(target);
+				if (!group) {
+					group = { rows: [], accountIds: new Set() };
+					groups.set(target, group);
+				}
+				group.rows.push(row);
+				group.accountIds.add(acc.accountId);
+			}
+		}
+		if (groups.size === 0) {
+			return;
+		}
+		const attachments = await this.toCloudflareAttachments(sendParams.attachments || []);
+		await Promise.all([...groups.entries()].map(async ([address, group]) => {
 			const params = {
 				...sendParams,
-				attachments: await this.toCloudflareAttachments(sendParams.attachments || []),
-				receiveEmail: emailRowList.map(row => ({ address: row.toEmail, name: row.toName || '' })).filter(item => item.address)
+				attachments,
+				receiveEmail: group.rows.map(row => ({ address: row.toEmail, name: row.toName || '' })).filter(item => item.address)
 			};
-
-			await Promise.all(addresses.map(async address => {
-
-				try {
-					const result = await forwardMime.send(c.env.forward, params, address);
-					if (result?.error) {
-						console.error(`转发邮箱 ${address} 失败：`, result.error);
-						await this.notifyForwardFailed(c, { address, rows: emailRowList, error: result.error });
+			try {
+				const result = await forwardMime.send(c.env.forward, params, address);
+				if (result?.error) {
+					console.error(`转发邮箱 ${address} 失败：`, result.error);
+					for (const accountId of group.accountIds) {
+						await this.notifyForwardFailed(c, { address, rows: group.rows.filter(r => r.accountId === accountId), error: result.error, accountId });
 					}
-				} catch (e) {
-					console.error(`转发邮箱 ${address} 失败：`, e);
-					await this.notifyForwardFailed(c, { address, rows: emailRowList, error: e });
 				}
-
-			}));
-
-		}
+			} catch (e) {
+				console.error(`转发邮箱 ${address} 失败：`, e);
+				for (const accountId of group.accountIds) {
+					await this.notifyForwardFailed(c, { address, rows: group.rows.filter(r => r.accountId === accountId), error: e, accountId });
+				}
+			}
+		}));
 
 	},
 
@@ -1874,7 +1969,7 @@ function nowCST() {
 	return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ');
 }
 
-function buildForwardFailNotice(address, rows, error) {
+function buildForwardFailNotice(address, rows, error, verifyAction) {
 	const list = (rows || []).slice(0, 5);
 	const more = (rows || []).length - list.length;
 	const errText = String(error?.message || error || '未知错误').slice(0, 200);
@@ -1887,11 +1982,24 @@ function buildForwardFailNotice(address, rows, error) {
 		`· 《${row.subject || '(无主题)'}》——发件人 ${row.sendEmail || ''}，收件人 ${row.toEmail || ''}，${toCST(row.createTime)}`);
 	const moreHtml = more > 0 ? `<p>另有 ${more} 封未列出。</p>` : '';
 	const moreText = more > 0 ? `\n另有 ${more} 封未列出。` : '';
+	// 目标未验证时的验证指引，按自动添加的结果换文案
+	let verifyText = '';
+	if (verifyAction === 'added') {
+		verifyText = `这个转发目标地址还没在 Cloudflare 里验证过，已经自动把它加进去了，验证邮件已发到这个邮箱，点了链接之后就能转发了。`;
+	} else if (verifyAction === 'exists') {
+		verifyText = `这个转发目标地址已经加到 Cloudflare 了，验证邮件发到这个邮箱了，请去收件箱（也看看垃圾邮件）里点验证链接，点了之后就能转发了。`;
+	} else if (verifyAction === 'verified') {
+		verifyText = `这个转发目标地址已经验证通过了，下次来信就能正常转发了。`;
+	} else if (verifyAction === 'manual') {
+		verifyText = `这个转发目标地址还没在 Cloudflare 里验证过，所以转不出去。请去 Cloudflare 后台的 Email Routing → 目标地址里加上 ${address}，Cloudflare 会往这个邮箱发一封验证邮件，点了链接之后就能转发了。`;
+	}
+	const verifyHtml = verifyText ? `<p>${escapeHtml(verifyText)}</p>` : '';
+	const verifyPlain = verifyText ? `\n\n${verifyText}` : '';
 	const now = nowCST();
 	return {
 		subject,
-		html: `<p>以下邮件转发到 ${escapeHtml(address)} 失败：</p><ul>${lines.join('')}</ul>${moreHtml}<p>失败原因：${escapeHtml(errText)}</p><p>失败时间：${now}</p><p>邮件本身还在站内收件箱，没有丢失；请检查转发设置或目标邮箱。同一地址 30 分钟内只提醒一次。</p>`,
-		text: `以下邮件转发到 ${address} 失败：\n${textLines.join('\n')}${moreText}\n\n失败原因：${errText}\n失败时间：${now}\n\n邮件本身还在站内收件箱，没有丢失；请检查转发设置或目标邮箱。同一地址 30 分钟内只提醒一次。`
+		html: `<p>以下邮件转发到 ${escapeHtml(address)} 失败：</p><ul>${lines.join('')}</ul>${moreHtml}<p>失败原因：${escapeHtml(errText)}</p>${verifyHtml}<p>失败时间：${now}</p><p>邮件本身还在站内收件箱，没有丢失；请检查转发设置或目标邮箱。同一地址 30 分钟内只提醒一次。</p>`,
+		text: `以下邮件转发到 ${address} 失败：\n${textLines.join('\n')}${moreText}\n\n失败原因：${errText}${verifyPlain}\n\n失败时间：${now}\n\n邮件本身还在站内收件箱，没有丢失；请检查转发设置或目标邮箱。同一地址 30 分钟内只提醒一次。`
 	};
 }
 

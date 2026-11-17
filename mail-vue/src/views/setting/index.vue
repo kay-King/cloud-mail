@@ -70,6 +70,17 @@
         <input ref="importRef" type="file" accept=".eml,.zip" multiple style="display: none" @change="onImportFiles"/>
       </div>
     </div>
+    <div class="preference-item">
+      <div class="title">{{$t('accountForward')}}</div>
+      <div style="color: var(--regular-text-color);">
+        {{$t('accountForwardDesc', { email: accountStore.currentAccount?.email || '' })}}
+      </div>
+      <div class="forward-row">
+        <el-switch v-model="forwardOn" :active-value="0" :inactive-value="1"/>
+        <el-input v-model="forwardTarget" :placeholder="$t('forwardTargetPlaceholder')" :disabled="forwardOn === 1" style="width: 260px"/>
+        <el-button type="primary" :loading="forwardLoading" @click="saveForward">{{$t('save')}}</el-button>
+      </div>
+    </div>
     <div class="del-email" v-perm="'my:delete'">
       <div class="title">{{$t('deleteUser')}}</div>
       <div style="color: var(--regular-text-color);">
@@ -91,11 +102,11 @@
   </div>
 </template>
 <script setup>
-import {reactive, ref, defineOptions} from 'vue'
+import {reactive, ref, defineOptions, watch} from 'vue'
 import {resetPassword, userDelete} from "@/request/my.js";
 import {useUserStore} from "@/store/user.js";
 import router from "@/router/index.js";
-import {accountSetName} from "@/request/account.js";
+import {accountSetName, accountSetForward} from "@/request/account.js";
 import {useAccountStore} from "@/store/account.js";
 import {useI18n} from "vue-i18n";
 import {useSettingStore} from "@/store/setting.js";
@@ -147,6 +158,56 @@ const setPwdLoading = ref(false)
 const setNameShow = ref(false)
 const accountName = ref(null)
 const langSelect = ref(settingStore.lang)
+
+// 邮件转发：针对当前邮箱
+const forwardOn = ref(1)
+const forwardTarget = ref('')
+const forwardLoading = ref(false)
+
+function loadForward() {
+  const acc = accountStore.currentAccount
+  forwardOn.value = acc?.forwardStatus ?? 1
+  forwardTarget.value = acc?.forwardEmail || ''
+}
+loadForward()
+watch(() => accountStore.currentAccountId, loadForward)
+
+function saveForward() {
+  const accountId = accountStore.currentAccountId
+  if (!accountId) {
+    ElMessage({message: t('selectAccountFirst'), type: 'warning', plain: true});
+    return
+  }
+  const target = forwardTarget.value.trim()
+  if (forwardOn.value === 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target)) {
+    ElMessage({message: t('forwardEmailInvalid'), type: 'error', plain: true});
+    return
+  }
+  forwardLoading.value = true
+  accountSetForward(accountId, target, forwardOn.value).then((data) => {
+    if (accountStore.currentAccount) {
+      accountStore.currentAccount.forwardEmail = forwardOn.value === 0 ? target : ''
+      accountStore.currentAccount.forwardStatus = forwardOn.value
+    }
+    // 开启转发时按自动添加的结果提示验证步骤；关闭时只提示已保存
+    const status = data?.verifyStatus
+    const msgKey = {
+      added: 'forwardVerifyAdded',
+      exists: 'forwardVerifyExists',
+      verified: 'forwardVerifyVerified',
+      failed: 'forwardVerifyFailed',
+      'no-token': 'forwardVerifyManual',
+    }[status] || 'saveSuccessMsg'
+    ElMessage({
+      message: t(msgKey),
+      type: ['exists', 'failed', 'no-token'].includes(status) ? 'warning' : 'success',
+      plain: true,
+      duration: 5000,
+    });
+  }).finally(() => {
+    forwardLoading.value = false
+  })
+}
 
 defineOptions({
   name: 'setting'
@@ -387,6 +448,13 @@ function submitPwd() {
     display: flex;
     flex-direction: column;
     gap: 20px;
+  }
+
+  .forward-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
   }
 }
 </style>

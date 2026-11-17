@@ -76,9 +76,9 @@ const adminNotifyService = {
 		return !setting || setting.adminDelNotify === undefined || setting.adminDelNotify === null || setting.adminDelNotify !== 0;
 	},
 
-	// 发件账号：邮箱等于管理员邮箱的账号
+	// 发件账号：优先用系统设置里的通知邮箱，找不到时退回管理员账号
 	async getAdminSender(c) {
-		return await orm(c).select().from(account).where(eq(account.email, c.env.admin)).get();
+		return await emailService.getNotifySender(c);
 	},
 
 	async sendOne(c, sender, targetEmail, notice) {
