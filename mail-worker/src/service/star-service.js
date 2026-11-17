@@ -54,8 +54,8 @@ const starService = {
 			starId: star.starId,
 			// 列表回形针标识：只算真正附件（type=ATT），正文内嵌图不算
 			hasAttachment: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.ATT})`.as('hasAttachment'),
-			// 列表图片标识：正文有内嵌图（type=EMBED）时显示
-			hasInlineImage: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.EMBED})`.as('hasInlineImage'),
+			// 列表图片标识：正文有内嵌图（type=EMBED）时显示；正文引用了站内存放的图片也算（补历史漏记的内嵌图记录）
+			hasInlineImage: sql`(EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.EMBED}) OR ${email.content} LIKE '%attachments/%')`.as('hasInlineImage'),
 			...columns
 		}).from(star)
 			.leftJoin(email, eq(email.emailId, star.emailId))
