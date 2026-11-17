@@ -384,6 +384,60 @@
             </div>
           </div>
 
+          <!-- Data Backup Card -->
+          <div class="settings-card">
+            <div class="card-title">{{ $t('dataBackup') }}</div>
+            <div class="card-content">
+              <div class="setting-item">
+                <div>
+                  <span>{{ $t('autoBackup') }}</span>
+                  <el-tooltip effect="dark" :content="$t('autoBackupDesc')">
+                    <Icon class="warning" icon="fe:warning" width="18" height="18"/>
+                  </el-tooltip>
+                </div>
+                <div>
+                  <el-switch @change="change" :active-value="1" :inactive-value="0"
+                             v-model="setting.autoBackup"/>
+                </div>
+              </div>
+              <div class="setting-item" v-if="setting.autoBackup === 1">
+                <div>
+                  <span>{{ $t('backupProvider') }}</span>
+                </div>
+                <div class="r2domain">
+                  <el-button class="opt-button" size="small" type="primary" @click="openBackupS3">
+                    {{ backupStatus.configured ? $t('configured') : $t('configure') }}
+                  </el-button>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div>
+                  <span>{{ $t('lastBackup') }}</span>
+                </div>
+                <div class="r2domain">
+                  <span v-if="backupStatus.lastRun">{{ new Date(backupStatus.lastRun).toLocaleString() }}</span>
+                  <span v-else>{{ backupStatus.configured ? $t('noBackupYet') : $t('backupNoProvider') }}</span>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div>
+                  <span>{{ $t('backupExport') }}</span>
+                </div>
+                <div class="r2domain">
+                  <el-button class="opt-button" size="small" type="primary" :loading="backupExportLoading"
+                             @click="handleBackupExport">
+                    {{ $t('backupExport') }}
+                  </el-button>
+                  <el-button class="opt-button" size="small" :loading="restoreLoading"
+                             @click="openRestoreFile">
+                    {{ $t('restoreBackup') }}
+                  </el-button>
+                  <input ref="restoreFileInput" type="file" accept=".json" style="display: none" @change="handleRestoreFile"/>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Turnstile Verification Card -->
           <div class="settings-card">
             <div class="card-title">{{ $t('turnstileSetting') }}</div>
@@ -943,11 +997,41 @@ Authorization: &lt;secret&gt;</pre>
       </el-dialog>
       <el-dialog v-model="addS3Show" :title="t('s3Configuration')" width="340" @closed="resetAddS3Form">
         <form @submit.prevent>
-          <el-input class="dialog-input" type="text" placeholder="Bucket" v-model="s3.bucket" @keyup.enter="saveS3"/>
-          <el-input class="dialog-input" type="text" placeholder="Endpoint" v-model="s3.endpoint" @keyup.enter="saveS3"/>
-          <el-input class="dialog-input" type="text" placeholder="Region" v-model="s3.region" @keyup.enter="saveS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupBucket') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupBucketHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" placeholder="例如：muse-mail" v-model="s3.bucket" @keyup.enter="saveS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupEndpoint') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupEndpointHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" placeholder="例如：s3.us-east-005.backblazeb2.com" v-model="s3.endpoint" @keyup.enter="saveS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupRegion') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupRegionHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" placeholder="例如：us-east-005" v-model="s3.region" @keyup.enter="saveS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupAccessKey') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupAccessKeyHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
           <el-input class="dialog-input" type="text" :placeholder="setting.s3AccessKey || 'Access key'"
                     v-model="s3.s3AccessKey" @keyup.enter="saveS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupSecretKey') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupSecretKeyHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
           <el-input style="margin-bottom: 10px" type="text" :placeholder="setting.s3SecretKey || 'Secret key'" v-model="s3.s3SecretKey" @keyup.enter="saveS3"/>
           <div class="force-path-style">
             <div class="force-path-style-left">
@@ -962,6 +1046,72 @@ Authorization: &lt;secret&gt;</pre>
           <div class="s3-button">
             <el-button :loading="clearS3Loading" @click="clearS3">{{ t('clear') }}</el-button>
             <el-button type="primary" :loading="settingLoading && !clearS3Loading" @click="saveS3">{{ t('save') }}</el-button>
+          </div>
+        </form>
+      </el-dialog>
+      <el-dialog v-model="backupS3Show" :title="t('backupProvider')" width="340" @closed="resetBackupS3Form">
+        <form @submit.prevent>
+          <div class="backup-field-label">
+            <span>{{ t('backupType') }}</span>
+          </div>
+          <el-select v-model="backupS3.type" style="width: 100%; margin-bottom: 15px">
+            <el-option :label="t('backupTypeS3')" value="s3"/>
+            <el-option :label="t('backupTypeKv')" value="kv"/>
+          </el-select>
+          <template v-if="backupS3.type === 'kv'">
+            <div class="backup-kv-note">{{ t('backupKvNote') }}</div>
+          </template>
+          <template v-else>
+          <div class="backup-field-label">
+            <span>{{ t('backupBucket') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupBucketHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" placeholder="例如：muse-mail" v-model="backupS3.bucket" @keyup.enter="saveBackupS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupEndpoint') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupEndpointHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" placeholder="例如：s3.us-east-005.backblazeb2.com" v-model="backupS3.endpoint" @keyup.enter="saveBackupS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupRegion') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupRegionHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" placeholder="例如：us-east-005" v-model="backupS3.region" @keyup.enter="saveBackupS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupAccessKey') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupAccessKeyHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" :placeholder="setting.backupS3AccessKey || 'Access key'"
+                    v-model="backupS3.s3AccessKey" @keyup.enter="saveBackupS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupSecretKey') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupSecretKeyHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input style="margin-bottom: 10px" type="text" :placeholder="setting.backupS3SecretKey || 'Secret key'" v-model="backupS3.s3SecretKey" @keyup.enter="saveBackupS3"/>
+          <div class="force-path-style">
+            <div class="force-path-style-left">
+              <span>ForcePathStyle</span>
+              <el-tooltip effect="dark" :content="$t('forcePathStyleDesc')">
+                <Icon class="warning" icon="fe:warning" width="18" height="18"/>
+              </el-tooltip>
+            </div>
+            <el-switch :before-change="beforeChange" :active-value="0" :inactive-value="1"
+                       v-model="backupS3.forcePathStyle"/>
+          </div>
+          </template>
+          <div class="s3-button">
+            <el-button :loading="clearBackupS3Loading" @click="clearBackupS3">{{ t('clear') }}</el-button>
+            <el-button type="primary" :loading="settingLoading && !clearBackupS3Loading" @click="saveBackupS3">{{ t('save') }}</el-button>
           </div>
         </form>
       </el-dialog>
@@ -1040,7 +1190,8 @@ Authorization: &lt;secret&gt;</pre>
 
 <script setup>
 import {computed, defineOptions, nextTick, reactive, ref} from "vue";
-import {attKeyStatus, attRotateKey, deleteBackground, setBackground, setBlackList, settingQuery, settingSet} from "@/request/setting.js";
+import {attKeyStatus, attRotateKey, deleteBackground, setBackground, setBlackList, settingQuery, settingSet, backupStatus as backupStatusReq, backupExport, backupRestore} from "@/request/setting.js";
+import {downloadExport} from "@/request/email.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useUiStore} from "@/store/ui.js";
 import {useUserStore} from "@/store/user.js";
@@ -1149,6 +1300,26 @@ const s3 = reactive({
   forcePathStyle: 1
 })
 
+const backupStatus = reactive({
+  configured: false,
+  lastRun: null
+})
+const backupS3Show = ref(false)
+const backupExportLoading = ref(false)
+const clearBackupS3Loading = ref(false)
+const restoreFileInput = ref(null)
+const restoreLoading = ref(false)
+
+const backupS3 = reactive({
+  type: 's3',
+  bucket: '',
+  endpoint: '',
+  region: '',
+  s3AccessKey: '',
+  s3SecretKey: '',
+  forcePathStyle: 1
+})
+
 const noticeForm = reactive({
   noticeTitle: '',
   noticeContent: '',
@@ -1221,6 +1392,7 @@ const tgMsgLabelWidth = computed(() => locale.value === 'en' ? '120px' : '100px'
 getSettings()
 getUpdate()
 loadAttStatus()
+loadBackupStatus()
 
 function getSettings() {
   settingReady.value = false
@@ -1894,6 +2066,8 @@ function change(e) {
   delete settingForm.secretKey
   delete settingForm.s3AccessKey
   delete settingForm.s3SecretKey
+  delete settingForm.backupS3AccessKey
+  delete settingForm.backupS3SecretKey
   delete settingForm.tgBotToken
   delete settingForm.resendTokens
   delete settingForm.sendkitTokens
@@ -1912,6 +2086,126 @@ function loadAttStatus() {
     attStatus.value = data
   }).catch(() => {
   })
+}
+
+function loadBackupStatus() {
+  backupStatusReq().then(data => {
+    Object.assign(backupStatus, data)
+  }).catch(() => {
+  })
+}
+
+function handleBackupExport() {
+  backupExportLoading.value = true
+  backupExport().then(async res => {
+    if (await downloadBackupRes(res, 'backupFailed')) loadBackupStatus()
+  }).catch(e => {
+    console.error(e)
+    ElMessage({message: t('backupFailed'), type: 'error', plain: true})
+  }).finally(() => {
+    backupExportLoading.value = false
+  })
+}
+
+// 备份下载响应校验：服务端报错时返回的是不带 Content-Disposition 的 JSON，
+// 直接下载会把报错内容存成文件且无任何提示；此时解析 message 弹错，不下载
+async function downloadBackupRes(res, failKey) {
+  if (!res.headers['content-disposition']) {
+    let msg = t(failKey)
+    try {
+      const j = JSON.parse(await res.data.text())
+      if (j.message) msg = j.message
+    } catch {
+    }
+    ElMessage({message: msg, type: 'error', plain: true})
+    return false
+  }
+  downloadExport(res)
+  return true
+}
+
+function openBackupS3() {
+  if (settingLoading.value) return
+  resetBackupS3Form()
+  backupS3Show.value = true
+}
+
+function openRestoreFile() {
+  restoreFileInput.value?.click()
+}
+
+async function handleRestoreFile(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+  let backup
+  try {
+    backup = JSON.parse(await file.text())
+  } catch {
+    ElMessage({message: t('restoreInvalidFile'), type: 'error', plain: true})
+    return
+  }
+  if (!backup || backup.version !== 1 || !backup.d1 || !Array.isArray(backup.d1.tables) || !backup.kv) {
+    ElMessage({message: t('restoreInvalidFile'), type: 'error', plain: true})
+    return
+  }
+  ElMessageBox.confirm(t('restoreBackupConfirm'), t('restoreBackup'), {type: 'warning'}).then(() => {
+    restoreLoading.value = true
+    const formData = new FormData()
+    formData.append('file', file)
+    backupRestore(formData).then(data => {
+      ElMessage({
+        message: `${t('restoreBackupSuccess')} (${data.tables} tables, ${data.rows} rows, ${data.kvKeys} KV keys)`,
+        type: 'success',
+        plain: true
+      })
+      getSettings()
+      loadBackupStatus()
+    }).catch(err => {
+      console.error(err)
+      ElMessage({message: t('restoreBackupFailed'), type: 'error', plain: true})
+    }).finally(() => {
+      restoreLoading.value = false
+    })
+  }).catch(() => {
+  })
+}
+
+function resetBackupS3Form() {
+  backupS3.type = setting.value.backupType || 's3'
+  backupS3.bucket = setting.value.backupBucket
+  backupS3.endpoint = setting.value.backupEndpoint
+  backupS3.region = setting.value.backupRegion
+  backupS3.s3AccessKey = ''
+  backupS3.s3SecretKey = ''
+  backupS3.forcePathStyle = setting.value.backupForcePathStyle
+}
+
+function saveBackupS3() {
+  const form = {
+    backupType: backupS3.type,
+    backupBucket: backupS3.bucket,
+    backupEndpoint: backupS3.endpoint,
+    backupRegion: backupS3.region,
+    backupForcePathStyle: backupS3.forcePathStyle
+  }
+  if (backupS3.s3AccessKey) form.backupS3AccessKey = backupS3.s3AccessKey
+  if (backupS3.s3SecretKey) form.backupS3SecretKey = backupS3.s3SecretKey
+  editSetting(form)
+}
+
+function clearBackupS3() {
+  const form = {
+    backupType: 's3',
+    backupBucket: '',
+    backupEndpoint: '',
+    backupRegion: '',
+    backupS3AccessKey: '',
+    backupS3SecretKey: '',
+    backupForcePathStyle: 1
+  }
+  clearBackupS3Loading.value = true
+  editSetting(form)
 }
 
 function rotateAttKey() {
@@ -1973,6 +2267,7 @@ function editSetting(settingForm, refreshStatus = true) {
     regVerifyCountShow.value = false
     noticePopupShow.value = false
     addS3Show.value = false
+    backupS3Show.value = false
     emailPrefixShow.value = false
     aiCodeFilterShow.value = false
     autoCleanShow.value = false
@@ -1983,6 +2278,8 @@ function editSetting(settingForm, refreshStatus = true) {
   }).finally(() => {
     settingLoading.value = false
     clearS3Loading.value = false
+    clearBackupS3Loading.value = false
+    loadBackupStatus()
   })
 }
 </script>
@@ -2416,6 +2713,25 @@ function editSetting(settingForm, refreshStatus = true) {
 }
 
 .dialog-input {
+  margin-bottom: 15px;
+}
+
+.backup-field-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.backup-kv-note {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #606266;
+  background: #f5f7fa;
+  border-radius: 4px;
+  padding: 8px 10px;
   margin-bottom: 15px;
 }
 

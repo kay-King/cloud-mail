@@ -6,6 +6,7 @@ import emailService from './service/email-service';
 import r2Service from './service/r2-service';
 import oauthService from './service/oauth-service';
 import analysisService from './service/analysis-service';
+import backupService from './service/backup-service';
 export default {
 	 async fetch(req, env, ctx) {
 
@@ -43,5 +44,10 @@ export default {
 		await emailService.autoClean({ env })
 		await analysisService.refreshEchartsCache({ env })
 		await oauthService.clearNoBindOathUser({ env })
+		try {
+			await backupService.runBackup({ env })
+		} catch (e) {
+			console.error('Scheduled backup failed', e)
+		}
 	},
 };

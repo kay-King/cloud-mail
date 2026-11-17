@@ -207,6 +207,15 @@ function isAttachmentKey(key) {
 	return typeof key === 'string' && key.startsWith(constant.ATTACHMENT_PREFIX);
 }
 
+function isBackupKey(key) {
+	return typeof key === 'string' && key.startsWith(constant.BACKUP_PREFIX);
+}
+
+// 需要加密的对象：附件与备份。备份里含 KV 中的钥匙本身，必须加密，不受附件加密开关影响
+function isEncryptedKey(key) {
+	return isAttachmentKey(key) || isBackupKey(key);
+}
+
 function startsWith(bytes, prefix) {
 	if (bytes.length < prefix.length) {
 		return false;
@@ -316,12 +325,12 @@ const attCrypto = {
 		return generated;
 	},
 
-	// 加密：非附件 key、未配密钥或开关关闭时原样返回；否则用当前钥匙写 CMA2 格式
+	// 加密：非附件/备份 key、未配密钥时原样返回；附件受附件加密开关控制，备份始终加密
 	async encrypt(c, key, content) {
-		if (!isAttachmentKey(key)) {
+		if (!isEncryptedKey(key)) {
 			return content;
 		}
-		if (!await isEncryptionEnabled(c)) {
+		if (!isBackupKey(key) && !await isEncryptionEnabled(c)) {
 			return content;
 		}
 		const b64 = await getCurrentKeyB64(c);
@@ -334,11 +343,11 @@ const attCrypto = {
 		return encryptBytes(cryptoKey, keyId, plain);
 	},
 
-	// 解密：非附件 key 或无魔术头的明文对象原样返回字节；CMA2 按标记直找对应钥匙，
+	// 解密：非附件/备份 key 或无魔术头的明文对象原样返回字节；CMA2 按标记直找对应钥匙，
 	// 找不到标记时回退到逐个试；CMA1 无标记，直接按历史从新到旧逐个试
 	async decrypt(c, key, content) {
 		const bytes = await toUint8Array(content);
-		if (!isAttachmentKey(key)) {
+		if (!isEncryptedKey(key)) {
 			return bytes;
 		}
 		const header = parseHeader(bytes);

@@ -71,6 +71,14 @@ export const setting = sqliteTable('setting', {
 	webhookRetry: integer('webhook_retry').default(0).notNull(),
 	webhookSecret: text('webhook_secret').default('').notNull(),
 	attEncrypt: integer('att_encrypt').default(1).notNull(),
-	adminDelNotify: integer('admin_del_notify').default(1).notNull()
+	adminDelNotify: integer('admin_del_notify').default(1).notNull(),
+	autoBackup: integer('auto_backup').default(1).notNull(),
+	backupType: text('backup_type').default('s3').notNull(),
+	backupBucket: text('backup_bucket').default('').notNull(),
+	backupRegion: text('backup_region').default('').notNull(),
+	backupEndpoint: text('backup_endpoint').default('').notNull(),
+	backupS3AccessKey: text('backup_s3_access_key').default('').notNull(),
+	backupS3SecretKey: text('backup_s3_secret_key').default('').notNull(),
+	backupForcePathStyle: integer('backup_force_path_style').default(1).notNull()
 });
 export default setting

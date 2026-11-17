@@ -31,3 +31,15 @@ export function attKeyStatus() {
 export function attRotateKey() {
     return http.post('/att/rotate')
 }
+
+export function backupStatus() {
+    return http.get('/backup/status', {noMsg: true})
+}
+
+export function backupExport() {
+    return http.post('/backup/export', {}, {responseType: 'blob', raw: true})
+}
+
+export function backupRestore(formData) {
+    return http.post('/backup/restore', formData, {timeout: 120000})
+}

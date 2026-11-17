@@ -6,6 +6,7 @@ const constant = {
 	// Bump this number to invalidate every existing login token.
 	AUTH_GEN: 1,
 	ATTACHMENT_PREFIX: 'attachments/',
+	BACKUP_PREFIX: 'backups/',
 	BACKGROUND_PREFIX: 'static/background/',
 	ADMIN_ROLE: {
 		name: 'admin',
