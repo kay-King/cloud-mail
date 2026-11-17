@@ -113,13 +113,13 @@
                       <span>
                         <Icon icon="mynaui:user" width="20" height="20"/>
                       </span>
-                      <span v-html="item.peerEmailHtml"></span>
+                      <span v-html="item.senderEmailHtml"></span>
                     </div>
                     <div class="account">
                       <span>
                         <Icon icon="mdi-light:email" width="20" height="20"/>
                       </span>
-                      <span v-html="item.accountEmailHtml"></span>
+                      <span v-html="item.recipientEmailHtml"></span>
                     </div>
                   </div>
                 </div>
@@ -944,11 +944,11 @@ function applyHighlight(email) {
   email.nameHtml = renderHighlight(email.name);
   email.subjectHtml = renderHighlight(email.subject);
   email.listHtml = renderHighlight(email.listText || email.text);
-  email.peerEmailHtml = renderHighlight(email.type === 0 ? email.sendEmail : firstRecipient(email));
-  email.accountEmailHtml = renderHighlight(email.type === 0 ? email.toEmail : email.sendEmail);
+  email.senderEmailHtml = renderHighlight(email.sendEmail);
+  email.recipientEmailHtml = renderHighlight(firstRecipient(email));
 }
 
-// 已发邮件的收件人存在 recipient JSON 里（to_email 为空），取第一个收件地址
+// 收件地址：收件人存在 recipient JSON 里（已发邮件的 to_email 为空），取第一个收件地址
 function firstRecipient(email) {
   try {
     const list = JSON.parse(email.recipient || '[]')
