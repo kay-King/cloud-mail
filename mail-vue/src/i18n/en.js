@@ -70,7 +70,7 @@ const en = {
     r2AccountIdHint: 'Your Cloudflare account ID, shown on the right side of the dashboard home page',
     attStorageR2ApiNote: "Uses R2's S3-compatible API; create the API token in the Cloudflare dashboard under R2 → Manage R2 API Tokens. If an R2 bucket is bound at deploy time, the binding takes priority and nothing needs to be filled in here.",
     sendProvider: 'Sending provider',
-    sendProviderDesc: "Only switches which provider's keys are shown",
+    sendProviderDesc: "Switch to view each provider's keys; multiple providers can be configured at once",
     backupBucket: 'Bucket',
     backupBucketHint: 'The bucket name created in your provider console, e.g. muse-mail',
     backupEndpoint: 'Endpoint',
