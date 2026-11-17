@@ -196,35 +196,26 @@
                   </el-tooltip>
                 </div>
                 <div>
-                  <el-select v-model="manageProvider" style="width: 140px">
-                    <el-option label="Cloudflare" value="cloudflare"/>
-                    <el-option label="Resend" value="resend"/>
-                    <el-option label="Sendkit" value="sendkit"/>
-                    <el-option label="Brevo" value="brevo"/>
-                  </el-select>
-                  <span v-if="manageProvider === 'cloudflare'" style="margin-left: 10px">
-                    <template v-if="setting.hasCfEmail">{{ $t('enabled') }}</template>
-                    <el-tooltip v-else effect="dark" :content="$t('sendProviderNotBound')">
-                      <span>{{ $t('sendProviderUnbound') }}</span>
-                    </el-tooltip>
-                  </span>
-                  <template v-if="['resend', 'sendkit', 'brevo'].includes(manageProvider)">
-                    <el-button class="opt-button" style="margin-top: 0; margin-left: 8px" @click="openSendProviderList" size="small"
-                               type="primary">
-                      <Icon icon="ic:round-list" width="18" height="18"/>
-                    </el-button>
-                    <el-button class="opt-button" style="margin-top: 0" @click="openSendProviderForm" size="small"
-                               type="primary">
-                      <Icon icon="material-symbols:add-rounded" width="16" height="16"/>
-                    </el-button>
-                  </template>
+                  <el-button @click="sendProviderExpanded = !sendProviderExpanded" :style="sendProviderButtonStyle()">
+                    {{ sendProviderButtonLabel }}
+                  </el-button>
                 </div>
               </div>
-              <div class="setting-item">
-                <div><span>{{ $t('sendProviderConfigured') }}</span></div>
-                <div>
-                  <span>{{ sendProviderSummary }}</span>
-                </div>
+              <div v-if="sendProviderExpanded" style="padding-bottom: 15px">
+                <el-button-group style="margin-bottom: 10px">
+                  <el-button :type="manageProvider === 'resend' ? 'primary' : ''" :style="sendProviderSwitchStyle('resend')" @click="manageProvider = 'resend'">Resend</el-button>
+                  <el-button :type="manageProvider === 'sendkit' ? 'primary' : ''" :style="sendProviderSwitchStyle('sendkit')" @click="manageProvider = 'sendkit'">Sendkit</el-button>
+                  <el-button :type="manageProvider === 'brevo' ? 'primary' : ''" :style="sendProviderSwitchStyle('brevo')" @click="manageProvider = 'brevo'">Brevo</el-button>
+                </el-button-group>
+                <template v-if="manageProvider">
+                  <el-table :data="currentSendProviderList">
+                    <el-table-column :min-width="emailColumnWidth" property="key" :label="$t('domain')"
+                                     :show-overflow-tooltip="true"/>
+                    <el-table-column :width="tokenColumnWidth" property="value" :label="manageProvider === 'resend' ? 'Token' : 'API Key'" fixed="right"
+                                     :show-overflow-tooltip="true"/>
+                  </el-table>
+                  <el-button type="primary" style="margin-top: 10px" @click="openSendProviderForm">{{ $t('add') }}</el-button>
+                </template>
               </div>
               <div class="setting-item">
                 <div><span>{{ $t('blackList') }}</span></div>
@@ -880,30 +871,6 @@ Authorization: &lt;secret&gt;</pre>
           </div>
         </template>
       </el-dialog>
-      <el-dialog class="resend-table" v-model="showResendList" :title="$t('resendTokenList')">
-        <el-table :data="resendList">
-          <el-table-column :min-width="emailColumnWidth" property="key" :label="$t('domain')"
-                           :show-overflow-tooltip="true"/>
-          <el-table-column :width="tokenColumnWidth" property="value" label="Token" fixed="right"
-                           :show-overflow-tooltip="true"/>
-        </el-table>
-      </el-dialog>
-      <el-dialog class="resend-table" v-model="showSendkitList" :title="$t('sendkitTokenList')">
-        <el-table :data="sendkitList">
-          <el-table-column :min-width="emailColumnWidth" property="key" :label="$t('domain')"
-                           :show-overflow-tooltip="true"/>
-          <el-table-column :width="tokenColumnWidth" property="value" label="API Key" fixed="right"
-                           :show-overflow-tooltip="true"/>
-        </el-table>
-      </el-dialog>
-      <el-dialog class="resend-table" v-model="showBrevoList" :title="$t('brevoTokenList')">
-        <el-table :data="brevoList">
-          <el-table-column :min-width="emailColumnWidth" property="key" :label="$t('domain')"
-                           :show-overflow-tooltip="true"/>
-          <el-table-column :width="tokenColumnWidth" property="value" label="API Key" fixed="right"
-                           :show-overflow-tooltip="true"/>
-        </el-table>
-      </el-dialog>
       <el-dialog v-model="regVerifyCountShow" :title="$t('rulesVerifyTitle',{count: regVerifyCount})"
                  @closed="regVerifyCount = setting.regVerifyCount">
         <form @submit.prevent>
@@ -998,12 +965,11 @@ Authorization: &lt;secret&gt;</pre>
             <span>{{ t('attStorageType') }}</span>
           </div>
           <el-select v-model="s3.type" style="width: 100%; margin-bottom: 15px">
+            <el-option :label="t('attStorageTypeKv')" value="kv"/>
             <el-option :label="t('attStorageTypeS3')" value="s3"/>
             <el-option :label="t('attStorageTypeR2')" value="r2"/>
             <el-option :label="t('attStorageTypeWebdav')" value="webdav"/>
-            <el-option :label="t('attStorageTypeKv')" value="kv"/>
           </el-select>
-          <div v-if="s3.type !== (setting.attStorageType || 's3')" class="backup-kv-note" style="margin-bottom: 15px">{{ t('attStorageSwitchWarn') }}</div>
           <template v-if="s3.type === 's3'">
           <div class="backup-field-label">
             <span>{{ t('backupBucket') }}</span>
@@ -1117,10 +1083,10 @@ Authorization: &lt;secret&gt;</pre>
             <span>{{ t('backupType') }}</span>
           </div>
           <el-select v-model="backupS3.type" style="width: 100%; margin-bottom: 15px">
+            <el-option :label="t('backupTypeKv')" value="kv"/>
             <el-option :label="t('backupTypeS3')" value="s3"/>
             <el-option :label="t('backupTypeR2')" value="r2"/>
             <el-option :label="t('backupTypeWebdav')" value="webdav"/>
-            <el-option :label="t('backupTypeKv')" value="kv"/>
           </el-select>
           <template v-if="backupS3.type === 'kv'">
             <div class="backup-kv-note">{{ t('backupKvNote') }}</div>
@@ -1349,9 +1315,7 @@ const thirdEmailShow = ref(false)
 const webhookShow = ref(false)
 const forwardRulesShow = ref(false)
 const emailPrefixShow = ref(false)
-const showResendList = ref(false)
-const showSendkitList = ref(false)
-const showBrevoList = ref(false)
+const sendProviderExpanded = ref(false)
 const settingStore = useSettingStore();
 const uiStore = useUiStore();
 const {settings: setting} = storeToRefs(settingStore);
@@ -1559,7 +1523,6 @@ function getSettings() {
     loginOpacity.value = setting.value.loginOpacity
     minEmailPrefix.value = setting.value.minEmailPrefix
     firstLoading.value = false
-    pickDefaultSendProvider()
     backgroundUrl.value = setting.value.background?.startsWith('http') ? setting.value.background : ''
     editTitle.value = setting.value.title
     addVerifyCount.value = setting.value.addVerifyCount
@@ -1735,58 +1698,50 @@ function openNoticePopupSetting() {
   noticePopupShow.value = true
 }
 
-function openResendList() {
-  showResendList.value = true
+// 发信服务商行内展开：默认只显示「已配置」，下面不显示任何条目；
+// 点按钮展开选服务商，选完下面才出现该服务商的 token 条目；只切换查看，不保存、不改变发送优先级
+const manageProvider = ref(null)
+
+// 服务商是否配了密钥（至少一个域名）
+function sendProviderConfigured(p) {
+  const tokens = p === 'resend' ? setting.value.resendTokens
+    : p === 'sendkit' ? setting.value.sendkitTokens
+    : setting.value.brevoTokens
+  return Object.keys(tokens || {}).length > 0
 }
 
-function openSendkitList() {
-  showSendkitList.value = true
+// 切换按钮颜色：选中项正常高亮，未选中且未配置的浅灰色，以此区分
+function sendProviderSwitchStyle(p) {
+  if (manageProvider.value === p) return {}
+  return sendProviderConfigured(p) ? {} : { color: '#c0c4cc' }
 }
 
-function openBrevoList() {
-  showBrevoList.value = true
+// 行内按钮：未选服务商时只显示「已配置」；选完显示服务商名 + 已配置/未配置，未配置时文字浅灰
+const sendProviderButtonLabel = computed(() => {
+  if (!manageProvider.value) return t('sendProviderIsConfigured')
+  const names = { resend: 'Resend', sendkit: 'Sendkit', brevo: 'Brevo' }
+  const status = sendProviderConfigured(manageProvider.value) ? t('sendProviderIsConfigured') : t('sendProviderNotConfigured')
+  return `${names[manageProvider.value]} · ${status}`
+})
+
+function sendProviderButtonStyle() {
+  if (!manageProvider.value) return {}
+  return sendProviderConfigured(manageProvider.value) ? {} : { color: '#c0c4cc' }
 }
 
-// 合并后的发信服务商管理：只切换看哪个服务商的配置，不保存、不改变发送优先级；
-// 首次加载默认选中第一个已配置的服务商（按发送优先级顺序），之后用户自己切换不再自动改
-const manageProvider = ref('resend')
-let sendProviderPicked = false
-
-function pickDefaultSendProvider() {
-  if (sendProviderPicked) return
-  sendProviderPicked = true
-  if (setting.value.hasCfEmail) manageProvider.value = 'cloudflare'
-  else if (Object.keys(setting.value.resendTokens || {}).length > 0) manageProvider.value = 'resend'
-  else if (Object.keys(setting.value.sendkitTokens || {}).length > 0) manageProvider.value = 'sendkit'
-  else if (Object.keys(setting.value.brevoTokens || {}).length > 0) manageProvider.value = 'brevo'
-}
-
-function openSendProviderList() {
-  if (manageProvider.value === 'resend') openResendList()
-  else if (manageProvider.value === 'sendkit') openSendkitList()
-  else if (manageProvider.value === 'brevo') openBrevoList()
-}
+// 当前服务商的 token 列表（展开区里随切换实时换，未选时为空）
+const currentSendProviderList = computed(() => {
+  if (manageProvider.value === 'resend') return resendList.value
+  if (manageProvider.value === 'sendkit') return sendkitList.value
+  if (manageProvider.value === 'brevo') return brevoList.value
+  return []
+})
 
 function openSendProviderForm() {
   if (manageProvider.value === 'resend') openResendForm()
   else if (manageProvider.value === 'sendkit') openSendkitForm()
   else if (manageProvider.value === 'brevo') openBrevoForm()
 }
-
-// 已配置服务商汇总：Cloudflare（绑定）+ 各服务商已配密钥的域名数
-const sendProviderSummary = computed(() => {
-  const parts = []
-  if (setting.value.hasCfEmail) parts.push('Cloudflare')
-  const counts = [
-    ['Resend', Object.keys(setting.value.resendTokens || {}).length],
-    ['Sendkit', Object.keys(setting.value.sendkitTokens || {}).length],
-    ['Brevo', Object.keys(setting.value.brevoTokens || {}).length]
-  ]
-  for (const [name, n] of counts) {
-    if (n > 0) parts.push(`${name}（${t('sendProviderDomainCount', { n })}）`)
-  }
-  return parts.length > 0 ? parts.join('、') : t('sendProviderNone')
-})
 
 function resetNoticeForm() {
   noticeForm.notice = setting.value.notice
