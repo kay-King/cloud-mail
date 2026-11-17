@@ -81,6 +81,26 @@
             <div>{{ $t('deleted') }} <span class="deleted">{{ numberCount.delUserTotal }}</span></div>
           </div>
         </div>
+        <div class="number-item">
+          <div class="top">
+            <div class="left">
+              <div>{{ $t('attStorage') }}</div>
+              <div>
+                <el-statistic :formatter="value => formatBytes(Math.round(value))" :value="attStorageData"/>
+              </div>
+            </div>
+            <div class="right">
+              <div class="count-icon">
+                <Icon icon="iconamoon:attachment-fill" width="25" height="25"></Icon>
+              </div>
+            </div>
+          </div>
+          <div class="delete-ratio">
+            <div>{{ attTotalCount }} {{ $t('attFiles') }} · {{ storageType }}</div>
+            <div v-if="storageLimitBytes">{{ $t('storageLimit') }} {{ formatBytes(storageLimitBytes) }}</div>
+          </div>
+          <el-progress v-if="storageLimitBytes" :percentage="storagePercent" :stroke-width="6" style="margin-top: 12px;"/>
+        </div>
       </div>
       <div class="picture">
         <div class="picture-item">
@@ -125,6 +145,7 @@ import {defineOptions, onActivated, onDeactivated, onMounted, reactive, ref, wat
 import echarts from "@/echarts/index.js";
 import dayjs from "dayjs";
 import {analysisEcharts} from "@/request/analysis.js";
+import {formatBytes} from "@/utils/file-utils.js";
 import {useUiStore} from "@/store/ui.js";
 import {debounce} from "lodash-es";
 import loading from "@/components/loading/index.vue";
@@ -143,6 +164,10 @@ const receiveTotal = ref(0)
 const sendTotal = ref(0)
 const accountTotal = ref(0)
 const userTotal = ref(0)
+const attTotalSize = ref(0)
+const attTotalCount = ref(0)
+const storageType = ref('')
+const storageLimitBytes = ref(null)
 const analysisLoading = ref(true)
 
 const numberCount = reactive({
@@ -171,6 +196,15 @@ const accountData = useTransition(accountTotal, {
 
 const userData = useTransition(userTotal, {
   duration: 1500,
+})
+
+const attStorageData = useTransition(attTotalSize, {
+  duration: 1500,
+})
+
+const storagePercent = computed(() => {
+  if (!storageLimitBytes.value) return 0
+  return Math.min(100, Math.round(attTotalSize.value / storageLimitBytes.value * 100))
 })
 
 const senderData = ref(null)
@@ -215,6 +249,10 @@ onMounted(() => {
     sendTotal.value = data.numberCount.sendTotal
     accountTotal.value = data.numberCount.accountTotal
     userTotal.value = data.numberCount.userTotal
+    attTotalSize.value = data.numberCount.attTotalSize || 0
+    attTotalCount.value = data.numberCount.attTotalCount || 0
+    storageType.value = data.storage?.type || ''
+    storageLimitBytes.value = data.storage?.limitBytes || null
     numberCount.normalReceiveTotal = data.numberCount.normalReceiveTotal
     numberCount.normalSendTotal = data.numberCount.normalSendTotal
     numberCount.normalAccountTotal = data.numberCount.normalAccountTotal

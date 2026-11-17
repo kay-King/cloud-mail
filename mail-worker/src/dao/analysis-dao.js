@@ -13,7 +13,9 @@ const analysisDao = {
 				COALESCE(u.delUserTotal, 0) AS delUserTotal,
 				COALESCE(a.accountTotal, 0) AS accountTotal,
 				COALESCE(a.normalAccountTotal, 0) AS normalAccountTotal,
-				COALESCE(a.delAccountTotal, 0) AS delAccountTotal
+				COALESCE(a.delAccountTotal, 0) AS delAccountTotal,
+				COALESCE(s.attTotalSize, 0) AS attTotalSize,
+				COALESCE(s.attTotalCount, 0) AS attTotalCount
             FROM
                 (
                     SELECT
@@ -42,6 +44,14 @@ const analysisDao = {
                 FROM
                     account
             ) a
+            CROSS JOIN (
+                SELECT
+                    COALESCE(SUM(size), 0) AS attTotalSize,
+                    COUNT(*) AS attTotalCount
+                FROM (
+                    SELECT key, MAX(size) AS size FROM attachments GROUP BY key
+                )
+            ) s
         `).all();
 		return results[0];
 	},

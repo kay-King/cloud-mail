@@ -6,6 +6,7 @@ import { emailConst } from '../const/entity-const';
 import kvConst from '../const/kv-const';
 import dayjs from 'dayjs';
 import { toUtc } from '../utils/date-uitil';
+import r2Service from './r2-service';
 const analysisService = {
 
 	async echarts(c, params) {
@@ -62,7 +63,8 @@ const analysisService = {
 			userDayCountRaw,
 			receiveDayCountRaw,
 			sendDayCountRaw,
-			daySendTotalRaw
+			daySendTotalRaw,
+			storageType
 		] = await Promise.all([
 			analysisDao.numberCount(c),
 
@@ -80,6 +82,8 @@ const analysisService = {
 			analysisDao.sendDayCount(c, diffHours),
 
 			c.env.kv.get(kvConst.SEND_DAY_COUNT + dayjs().format('YYYY-MM-DD')),
+
+			r2Service.storageType(c),
 		]);
 
 
@@ -89,8 +93,16 @@ const analysisService = {
 
 		const daySendTotal = daySendTotalRaw || 0;
 
+		//附件存储免费额度：R2 10GB，KV 1GB，S3 外部存储未知上限
+		const storageLimitBytes = storageType === 'R2' ? 10 * 1024 * 1024 * 1024
+			: storageType === 'KV' ? 1024 * 1024 * 1024 : null;
+
 		return {
 			numberCount,
+			storage: {
+				type: storageType,
+				limitBytes: storageLimitBytes
+			},
 			userDayCount,
 			receiveRatio: {
 				nameRatio

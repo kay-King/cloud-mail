@@ -29,3 +29,4 @@ git-tools.js
 
 # 本地凭证与服务商记录，绝不提交
 *-api-key.txt
+muse-account.txt
