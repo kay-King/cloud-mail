@@ -12,6 +12,7 @@ export const  att = sqliteTable('attachments', {
 	size: integer('size'),
 	status: text('status').default(0).notNull(),
 	type: integer('type').default(0).notNull(),
+	isStar: integer('is_star').default(0).notNull(),
 	disposition: text('disposition'),
 	related: text('related'),
 	contentId: text('content_id'),

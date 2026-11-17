@@ -61,6 +61,16 @@ const routes = [
                     menu: true
                 }
             },
+            {
+                path: '/attachments',
+                name: 'attachments',
+                component: () => import('@/views/attachments/index.vue'),
+                meta: {
+                    title: 'allAttachments',
+                    name: 'attachments',
+                    menu: true
+                }
+            },
         ]
 
     },

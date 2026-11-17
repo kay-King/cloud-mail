@@ -1,6 +1,7 @@
 import orm from '../entity/orm';
 import { att } from '../entity/att';
-import { and, eq, isNull, inArray, desc } from 'drizzle-orm';
+import { email } from '../entity/email';
+import { and, eq, isNull, inArray, desc, like, or, sql } from 'drizzle-orm';
 import r2Service from './r2-service';
 import constant from '../const/constant';
 import fileUtils from '../utils/file-utils';
@@ -281,7 +282,97 @@ const attService = {
 			return []
 		}
 		return orm(c).select().from(att).where(inArray(att.key, keys)).orderBy(desc(att.attId)).groupBy(att.key).all();
+	},
+
+	// 全部附件页：只列真正附件（type=ATT），内嵌图（EMBED）不算；已删邮件的附件不列
+	async listAll(c, params, userId) {
+
+		let { num, size, keyword, category, star } = params;
+
+		size = Number(size);
+		num = Number(num);
+		if (isNaN(size) || size <= 0) size = 20;
+		if (size > 100) size = 100;
+		if (isNaN(num) || num <= 0) num = 1;
+		star = Number(star) === 1;
+
+		const conditions = [
+			eq(att.userId, userId),
+			eq(att.type, attConst.type.ATT),
+			eq(email.isDel, 0),
+		];
+
+		if (keyword) {
+			// instr 做纯子串匹配，不用 LIKE，避免 % _ 通配符与 ESCAPE 转义问题
+			conditions.push(sql`instr(lower(${att.filename}), lower(${String(keyword)})) > 0`);
+		}
+
+		if (star) {
+			conditions.push(eq(att.isStar, 1));
+		}
+
+		if (category && category !== 'all') {
+			const catCond = categoryCondition(category);
+			if (catCond) conditions.push(catCond);
+		}
+
+		const where = and(...conditions);
+
+		const list = await orm(c).select({
+			attId: att.attId,
+			key: att.key,
+			filename: att.filename,
+			mimeType: att.mimeType,
+			size: att.size,
+			isStar: att.isStar,
+			createTime: att.createTime,
+			emailId: email.emailId,
+			subject: email.subject,
+			sendEmail: email.sendEmail,
+			senderName: email.name,
+			emailType: email.type,
+		}).from(att)
+			.innerJoin(email, eq(att.emailId, email.emailId))
+			.where(where)
+			.orderBy(desc(att.createTime), desc(att.attId))
+			.limit(size).offset((num - 1) * size).all();
+
+		const totalRow = await orm(c).select({ total: sql`COUNT(*)` })
+			.from(att)
+			.innerJoin(email, eq(att.emailId, email.emailId))
+			.where(where).get();
+
+		return { list, total: totalRow ? Number(totalRow.total) : 0 };
+	},
+
+	// 批量收藏 / 取消收藏附件（按行收藏，同一文件在多封邮件里各算各的）
+	async setStar(c, params, userId) {
+		let { attIds, isStar } = params;
+		if (!Array.isArray(attIds)) attIds = attIds ? [attIds] : [];
+		attIds = attIds.map(Number).filter(n => !isNaN(n));
+		if (attIds.length === 0) return;
+		await orm(c).update(att).set({ isStar: Number(isStar) === 1 ? 1 : 0 })
+			.where(and(inArray(att.attId, attIds), eq(att.userId, userId))).run();
 	}
 };
+
+// 附件分类：按文件扩展名划分
+const CATEGORY_EXTS = {
+	image: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico', 'heic', 'heif', 'tif', 'tiff', 'avif'],
+	doc: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'md', 'rtf', 'csv', 'pages', 'numbers', 'key', 'odt', 'ods', 'odp'],
+	audio: ['mp3', 'wav', 'flac', 'aac', 'ogg', 'oga', 'm4a', 'wma', 'opus'],
+	video: ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v', '3gp'],
+	archive: ['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz', 'iso'],
+};
+
+function categoryCondition(category) {
+	if (category === 'other') {
+		const all = Object.values(CATEGORY_EXTS).flat();
+		return sql`NOT (${or(...all.map(e => sql`lower(${att.filename}) LIKE ${'%.' + e}`))})`;
+	}
+	const exts = CATEGORY_EXTS[category];
+	if (!exts) return null;
+	return or(...exts.map(e => sql`lower(${att.filename}) LIKE ${'%.' + e}`));
+}
 
 export default attService;

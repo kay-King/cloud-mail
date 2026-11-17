@@ -197,7 +197,8 @@ defineExpose({
   open,
   openReply,
   openForward,
-  openDraft
+  openDraft,
+  openWithAttachments
 })
 
 const {t} = useI18n()
@@ -686,6 +687,12 @@ function formatImage(content) {
   content = content || '';
   const domain = settingStore.settings.r2Domain;
   return content.replace(/{{domain}}/g, toOssDomain(domain) + '/');
+}
+
+function openWithAttachments(files) {
+  resetForm();
+  form.attachments = files || []
+  open()
 }
 
 function open() {

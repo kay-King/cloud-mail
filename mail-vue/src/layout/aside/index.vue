@@ -35,6 +35,11 @@
           <Icon icon="fluent:delete-24-regular" width="20" height="20" />
           <span class="menu-name" style="margin-left: 16px">{{$t('trash')}}</span>
         </el-menu-item>
+        <el-menu-item @click="router.push({name: 'attachments'})" index="attachments"
+                      :class="route.meta.name === 'attachments' ? 'choose-item' : ''">
+          <Icon icon="fluent:attach-20-regular" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 16px">{{$t('allAttachments')}}</span>
+        </el-menu-item>
         <el-menu-item @click="router.push({name: 'setting'})" index="setting"
                       :class="route.meta.name === 'setting' ? 'choose-item' : ''">
           <Icon icon="fluent:settings-48-regular" width="20" height="20" />

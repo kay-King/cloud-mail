@@ -186,6 +186,37 @@ const emailService = {
 		return { list, total: totalRow.total, latestEmail };
 	},
 
+	// 取单封邮件的完整内容（含附件列表），供全部附件页点主题跳详情用
+	async info(c, params, userId) {
+		const emailId = Number(params.emailId);
+		if (!emailId) {
+			throw new BizError('邮件不存在', 404);
+		}
+		const row = await orm(c).select({
+			...emailListColumns,
+			starId: star.starId,
+		}).from(email)
+			.leftJoin(
+				star,
+				and(
+					eq(star.emailId, email.emailId),
+					eq(star.userId, userId)
+				)
+			)
+			.where(and(
+				eq(email.emailId, emailId),
+				eq(email.userId, userId)
+			)).get();
+
+		if (!row) {
+			throw new BizError('邮件不存在', 404);
+		}
+
+		row.isStar = row.starId != null ? 1 : 0;
+		await this.emailAddAtt(c, [row]);
+		return row;
+	},
+
 	toListText(item) {
 		const raw = emailUtils.formatText(item.text) || emailUtils.htmlToText(item.content);
 		return raw.replace(/\s+/g, ' ').trim().slice(0, EMAIL_LIST_TEXT_LEN);

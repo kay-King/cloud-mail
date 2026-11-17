@@ -1,6 +1,7 @@
 import app from '../hono/hono';
 import result from '../model/result';
 import attCrypto from '../service/att-crypto';
+import attService from '../service/att-service';
 import userContext from '../security/user-context';
 import userService from '../service/user-service';
 import BizError from '../error/biz-error';
@@ -26,4 +27,16 @@ app.post('/att/rotate', async (c) => {
 	await requireAdmin(c);
 	const b64 = await attCrypto.rotateKey(c);
 	return c.json(result.ok({ fingerprint: await attCrypto.fingerprint(b64) }));
+});
+
+// 全部附件列表：只列真正附件（内嵌图不算），按用户隔离
+app.get('/att/list', async (c) => {
+	const data = await attService.listAll(c, c.req.query(), userContext.getUserId(c));
+	return c.json(result.ok(data));
+});
+
+// 批量收藏 / 取消收藏附件
+app.put('/att/star', async (c) => {
+	await attService.setStar(c, await c.req.json(), userContext.getUserId(c));
+	return c.json(result.ok());
 });
