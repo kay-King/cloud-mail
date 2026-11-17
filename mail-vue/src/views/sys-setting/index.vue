@@ -78,11 +78,9 @@
                   <span>{{ $t('emailPrefix') }}</span>
                 </div>
                 <div class="forward">
-                  <el-tooltip effect="dark" :content="$t('emailPrefixSettings')">
-                    <el-button class="opt-button" size="small" type="primary" @click="openEmailPrefix">
-                      <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="openEmailPrefix">
+                    <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
+                  </el-button>
                 </div>
               </div>
             </div>
@@ -96,11 +94,9 @@
                 <div class="title-item"><span>{{ $t('websiteTitle') }}</span></div>
                 <div class="email-title">
                   <span>{{ setting.title }}</span>
-                  <el-tooltip effect="dark" :content="$t('editWebsiteTitle')">
-                    <el-button class="opt-button" size="small" type="primary" @click="editTitleShow = true">
-                      <Icon icon="lsicon:edit-outline" width="16" height="16"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="editTitleShow = true">
+                    <Icon icon="lsicon:edit-outline" width="16" height="16"/>
+                  </el-button>
                 </div>
               </div>
               <div class="setting-item">
@@ -127,16 +123,12 @@
                     </template>
                   </el-image>
                   <div class="background-btn">
-                    <el-tooltip effect="dark" :content="$t('setBackgroundImage')">
-                      <el-button class="opt-button" size="small" type="primary" @click="openSetBackground">
-                        <Icon icon="lsicon:edit-outline" width="16" height="16"/>
-                      </el-button>
-                    </el-tooltip>
-                    <el-tooltip effect="dark" :content="$t('deleteBackgroundImage')">
-                      <el-button class="opt-button" size="small" type="primary" @click="delBackground">
-                        <Icon icon="material-symbols:delete-outline-rounded" width="16" height="16"/>
-                      </el-button>
-                    </el-tooltip>
+                    <el-button class="opt-button" size="small" type="primary" @click="openSetBackground">
+                      <Icon icon="lsicon:edit-outline" width="16" height="16"/>
+                    </el-button>
+                    <el-button class="opt-button" size="small" type="primary" @click="delBackground">
+                      <Icon icon="material-symbols:delete-outline-rounded" width="16" height="16"/>
+                    </el-button>
                   </div>
                 </div>
               </div>
@@ -202,63 +194,49 @@
                   <span>{{ $t('enabled') }}</span>
                 </div>
                 <div v-else>
-                  <el-tooltip effect="dark" :content="$t('tokenList')">
-                    <el-button class="opt-button" style="margin-top: 0" @click="openResendList" size="small"
+                  <el-button class="opt-button" style="margin-top: 0" @click="openResendList" size="small"
                              type="primary">
-                      <Icon icon="ic:round-list" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip effect="dark" :content="$t('addToken')">
-                    <el-button class="opt-button" style="margin-top: 0" @click="openResendForm" size="small"
+                    <Icon icon="ic:round-list" width="18" height="18"/>
+                  </el-button>
+                  <el-button class="opt-button" style="margin-top: 0" @click="openResendForm" size="small"
                              type="primary">
-                      <Icon icon="material-symbols:add-rounded" width="16" height="16"/>
-                    </el-button>
-                  </el-tooltip>
+                    <Icon icon="material-symbols:add-rounded" width="16" height="16"/>
+                  </el-button>
                 </div>
               </div>
               <div class="setting-item" v-if="!setting.hasCfEmail">
                 <div><span>{{ $t('sendkitToken') }}</span></div>
                 <div>
-                  <el-tooltip effect="dark" :content="$t('tokenList')">
-                    <el-button class="opt-button" style="margin-top: 0" @click="openSendkitList" size="small"
+                  <el-button class="opt-button" style="margin-top: 0" @click="openSendkitList" size="small"
                              type="primary">
-                      <Icon icon="ic:round-list" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip effect="dark" :content="$t('addToken')">
-                    <el-button class="opt-button" style="margin-top: 0" @click="openSendkitForm" size="small"
+                    <Icon icon="ic:round-list" width="18" height="18"/>
+                  </el-button>
+                  <el-button class="opt-button" style="margin-top: 0" @click="openSendkitForm" size="small"
                              type="primary">
-                      <Icon icon="material-symbols:add-rounded" width="16" height="16"/>
-                    </el-button>
-                  </el-tooltip>
+                    <Icon icon="material-symbols:add-rounded" width="16" height="16"/>
+                  </el-button>
                 </div>
               </div>
               <div class="setting-item" v-if="!setting.hasCfEmail">
                 <div><span>{{ $t('brevoToken') }}</span></div>
                 <div>
-                  <el-tooltip effect="dark" :content="$t('tokenList')">
-                    <el-button class="opt-button" style="margin-top: 0" @click="openBrevoList" size="small"
+                  <el-button class="opt-button" style="margin-top: 0" @click="openBrevoList" size="small"
                              type="primary">
-                      <Icon icon="ic:round-list" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip effect="dark" :content="$t('addToken')">
-                    <el-button class="opt-button" style="margin-top: 0" @click="openBrevoForm" size="small"
+                    <Icon icon="ic:round-list" width="18" height="18"/>
+                  </el-button>
+                  <el-button class="opt-button" style="margin-top: 0" @click="openBrevoForm" size="small"
                              type="primary">
-                      <Icon icon="material-symbols:add-rounded" width="16" height="16"/>
-                    </el-button>
-                  </el-tooltip>
+                    <Icon icon="material-symbols:add-rounded" width="16" height="16"/>
+                  </el-button>
                 </div>
               </div>
               <div class="setting-item">
                 <div><span>{{ $t('blackList') }}</span></div>
                 <div>
-                  <el-tooltip effect="dark" :content="$t('blacklistSettings')">
-                    <el-button class="opt-button" style="margin-top: 0" @click="openBlackListForm" size="small"
+                  <el-button class="opt-button" style="margin-top: 0" @click="openBlackListForm" size="small"
                              type="primary">
-                      <Icon icon="fluent:settings-48-regular" width="16" height="16"/>
-                    </el-button>
-                  </el-tooltip>
+                    <Icon icon="fluent:settings-48-regular" width="16" height="16"/>
+                  </el-button>
                 </div>
               </div>
               <div class="setting-item">
@@ -270,12 +248,10 @@
                 </div>
                 <div class="forward">
                   <span>{{ setting.autoCleanDays > 0 ? $t('autoCleanRetain', { days: setting.autoCleanDays }) : $t('disabled') }}</span>
-                  <el-tooltip effect="dark" :content="$t('autoCleanSettings')">
-                    <el-button class="opt-button" style="margin-top: 0" @click="openAutoClean" size="small"
+                  <el-button class="opt-button" style="margin-top: 0" @click="openAutoClean" size="small"
                              type="primary">
-                      <Icon icon="fluent:settings-48-regular" width="16" height="16"/>
-                    </el-button>
-                  </el-tooltip>
+                    <Icon icon="fluent:settings-48-regular" width="16" height="16"/>
+                  </el-button>
                 </div>
               </div>
             </div>
@@ -288,44 +264,36 @@
                 <div><span>{{ $t('tgBot') }}</span></div>
                 <div class="forward">
                   <span>{{ setting.tgBotStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
-                  <el-tooltip effect="dark" :content="$t('tgBotSettings')">
-                    <el-button class="opt-button" size="small" type="primary" @click="openTgSetting">
-                      <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="openTgSetting">
+                    <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
+                  </el-button>
                 </div>
               </div>
               <div class="setting-item">
                 <div><span>{{ $t('otherEmail') }}</span></div>
                 <div class="forward">
                   <span>{{ setting.forwardStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
-                  <el-tooltip effect="dark" :content="$t('thirdEmailSettings')">
-                    <el-button class="opt-button" size="small" type="primary" @click="openThirdEmailSetting">
-                      <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="openThirdEmailSetting">
+                    <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
+                  </el-button>
                 </div>
               </div>
               <div class="setting-item">
                 <div><span>{{ $t('webhook') }}</span></div>
                 <div class="forward">
                   <span>{{ setting.webhookStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
-                  <el-tooltip effect="dark" :content="$t('webhookSettings')">
-                    <el-button class="opt-button" size="small" type="primary" @click="openWebhookSetting">
-                      <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="openWebhookSetting">
+                    <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
+                  </el-button>
                 </div>
               </div>
               <div class="setting-item">
                 <div><span>{{ $t('forwardingRules') }}</span></div>
                 <div class="forward">
                   <span>{{ setting.ruleType === 0 ? $t('forwardAll') : $t('rules') }}</span>
-                  <el-tooltip effect="dark" :content="$t('forwardRulesSettings')">
-                    <el-button class="opt-button" size="small" type="primary" @click="openForwardRules">
-                      <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="openForwardRules">
+                    <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
+                  </el-button>
                 </div>
               </div>
             </div>
@@ -340,11 +308,9 @@
                   <span>{{ $t('s3Configuration') }}</span>
                 </div>
                 <div class="r2domain">
-                  <el-tooltip effect="dark" :content="$t('s3Settings')">
-                    <el-button class="opt-button" size="small" type="primary" @click="addS3Show = true">
-                      <Icon icon="fluent:settings-48-regular" width="16" height="16"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="addS3Show = true">
+                    <Icon icon="fluent:settings-48-regular" width="16" height="16"/>
+                  </el-button>
                 </div>
               </div>
               <div class="setting-item">
@@ -406,11 +372,9 @@
               <div class="setting-item">
                 <div><span>{{ $t('signUpVerification') }}</span></div>
                 <div>
-                  <el-tooltip effect="dark" :content="$t('signupVerifySettings')">
-                    <el-button class="opt-button" size="small" type="primary" @click="openRegVerifyCount">
-                      <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="openRegVerifyCount">
+                    <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
+                  </el-button>
                   <el-select
                       @change="change"
                       :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
@@ -427,11 +391,9 @@
               <div class="setting-item">
                 <div><span>{{ $t('addEmailVerification') }}</span></div>
                 <div>
-                  <el-tooltip effect="dark" :content="$t('addEmailVerifySettings')">
-                    <el-button class="opt-button" size="small" type="primary" @click="openAddVerifyCount">
-                      <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="openAddVerifyCount">
+                    <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
+                  </el-button>
                   <el-select
                       @change="change"
                       :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
@@ -449,22 +411,18 @@
                 <div><span>Site key</span></div>
                 <div class="bot-verify">
                   <span>{{ setting.siteKey }}</span>
-                  <el-tooltip effect="dark" :content="$t('editTurnstileKeys')">
-                    <el-button class="opt-button" size="small" type="primary" @click="turnstileShow = true">
-                      <Icon icon="lsicon:edit-outline" width="16" height="16"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="turnstileShow = true">
+                    <Icon icon="lsicon:edit-outline" width="16" height="16"/>
+                  </el-button>
                 </div>
               </div>
               <div class="setting-item">
                 <div><span>Secret key</span></div>
                 <div class="bot-verify">
                   <span> {{ setting.secretKey }} </span>
-                  <el-tooltip effect="dark" :content="$t('editTurnstileKeys')">
-                    <el-button class="opt-button" size="small" type="primary" @click="turnstileShow = true">
-                      <Icon icon="lsicon:edit-outline" width="16" height="16"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="turnstileShow = true">
+                    <Icon icon="lsicon:edit-outline" width="16" height="16"/>
+                  </el-button>
                 </div>
               </div>
             </div>
@@ -477,21 +435,17 @@
                 <div><span>{{ $t('noticePopup') }}</span></div>
                 <div class="forward">
                   <span>{{ setting.notice === 0 ? $t('enabled') : $t('disabled') }}</span>
-                  <el-tooltip effect="dark" :content="$t('noticePopupSettings')">
-                    <el-button class="opt-button" size="small" type="primary" @click="openNoticePopupSetting">
-                      <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="openNoticePopupSetting">
+                    <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
+                  </el-button>
                 </div>
               </div>
               <div class="setting-item">
                 <div><span>{{ $t('popUp') }}</span></div>
                 <div class="forward">
-                  <el-tooltip effect="dark" :content="$t('previewNoticePopup')">
-                    <el-button class="opt-button" size="small" type="primary" @click="openNoticePopup">
-                      <Icon icon="mynaui:click-solid" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="openNoticePopup">
+                    <Icon icon="mynaui:click-solid" width="18" height="18"/>
+                  </el-button>
                 </div>
               </div>
             </div>
@@ -510,11 +464,9 @@
               <div class="setting-item">
                 <div><span>{{ $t('codeRecognitionRules') }}</span></div>
                 <div class="forward">
-                  <el-tooltip effect="dark" :content="$t('codeRulesSettings')">
-                    <el-button class="opt-button" size="small" type="primary" @click="openAiCodeFilter">
-                      <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="openAiCodeFilter">
+                    <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
+                  </el-button>
                 </div>
               </div>
             </div>
@@ -532,11 +484,9 @@
                 </div>
                 <div class="forward">
                   <span>{{ setting[p.key + 'Switch'] === 0 ? $t('enabled') : $t('disabled') }}</span>
-                  <el-tooltip effect="dark" :content="$t('oauthSettings')">
-                    <el-button class="opt-button" size="small" type="primary" @click="openOauthSetting(p)">
-                      <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
-                    </el-button>
-                  </el-tooltip>
+                  <el-button class="opt-button" size="small" type="primary" @click="openOauthSetting(p)">
+                    <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
+                  </el-button>
                 </div>
               </div>
             </div>
