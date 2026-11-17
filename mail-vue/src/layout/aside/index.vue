@@ -38,7 +38,7 @@
         <el-menu-item @click="router.push({name: 'attachments'})" index="attachments"
                       :class="route.meta.name === 'attachments' ? 'choose-item' : ''">
           <Icon icon="fluent:attach-20-regular" width="20" height="20" />
-          <span class="menu-name" style="margin-left: 16px">{{$t('allAttachments')}}</span>
+          <span class="menu-name" style="margin-left: 16px">{{$t('myAttachments')}}</span>
         </el-menu-item>
         <el-menu-item @click="router.push({name: 'setting'})" index="setting"
                       :class="route.meta.name === 'setting' ? 'choose-item' : ''">
@@ -62,6 +62,11 @@
                       :class="route.meta.name === 'all-email' ? 'choose-item' : ''">
           <Icon icon="fluent:mail-list-28-regular" width="22" height="22" />
           <span class="menu-name" style="margin-left: 15px">{{$t('allMail')}}</span>
+        </el-menu-item>
+        <el-menu-item @click="router.push({name: 'all-attachments'})" index="all-attachments" v-perm="'all-email:query'"
+                      :class="route.meta.name === 'all-attachments' ? 'choose-item' : ''">
+          <Icon icon="fluent:attach-20-regular" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 16px">{{$t('allAttachments')}}</span>
         </el-menu-item>
         <el-menu-item @click="router.push({name: 'role'})" index="setting" v-perm="'role:query'"
                       :class="route.meta.name === 'role' ? 'choose-item' : ''">

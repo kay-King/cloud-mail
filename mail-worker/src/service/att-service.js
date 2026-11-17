@@ -1,6 +1,7 @@
 import orm from '../entity/orm';
 import { att } from '../entity/att';
 import { email } from '../entity/email';
+import { account } from '../entity/account';
 import { and, eq, isNull, inArray, desc, like, or, sql } from 'drizzle-orm';
 import r2Service from './r2-service';
 import constant from '../const/constant';
@@ -333,6 +334,63 @@ const attService = {
 			emailType: email.type,
 		}).from(att)
 			.innerJoin(email, eq(att.emailId, email.emailId))
+			.where(where)
+			.orderBy(desc(att.createTime), desc(att.attId))
+			.limit(size).offset((num - 1) * size).all();
+
+		const totalRow = await orm(c).select({ total: sql`COUNT(*)` })
+			.from(att)
+			.innerJoin(email, eq(att.emailId, email.emailId))
+			.where(where).get();
+
+		return { list, total: totalRow ? Number(totalRow.total) : 0 };
+	},
+
+	// 管理员全部附件：不按用户隔离，多返回所属邮箱（附件所属账号地址）
+	async listAllAdmin(c, params) {
+
+		let { num, size, keyword, category } = params;
+
+		size = Number(size);
+		num = Number(num);
+		if (isNaN(size) || size <= 0) size = 20;
+		if (size > 100) size = 100;
+		if (isNaN(num) || num <= 0) num = 1;
+
+		const conditions = [
+			eq(att.type, attConst.type.ATT),
+			eq(email.isDel, 0),
+		];
+
+		if (keyword) {
+			// instr 做纯子串匹配，不用 LIKE，避免 % _ 通配符与 ESCAPE 转义问题
+			conditions.push(sql`instr(lower(${att.filename}), lower(${String(keyword)})) > 0`);
+		}
+
+		if (category && category !== 'all') {
+			const catCond = categoryCondition(category);
+			if (catCond) conditions.push(catCond);
+		}
+
+		const where = and(...conditions);
+
+		const list = await orm(c).select({
+			attId: att.attId,
+			key: att.key,
+			filename: att.filename,
+			mimeType: att.mimeType,
+			size: att.size,
+			isStar: att.isStar,
+			createTime: att.createTime,
+			emailId: email.emailId,
+			subject: email.subject,
+			sendEmail: email.sendEmail,
+			senderName: email.name,
+			emailType: email.type,
+			ownerEmail: account.email,
+		}).from(att)
+			.innerJoin(email, eq(att.emailId, email.emailId))
+			.leftJoin(account, eq(att.accountId, account.accountId))
 			.where(where)
 			.orderBy(desc(att.createTime), desc(att.attId))
 			.limit(size).offset((num - 1) * size).all();

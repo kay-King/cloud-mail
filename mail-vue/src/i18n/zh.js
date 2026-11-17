@@ -34,6 +34,8 @@ const zh = {
     copyEmail: '复制邮箱地址',
     chooseContacts: '选择联系人',
     allAttachments: '全部附件',
+    myAttachments: '我的附件',
+    ownerEmail: '所属邮箱',
     favoriteAttachments: '收藏附件',
     searchAttachments: '搜索全部附件',
     fileName: '文件名称',

@@ -108,6 +108,17 @@ const routers = {
             name: 'all-email',
             menu: true
         }
+    },
+    {
+        path: '/all-attachments',
+        name: 'all-attachments',
+        component: () => import('@/views/attachments/index.vue'),
+        props: {admin: true},
+        meta: {
+            title: 'allAttachments',
+            name: 'all-attachments',
+            menu: true
+        }
     }],
     'analysis:query': [{
         path: '/dashboard',

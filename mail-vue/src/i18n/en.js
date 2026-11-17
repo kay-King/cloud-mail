@@ -34,6 +34,8 @@ const en = {
     copyEmail: 'Copy email address',
     chooseContacts: 'Select contacts',
     allAttachments: 'All attachments',
+    myAttachments: 'My attachments',
+    ownerEmail: 'Owner',
     favoriteAttachments: 'Favorite attachments',
     searchAttachments: 'Search all attachments',
     fileName: 'File name',

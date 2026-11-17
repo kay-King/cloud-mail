@@ -1,11 +1,12 @@
 <template>
   <div class="attachments-page">
     <div class="att-header">
-      <div class="att-tabs">
+      <div class="att-tabs" v-if="!admin">
         <span class="att-tab" :class="{active: tab === 'all'}" @click="switchTab('all')">{{ $t('allAttachments') }}</span>
         <span class="tab-divider">|</span>
         <span class="att-tab" :class="{active: tab === 'fav'}" @click="switchTab('fav')">{{ $t('favoriteAttachments') }}</span>
       </div>
+      <div class="att-title" v-else>{{ $t('allAttachments') }}</div>
       <el-input v-model="keyword" :placeholder="$t('searchAttachments')" clearable class="att-search"
                 @keyup.enter="onSearch" @clear="onSearch">
         <template #prefix>
@@ -19,11 +20,11 @@
         <Icon icon="system-uicons:push-down" width="18" height="18"/>
         {{ $t('download') }}
       </el-button>
-      <el-button :disabled="selected.length === 0" :loading="sending" @click="sendSelected">
+      <el-button :disabled="selected.length === 0" :loading="sending" @click="sendSelected" v-if="!admin">
         <Icon icon="cil:send" width="18" height="18"/>
         {{ $t('send') }}
       </el-button>
-      <el-button :disabled="selected.length === 0" @click="starSelected">
+      <el-button :disabled="selected.length === 0" @click="starSelected" v-if="!admin">
         <Icon icon="solar:star-line-duotone" width="18" height="18"/>
         {{ tab === 'fav' ? $t('unFavorite') : $t('favorite') }}
       </el-button>
@@ -43,7 +44,7 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column width="44">
+      <el-table-column width="44" v-if="!admin">
         <template #default="{row}">
           <Icon v-if="row.isStar" icon="fluent-color:star-16" width="20" height="20"
                 class="star-icon" @click="toggleStar(row)"/>
@@ -54,12 +55,16 @@
       <el-table-column :label="$t('fileSize')" width="100">
         <template #default="{row}">{{ formatBytes(row.size) }}</template>
       </el-table-column>
+      <el-table-column :label="$t('ownerEmail')" width="190" show-overflow-tooltip v-if="admin">
+        <template #default="{row}">{{ row.ownerEmail }}</template>
+      </el-table-column>
       <el-table-column :label="$t('sender')" width="190" show-overflow-tooltip>
         <template #default="{row}">{{ row.senderName || row.sendEmail }}</template>
       </el-table-column>
       <el-table-column :label="$t('subject')" min-width="200" show-overflow-tooltip>
         <template #default="{row}">
-          <span class="subject-cell" @click="jumpToEmail(row)">{{ row.subject }}</span>
+          <span v-if="admin">{{ row.subject }}</span>
+          <span v-else class="subject-cell" @click="jumpToEmail(row)">{{ row.subject }}</span>
         </template>
       </el-table-column>
     </el-table>
@@ -84,7 +89,7 @@ import {computed, onMounted, reactive, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {ElMessage} from "element-plus";
 import {Icon} from "@iconify/vue";
-import {attList, attStar} from "@/request/att.js";
+import {attList, attAllList, attStar} from "@/request/att.js";
 import {emailInfo} from "@/request/email.js";
 import {formatBytes, fileToBase64} from "@/utils/file-utils.js";
 import {getIconByName} from "@/utils/icon-utils.js";
@@ -96,6 +101,12 @@ import router from "@/router/index.js";
 const {t} = useI18n()
 const emailStore = useEmailStore()
 const uiStore = useUiStore()
+
+// admin=true 时为管理区的全部附件：全站所有用户，无收藏/发送，主题不可跳转
+const props = defineProps({
+  admin: {type: Boolean, default: false}
+})
+const admin = computed(() => props.admin)
 
 const tab = ref('all')
 const keyword = ref('')
@@ -127,7 +138,8 @@ onMounted(() => {
 
 function fetchList() {
   loading.value = true
-  attList({
+  const fetcher = admin.value ? attAllList : attList
+  fetcher({
     num: params.num,
     size: params.size,
     keyword: keyword.value,
@@ -268,6 +280,12 @@ async function jumpToEmail(row) {
 }
 
 .att-tab.active {
+  color: #222;
+  font-weight: 700;
+}
+
+.att-title {
+  font-size: 16px;
   color: #222;
   font-weight: 700;
 }

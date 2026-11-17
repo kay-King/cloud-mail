@@ -66,7 +66,7 @@ const routes = [
                 name: 'attachments',
                 component: () => import('@/views/attachments/index.vue'),
                 meta: {
-                    title: 'allAttachments',
+                    title: 'myAttachments',
                     name: 'attachments',
                     menu: true
                 }

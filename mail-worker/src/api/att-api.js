@@ -35,6 +35,13 @@ app.get('/att/list', async (c) => {
 	return c.json(result.ok(data));
 });
 
+// 管理员全部附件：全站所有用户的附件，多一列所属邮箱
+app.get('/att/all', async (c) => {
+	await requireAdmin(c);
+	const data = await attService.listAllAdmin(c, c.req.query());
+	return c.json(result.ok(data));
+});
+
 // 批量收藏 / 取消收藏附件
 app.put('/att/star', async (c) => {
 	await attService.setStar(c, await c.req.json(), userContext.getUserId(c));
