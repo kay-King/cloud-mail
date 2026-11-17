@@ -1,7 +1,9 @@
 <template>
   <div class="reg-key">
     <div class="header-actions">
-      <Icon class="icon" icon="ion:add-outline" width="23" height="23" @click="openAdd"/>
+      <el-tooltip effect="dark" :content="$t('addRegKey')">
+        <Icon class="icon" icon="ion:add-outline" width="23" height="23" @click="openAdd"/>
+      </el-tooltip>
       <div class="search">
         <el-input
             v-model="params.code"
@@ -10,9 +12,15 @@
         >
         </el-input>
       </div>
-      <Icon class="icon" icon="iconoir:search" @click="search" width="20" height="20"/>
-      <Icon class="icon" icon="ion:reload" width="18" height="18" @click="refresh"/>
-      <Icon class="icon" icon="fluent:broom-sparkle-16-regular" width="22" height="22" @click="clearNotUse"/>
+      <el-tooltip effect="dark" :content="$t('search')">
+        <Icon class="icon" icon="iconoir:search" @click="search" width="20" height="20"/>
+      </el-tooltip>
+      <el-tooltip effect="dark" :content="$t('refresh')">
+        <Icon class="icon" icon="ion:reload" width="18" height="18" @click="refresh"/>
+      </el-tooltip>
+      <el-tooltip effect="dark" :content="$t('clearUnused')">
+        <Icon class="icon" icon="fluent:broom-sparkle-16-regular" width="22" height="22" @click="clearNotUse"/>
+      </el-tooltip>
     </div>
 
     <el-scrollbar class="scrollbar">
@@ -64,7 +72,9 @@
       <div class="container">
         <el-input v-model="addForm.code" :placeholder="$t('regKey')" @keyup.enter="submit">
           <template #suffix>
-            <Icon @click.stop="genCode" class="gen-code" icon="bitcoin-icons:refresh-filled" width="24" height="24"/>
+            <el-tooltip effect="dark" :content="$t('generateCode')">
+              <Icon @click.stop="genCode" class="gen-code" icon="bitcoin-icons:refresh-filled" width="24" height="24"/>
+            </el-tooltip>
           </template>
         </el-input>
         <el-select v-model="addForm.roleId" :placeholder="$t('roleDesc')">

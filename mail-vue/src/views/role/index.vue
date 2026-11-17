@@ -1,8 +1,12 @@
 <template>
   <div class="perm-box">
     <div class="header-actions">
-      <Icon class="icon" icon="ion:add-outline" width="23" height="23" @click="openAddRole"/>
-      <Icon class="icon" icon="ion:reload" width="18" height="18" @click="refresh"/>
+      <el-tooltip effect="dark" :content="$t('addRoleTitle')">
+        <Icon class="icon" icon="ion:add-outline" width="23" height="23" @click="openAddRole"/>
+      </el-tooltip>
+      <el-tooltip effect="dark" :content="$t('refresh')">
+        <Icon class="icon" icon="ion:reload" width="18" height="18" @click="refresh"/>
+      </el-tooltip>
     </div>
     <el-scrollbar class="perm-scrollbar">
       <div class="loading" :class="tableLoading ? 'loading-show' : 'loading-hide'"

@@ -5,16 +5,18 @@
       <span class="breadcrumb-item">{{ $t(route.meta.title) }}</span>
     </div>
     <div v-perm="'email:send'" class="writer-box">
-      <el-button
-        class="writer"
-        size="default"
-        :aria-label="$t('compose')"
-        @click="openSend"
-      >
-        <el-icon :size="23">
-          <Icon icon="hugeicons:quill-write-01"/>
-        </el-icon>
-      </el-button>
+      <el-tooltip effect="dark" :content="$t('compose')">
+        <el-button
+          class="writer"
+          size="default"
+          :aria-label="$t('compose')"
+          @click="openSend"
+        >
+          <el-icon :size="23">
+            <Icon icon="hugeicons:quill-write-01"/>
+          </el-icon>
+        </el-button>
+      </el-tooltip>
     </div>
     <email-search
       v-if="showInboxSearch"

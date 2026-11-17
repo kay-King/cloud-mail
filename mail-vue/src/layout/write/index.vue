@@ -42,7 +42,9 @@
               <div class="address-actions">
                 <button type="button" class="address-toggle" v-if="form.manyType !== 'divide' && !showCc" @click.stop="openCc">CC</button>
                 <button type="button" class="address-toggle" v-if="form.manyType !== 'divide' && !showBcc" @click.stop="openBcc">BCC</button>
-                <Icon icon="fa7-solid:user-plus" width="20" height="20" class="add-contact" @click.stop="openContacts('receive')" />
+                <el-tooltip effect="dark" :content="$t('selectContacts')">
+                  <Icon icon="fa7-solid:user-plus" width="20" height="20" class="add-contact" @click.stop="openContacts('receive')" />
+                </el-tooltip>
               </div>
             </template>
           </el-input-tag>
@@ -70,7 +72,9 @@
             </template>
             <template #suffix>
               <div class="address-actions">
-                <Icon icon="fa7-solid:user-plus" width="20" height="20" class="add-contact" @click.stop="openContacts('cc')" />
+                <el-tooltip effect="dark" :content="$t('selectContacts')">
+                  <Icon icon="fa7-solid:user-plus" width="20" height="20" class="add-contact" @click.stop="openContacts('cc')" />
+                </el-tooltip>
               </div>
             </template>
           </el-input-tag>
@@ -98,7 +102,9 @@
             </template>
             <template #suffix>
               <div class="address-actions">
-                <Icon icon="fa7-solid:user-plus" width="20" height="20" class="add-contact" @click.stop="openContacts('bcc')" />
+                <el-tooltip effect="dark" :content="$t('selectContacts')">
+                  <Icon icon="fa7-solid:user-plus" width="20" height="20" class="add-contact" @click.stop="openContacts('bcc')" />
+                </el-tooltip>
               </div>
             </template>
           </el-input-tag>
@@ -117,8 +123,10 @@
               <Icon v-bind="getIconByName(item.filename)"/>
               <span class="att-filename">{{ item.filename }}</span>
               <span class="att-size">{{ formatBytes(item.size) }}</span>
-              <Icon style="cursor: pointer;" icon="material-symbols-light:close-rounded" @click="delAtt(index)"
-                    width="22" height="22"/>
+              <el-tooltip effect="dark" :content="$t('removeAttachment')">
+                <Icon style="cursor: pointer;" icon="material-symbols-light:close-rounded" @click="delAtt(index)"
+                      width="22" height="22"/>
+              </el-tooltip>
             </div>
           </div>
           <div>

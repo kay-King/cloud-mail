@@ -10,20 +10,28 @@
       </el-checkbox>
       <div class="header-left" :style="'padding-left:' + actionLeft">
 
-        <Icon class="icon reload" icon="ion:reload" width="18" height="18" @click="refresh"/>
+        <el-tooltip effect="dark" :content="$t('refresh')">
+          <Icon class="icon reload" icon="ion:reload" width="18" height="18" @click="refresh"/>
+        </el-tooltip>
         <slot name="first"></slot>
-        <Icon v-perm="'email:delete'" class="icon delete" icon="uiw:delete" width="16" height="16"
-              v-if="getSelectedMailsIds().length > 0"
-              @click="handleDelete"/>
-        <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-read-20-regular" width="21" height="21"
-              v-if="getSelectedMailsIds().length > 0 && showUnread"
-              @click="handleRead"/>
+        <el-tooltip effect="dark" :content="props.type === 'trash' ? $t('deleteForeverSelected') : $t('deleteSelected')">
+          <Icon v-perm="'email:delete'" class="icon delete" icon="uiw:delete" width="16" height="16"
+                v-if="getSelectedMailsIds().length > 0"
+                @click="handleDelete"/>
+        </el-tooltip>
+        <el-tooltip effect="dark" :content="$t('markAsRead')">
+          <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-read-20-regular" width="21" height="21"
+                v-if="getSelectedMailsIds().length > 0 && showUnread"
+                @click="handleRead"/>
+        </el-tooltip>
       </div>
 
       <div class="header-right">
         <span class="email-count" v-if="total">{{ $t('emailCount', {total: total}) }}</span>
-        <Icon v-if="showAccountIcon" class="more-icon icon" width="16" height="16" icon="akar-icons:dot-grid-fill"
-              @click="changeAccountShow"/>
+        <el-tooltip effect="dark" :content="$t('toggleAccountPanel')">
+          <Icon v-if="showAccountIcon" class="more-icon icon" width="16" height="16" icon="akar-icons:dot-grid-fill"
+                @click="changeAccountShow"/>
+        </el-tooltip>
       </div>
     </div>
 
@@ -49,10 +57,12 @@
                            v-model="item.checked"
                            :disabled="!item.checked && isSelectMax"
                            @click.stop></el-checkbox>
-              <div @click.stop="starChange(item)" class="pc-star" v-if="showStar">
-                <Icon v-if="item.isStar" icon="fluent-color:star-16" width="20" height="20"/>
-                <Icon v-else icon="solar:star-line-duotone" width="18" height="18"/>
-              </div>
+              <el-tooltip effect="dark" :content="item.isStar ? $t('unstar') : $t('starIt')">
+                <div @click.stop="starChange(item)" class="pc-star" v-if="showStar">
+                  <Icon v-if="item.isStar" icon="fluent-color:star-16" width="20" height="20"/>
+                  <Icon v-else icon="solar:star-line-duotone" width="18" height="18"/>
+                </div>
+              </el-tooltip>
               <div v-if="!showStar"></div>
               <div class="title" :class="accountShow ? 'title-column' : 'title-column'">
 
@@ -89,8 +99,12 @@
                           <span v-html="item.subjectHtml"></span>
                         </slot>
                       </span>
-                      <Icon v-if="item.hasAttachment" icon="iconamoon:attachment-fill" width="16" height="16" class="attachment-icon"/>
-                      <Icon v-if="item.hasInlineImage" icon="mdi:image" width="16" height="16" class="attachment-icon"/>
+                      <el-tooltip effect="dark" :content="$t('hasAttachmentTip')">
+                        <Icon v-if="item.hasAttachment" icon="iconamoon:attachment-fill" width="16" height="16" class="attachment-icon"/>
+                      </el-tooltip>
+                      <el-tooltip effect="dark" :content="$t('hasImageTip')">
+                        <Icon v-if="item.hasInlineImage" icon="mdi:image" width="16" height="16" class="attachment-icon"/>
+                      </el-tooltip>
                     </span>
                     <span class="email-content" v-html="item.listHtml"></span>
                   </div>

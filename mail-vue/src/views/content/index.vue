@@ -1,15 +1,29 @@
 <template>
   <div class="box">
     <div class="header-actions">
-      <Icon class="icon" icon="material-symbols-light:arrow-back-ios-new" width="20" height="20" @click="handleBack"/>
-      <Icon v-perm="'email:delete'" class="icon" icon="uiw:delete" width="16" height="16" @click="handleDelete"/>
-      <Icon v-if="emailStore.contentData.delType === 'trash'" v-perm="'email:delete'" class="icon" icon="mdi:restore" width="20" height="20" @click="handleRestore"/>
+      <el-tooltip effect="dark" :content="$t('back')">
+        <Icon class="icon" icon="material-symbols-light:arrow-back-ios-new" width="20" height="20" @click="handleBack"/>
+      </el-tooltip>
+      <el-tooltip effect="dark" :content="emailStore.contentData.delType === 'trash' ? $t('deleteForever') : $t('delete')">
+        <Icon v-perm="'email:delete'" class="icon" icon="uiw:delete" width="16" height="16" @click="handleDelete"/>
+      </el-tooltip>
+      <el-tooltip effect="dark" :content="$t('restore')">
+        <Icon v-if="emailStore.contentData.delType === 'trash'" v-perm="'email:delete'" class="icon" icon="mdi:restore" width="20" height="20" @click="handleRestore"/>
+      </el-tooltip>
       <span class="star" v-if="emailStore.contentData.showStar">
-        <Icon class="icon" @click="changeStar" v-if="email.isStar" icon="fluent-color:star-16" width="20" height="20"/>
-        <Icon class="icon" @click="changeStar" v-else icon="solar:star-line-duotone" width="18.5" height="18.5"/>
+        <el-tooltip v-if="email.isStar" effect="dark" :content="$t('unstar')">
+          <Icon class="icon" @click="changeStar" icon="fluent-color:star-16" width="20" height="20"/>
+        </el-tooltip>
+        <el-tooltip v-else effect="dark" :content="$t('starIt')">
+          <Icon class="icon" @click="changeStar" icon="solar:star-line-duotone" width="18.5" height="18.5"/>
+        </el-tooltip>
       </span>
-      <Icon class="icon" v-if="emailStore.contentData.showReply" v-perm="'email:send'"  @click="openReply" icon="fluent-mdl2:reply" width="19" height="19" />
-      <Icon class="icon" v-if="emailStore.contentData.showReply" v-perm="'email:send'"  @click="openForward" icon="iconoir:arrow-up-right" width="20" height="20" />
+      <el-tooltip effect="dark" :content="$t('reply')">
+        <Icon class="icon" v-if="emailStore.contentData.showReply" v-perm="'email:send'"  @click="openReply" icon="fluent-mdl2:reply" width="19" height="19" />
+      </el-tooltip>
+      <el-tooltip effect="dark" :content="$t('forward')">
+        <Icon class="icon" v-if="emailStore.contentData.showReply" v-perm="'email:send'"  @click="openForward" icon="iconoir:arrow-up-right" width="20" height="20" />
+      </el-tooltip>
     </div>
     <div></div>
     <el-scrollbar class="scrollbar">
@@ -63,10 +77,14 @@
                 </div>
                 <div class="att-size">{{ formatBytes(att.size) }}</div>
                 <div class="opt-icon att-icon">
-                  <Icon v-if="isImage(att.filename)" icon="hugeicons:view" width="22" height="22" @click="showImage(att.key)"/>
-                  <a :href="cvtR2Url(att.key)" download>
-                    <Icon icon="system-uicons:push-down" width="22" height="22"/>
-                  </a>
+                  <el-tooltip effect="dark" :content="$t('view')">
+                    <Icon v-if="isImage(att.filename)" icon="hugeicons:view" width="22" height="22" @click="showImage(att.key)"/>
+                  </el-tooltip>
+                  <el-tooltip effect="dark" :content="$t('download')">
+                    <a :href="cvtR2Url(att.key)" download>
+                      <Icon icon="system-uicons:push-down" width="22" height="22"/>
+                    </a>
+                  </el-tooltip>
                 </div>
               </div>
             </div>
