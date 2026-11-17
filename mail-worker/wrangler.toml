@@ -1,3 +1,12 @@
+# Cloud Mail 部署配置模板
+#
+# 这个文件可以直接用来部署，不用填任何 ID：
+# 首次部署时 wrangler 会自动创建 D1 数据库和 KV 命名空间并绑定（wrangler 4.45+），
+# 之后重新部署也不会断链、不会重复建库。
+# 域名、管理员邮箱请在 Cloudflare 仪表板设置（Worker → Settings → Variables），
+# keep_vars = true 保证重新部署不会丢；也可以取消下面 [vars] 里的注释直接写在这里。
+# 详细步骤见仓库根目录的 DEPLOY.md。
+
 name = "cloud-mail"
 main = "src/index.js"
 compatibility_date = "2025-06-04"
@@ -6,23 +15,21 @@ keep_vars = true
 [observability]
 enabled = true
 
-[[routes]]
-pattern = "mail.suny.qzz.io"
-custom_domain = true
-
+# 首次部署自动创建并绑定，不用手动建库、不用填 ID。
+# 已有 D1 / KV 的，把 database_id / id 填上即可。
 [[d1_databases]]
 binding = "db"
 database_name = "cloud-mail"
-database_id = "***REMOVED***"
 
 [[kv_namespaces]]
 binding = "kv"
-id = "***REMOVED***"
 
 #[[r2_buckets]]
 #binding = "r2"			#r2对象存储绑定名默认不可修改
 #bucket_name = ""		#r2对象存储桶的名字
 
+# 注意：不要启用下面这个 CF 发信绑定。免费版只能发给已验证地址，
+# 且一旦启用会抢第一优先级、失败不回落，会堵死 Sendkit / Brevo 外发。
 #[[send_email]]
 #name = "email"			#CF发件, 配置后优先使用
 
@@ -46,9 +53,9 @@ crons = ["0 * * * *"]	#每小时执行；resetDaySendCount 仅在 UTC 0 点生�
 #ai_model = ""			#ai模型,不填默认使用@cf/meta/llama-3.1-8b-instruct-fast
 #analysis_cache = false			#是否开启分析数据缓存
 #orm_log = false			#是否sql日志
-domain = "[\"suny.qzz.io\",\"setnote.de5.net\",\"sia.indevs.in\",\"tabs.qzz.io\",\"tato.dpdns.org\"]"	#邮件域名可可配置多个 示例: ["example1.com","example2.com"]
-admin = "admin@suny.qzz.io"		#管理员的邮箱	示例: admin@example.com
-cf_account_id = "***REMOVED***"	#Cloudflare 账号 ID，用于转发失败时自动添加目标地址；配合 cf_routing_token 密钥使用，不配则只提醒手动验证
+#domain = "[\"example.com\"]"	#邮件域名可配置多个 示例: ["example1.com","example2.com"]
+#admin = "admin@example.com"		#管理员的邮箱，部署后用这个邮箱注册管理员账号
+#cf_account_id = ""		#Cloudflare 账号 ID，只影响转发自动添加；不配也能用转发
 
 [build]
 command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run build"

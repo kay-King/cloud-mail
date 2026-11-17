@@ -38,3 +38,4 @@ rotation-test-key.txt
 *-suny-dns.txt
 brevo-sms-verification.txt
 b2-attachment-test.txt
+mail-worker/wrangler-prod.toml
