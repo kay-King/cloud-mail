@@ -60,6 +60,16 @@
         </div>
       </div>
     </div>
+    <div class="preference-item">
+      <div class="title">{{$t('importMail')}}</div>
+      <div style="color: var(--regular-text-color);">
+        {{$t('importMailDesc')}}
+      </div>
+      <div>
+        <el-button type="primary" :loading="importLoading" @click="openImport">{{$t('importMail')}}</el-button>
+        <input ref="importRef" type="file" accept=".eml,.zip" multiple style="display: none" @change="onImportFiles"/>
+      </div>
+    </div>
     <div class="del-email" v-perm="'my:delete'">
       <div class="title">{{$t('deleteUser')}}</div>
       <div style="color: var(--regular-text-color);">
@@ -91,12 +101,48 @@ import {useI18n} from "vue-i18n";
 import {useSettingStore} from "@/store/setting.js";
 import {useUiStore} from "@/store/ui.js";
 import ThemeSelector from "@/components/theme-selector/index.vue";
+import {emailImport} from "@/request/email.js";
+import {useEmailStore} from "@/store/email.js";
 
 const { t } = useI18n()
 const accountStore = useAccountStore()
 const settingStore = useSettingStore()
 const uiStore = useUiStore()
 const userStore = useUserStore();
+const emailStore = useEmailStore();
+const importRef = ref(null)
+const importLoading = ref(false)
+
+function openImport() {
+  importRef.value?.click();
+}
+
+function onImportFiles(e) {
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  if (files.length === 0) return;
+  const accountId = accountStore.currentAccountId;
+  if (!accountId) {
+    ElMessage({message: t('selectAccountFirst'), type: 'warning', plain: true});
+    return;
+  }
+  importLoading.value = true
+  emailImport(accountId, files).then(summary => {
+    ElMessage({
+      message: t('importResult', {imported: summary.imported, skipped: summary.skipped, failed: summary.failed}),
+      type: summary.failed > 0 ? 'warning' : 'success',
+      plain: true,
+    });
+    if (summary.imported > 0) {
+      emailStore.emailScroll?.refreshList();
+    }
+  }).catch(err => {
+    console.error(err);
+    ElMessage({message: err?.message || t('importFailed'), type: 'error', plain: true});
+  }).finally(() => {
+    importLoading.value = false
+  });
+}
 const setPwdLoading = ref(false)
 const setNameShow = ref(false)
 const accountName = ref(null)

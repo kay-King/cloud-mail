@@ -37,6 +37,7 @@ const zh = {
     exportSelected: '导出选中邮件',
     exportFailed: '导出失败',
     importMail: '导入邮件',
+    importMailDesc: '从 .eml 或 .zip 文件导入邮件，导入到当前邮箱；重复的邮件会自动跳过。',
     importResult: '导入完成：成功 {imported} 封，跳过 {skipped} 封，失败 {failed} 封',
     importFailed: '导入失败',
     selectAccountFirst: '请先选择一个邮箱',

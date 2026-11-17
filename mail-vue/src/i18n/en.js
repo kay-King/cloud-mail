@@ -37,6 +37,7 @@ const en = {
     exportSelected: 'Export selected emails',
     exportFailed: 'Export failed',
     importMail: 'Import emails',
+    importMailDesc: 'Import emails from .eml or .zip files into the current mailbox; duplicates are skipped automatically.',
     importResult: 'Import done: {imported} imported, {skipped} skipped, {failed} failed',
     importFailed: 'Import failed',
     selectAccountFirst: 'Select a mailbox first',

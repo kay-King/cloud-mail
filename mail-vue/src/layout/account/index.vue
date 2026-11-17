@@ -7,10 +7,6 @@
       <el-tooltip effect="dark" :content="$t('refresh')">
         <Icon class="icon refresh" icon="ion:reload" width="18" height="18" @click="refresh"/>
       </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('importMail')">
-        <Icon class="icon" icon="mdi:upload" width="18" height="18" @click="openImport"/>
-      </el-tooltip>
-      <input ref="importRef" type="file" accept=".eml,.zip" multiple style="display: none" @change="onImportFiles"/>
     </div>
     <el-scrollbar class="scrollbar" ref="scrollbarRef">
       <div v-infinite-scroll="getAccountList" :infinite-scroll-distance="600" :infinite-scroll-immediate="false">
@@ -162,7 +158,6 @@ import {hasPerm} from "@/perm/perm.js"
 import {useI18n} from "vue-i18n";
 import {AccountAllReceiveEnum} from "@/enums/account-enum.js";
 import {reloadTurnstileScript} from "@/utils/turnstile-script.js";
-import {emailImport} from "@/request/email.js";
 
 const {t} = useI18n();
 const userStore = useUserStore();
@@ -392,36 +387,6 @@ function add() {
   setTimeout(() => {
     addRef.value.focus()
   }, 100)
-}
-
-const importRef = ref(null);
-
-function openImport() {
-  importRef.value?.click();
-}
-
-function onImportFiles(e) {
-  const files = Array.from(e.target.files || []);
-  e.target.value = '';
-  if (files.length === 0) return;
-  const accountId = accountStore.currentAccountId;
-  if (!accountId) {
-    ElMessage({message: t('selectAccountFirst'), type: 'warning', plain: true});
-    return;
-  }
-  emailImport(accountId, files).then(summary => {
-    ElMessage({
-      message: t('importResult', {imported: summary.imported, skipped: summary.skipped, failed: summary.failed}),
-      type: summary.failed > 0 ? 'warning' : 'success',
-      plain: true,
-    });
-    if (summary.imported > 0) {
-      emailStore.emailScroll?.refreshList();
-    }
-  }).catch(err => {
-    console.error(err);
-    ElMessage({message: err?.message || t('importFailed'), type: 'error', plain: true});
-  });
 }
 
 function setAsTop(account, index) {
