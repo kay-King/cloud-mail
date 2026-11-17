@@ -58,14 +58,12 @@ const r2Service = {
 
 	},
 
-	// 统一返回 Response（或 null），读取时自动解密；明文对象（无魔术头）直接透传
-	async getObj(c, key) {
+	// 返回存储侧原始 Response（不解密），供需要检查密文本身的场景使用
+	async getRawObj(c, key) {
 		const storageType = await this.storageType(c);
 
-		let resp = null;
-
 		if (storageType === 'KV') {
-			resp = await kvObjService.getObj(c, key);
+			return await kvObjService.getObj(c, key);
 		}
 
 		if (storageType === 'R2') {
@@ -73,7 +71,7 @@ const r2Service = {
 			if (!obj) {
 				return null;
 			}
-			resp = new Response(obj.body, {
+			return new Response(obj.body, {
 				headers: {
 					'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
 					'Content-Disposition': obj.httpMetadata?.contentDisposition || null,
@@ -83,8 +81,15 @@ const r2Service = {
 		}
 
 		if (storageType === 'S3') {
-			resp = await s3Service.getObj(c, key);
+			return await s3Service.getObj(c, key);
 		}
+
+		return null;
+	},
+
+	// 统一返回 Response（或 null），读取时自动解密；明文对象（无魔术头）直接透传
+	async getObj(c, key) {
+		const resp = await this.getRawObj(c, key);
 
 		if (!resp) {
 			return null;
