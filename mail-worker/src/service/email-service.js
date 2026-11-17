@@ -1447,6 +1447,22 @@ const emailService = {
 			.get();
 	},
 
+	// 批量取邮件行（删前取通知所需字段，含已软删的）
+	selectByIds(c, emailIds) {
+		const ids = emailIds.map(Number).filter(n => !isNaN(n));
+		if (ids.length === 0) return [];
+		return orm(c).select({
+			emailId: email.emailId,
+			userId: email.userId,
+			accountId: email.accountId,
+			subject: email.subject,
+			sendEmail: email.sendEmail,
+			name: email.name,
+			type: email.type,
+			createTime: email.createTime,
+		}).from(email).where(inArray(email.emailId, ids)).all();
+	},
+
 	async latest(c, params, userId) {
 		let { emailId, accountId, allReceive } = params;
 		allReceive = Number(allReceive);
@@ -1757,20 +1773,34 @@ const emailService = {
 		}
 
 		if (conditions.length === 0) {
-			return;
+			return [];
 		}
 
-		const emailIdsRow = await orm(c).select({emailId: email.emailId}).from(email).where(conditions.length > 1 ? and(...conditions) : conditions[0]).all();
+		const where = conditions.length > 1 ? and(...conditions) : conditions[0];
 
-		const emailIds = emailIdsRow.map(row => row.emailId);
+		// 删前先取行，供删除通知用
+		const rows = await orm(c).select({
+			emailId: email.emailId,
+			userId: email.userId,
+			accountId: email.accountId,
+			subject: email.subject,
+			sendEmail: email.sendEmail,
+			name: email.name,
+			type: email.type,
+			createTime: email.createTime,
+		}).from(email).where(where).all();
 
-		if (emailIds.length === 0){
-			return;
+		const emailIds = rows.map(row => row.emailId);
+
+		if (emailIds.length === 0) {
+			return [];
 		}
 
 		await attService.removeByEmailIds(c, emailIds);
 
-		await orm(c).delete(email).where(conditions.length > 1 ? and(...conditions) : conditions[0]).run();
+		await orm(c).delete(email).where(where).run();
+
+		return rows;
 	},
 
 	async physicsDeleteByAccountId(c, accountId) {

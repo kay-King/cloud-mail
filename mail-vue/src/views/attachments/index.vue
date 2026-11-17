@@ -85,6 +85,8 @@
           @current-change="numChange"
       />
     </div>
+    <delete-notify-dialog v-model="notifyDialog.visible" :message="notifyDialog.message"
+                          @confirm="onNotifyDialogConfirm"/>
   </div>
 </template>
 
@@ -93,17 +95,22 @@ import {computed, onMounted, reactive, ref} from "vue";
 import {useI18n} from "vue-i18n";
 import {ElMessage, ElMessageBox} from "element-plus";
 import {Icon} from "@iconify/vue";
+import deleteNotifyDialog from "@/components/delete-notify-dialog/index.vue";
 import {attList, attAllList, attStar, attDelete} from "@/request/att.js";
 import {emailInfo} from "@/request/email.js";
 import {formatBytes, fileToBase64} from "@/utils/file-utils.js";
 import {getIconByName} from "@/utils/icon-utils.js";
 import {cvtR2Url} from "@/utils/convert.js";
 import {useEmailStore} from "@/store/email.js";
+import {useSettingStore} from "@/store/setting.js";
+import {useUserStore} from "@/store/user.js";
 import {useUiStore} from "@/store/ui.js";
 import router from "@/router/index.js";
 
 const {t} = useI18n()
 const emailStore = useEmailStore()
+const settingStore = useSettingStore()
+const userStore = useUserStore()
 const uiStore = useUiStore()
 
 // admin=true 时为管理区的全部附件：全站所有用户，无收藏/发送，主题不可跳转
@@ -222,6 +229,17 @@ async function starSelected() {
 }
 
 function deleteSelected() {
+  if (admin.value) {
+    const v = settingStore.settings.adminDelNotify
+    const enabled = v === undefined || v === null || v !== 0
+    const myEmail = (userStore.user.email || '').toLowerCase()
+    const other = selected.value.some(row => row.ownerEmail && row.ownerEmail.toLowerCase() !== myEmail)
+    if (enabled && other) {
+      notifyDialog.message = t('deleteAttConfirm')
+      notifyDialog.visible = true
+      return
+    }
+  }
   ElMessageBox.confirm(t('deleteAttConfirm'), {
     confirmButtonText: t('confirm'),
     cancelButtonText: t('cancel'),
@@ -234,6 +252,20 @@ function deleteSelected() {
     fetchList()
   }).catch(() => {
   })
+}
+
+// 管理员删除通知弹窗：仅全部附件页、开关开启、且删到别人的附件时出现
+const notifyDialog = reactive({
+  visible: false,
+  message: '',
+})
+
+async function onNotifyDialogConfirm(opts) {
+  const ids = selected.value.map(row => row.attId)
+  await attDelete(ids, opts)
+  ElMessage({message: t('delSuccessMsg'), type: 'success', plain: true})
+  selected.value = []
+  fetchList()
 }
 
 async function sendSelected() {

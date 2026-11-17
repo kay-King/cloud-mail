@@ -39,6 +39,11 @@
                         :range-separator="t('to')"
                         size="default"
         />
+        <template v-if="notifyEnabled()">
+          <el-checkbox v-model="clearParams.notify">{{ $t('notifyUser') }}</el-checkbox>
+          <el-input v-if="clearParams.notify" v-model="clearParams.reason" type="textarea" :rows="2" :maxlength="200"
+                    :placeholder="$t('deleteReason')"/>
+        </template>
         <div class="clear-button">
           <el-select v-model="clearParams.type" style="width: 200px">
             <el-option key="eq" :label="t('equal')" value="eq"/>
@@ -102,7 +107,14 @@ const clearParams = reactive({
   toEmail: '',
   endTime: '',
   type: 'eq',
+  notify: true,
+  reason: '',
 })
+
+function notifyEnabled() {
+  const v = settingStore.settings.adminDelNotify
+  return v === undefined || v === null || v !== 0
+}
 
 function resetClearParams() {
   clearParams.subject = ''
@@ -111,6 +123,8 @@ function resetClearParams() {
   clearParams.startTime = ''
   clearParams.toEmail = ''
   clearParams.endTime = ''
+  clearParams.notify = true
+  clearParams.reason = ''
 }
 
 function closedClear() {
@@ -156,7 +170,7 @@ function batchDelete() {
   ).then(() => {
     clearLoading.value = true
 
-    allEmailBatchDelete(clearParams).then(() => {
+    allEmailBatchDelete({...clearParams, notify: clearParams.notify ? 1 : 0}).then(() => {
       ElMessage({
         message: t('clearSuccess'),
         type: "success",

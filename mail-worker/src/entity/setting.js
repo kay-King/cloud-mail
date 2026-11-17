@@ -70,6 +70,7 @@ export const setting = sqliteTable('setting', {
 	webhookStatus: integer('webhook_status').default(1).notNull(),
 	webhookRetry: integer('webhook_retry').default(0).notNull(),
 	webhookSecret: text('webhook_secret').default('').notNull(),
-	attEncrypt: integer('att_encrypt').default(1).notNull()
+	attEncrypt: integer('att_encrypt').default(1).notNull(),
+	adminDelNotify: integer('admin_del_notify').default(1).notNull()
 });
 export default setting

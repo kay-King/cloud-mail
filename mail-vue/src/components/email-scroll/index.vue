@@ -256,14 +256,18 @@
         </el-dropdown-menu>
       </template>
     </el-dropdown>
+    <delete-notify-dialog v-model="notifyDialog.visible" :message="notifyDialog.message"
+                          @confirm="onNotifyDialogConfirm"/>
   </div>
 </template>
 
 <script setup>
 import {Icon} from "@iconify/vue";
 import skeletonBlock from "@/components/email-scroll/skeleton/index.vue"
+import deleteNotifyDialog from "@/components/delete-notify-dialog/index.vue"
 import {computed, onActivated, reactive, ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import {useEmailStore} from "@/store/email.js";
+import {useUserStore} from "@/store/user.js";
 import {useUiStore} from "@/store/ui.js";
 import {useSettingStore} from "@/store/setting.js";
 import {sleep} from "@/utils/time-utils.js"
@@ -334,6 +338,45 @@ const {t} = useI18n()
 const settingStore = useSettingStore()
 const uiStore = useUiStore();
 const emailStore = useEmailStore();
+const userStore = useUserStore();
+
+// 管理员删除通知弹窗：仅全部邮件视图、开关开启、且删到别人的邮件时出现
+const notifyDialog = reactive({
+  visible: false,
+  message: '',
+  emailIds: [],
+})
+
+function notifyEnabled() {
+  const v = settingStore.settings.adminDelNotify
+  return v === undefined || v === null || v !== 0
+}
+
+function involvesOtherUser(emailIds) {
+  const myEmail = (userStore.user.email || '').toLowerCase()
+  return emailIds.some(id => {
+    const item = emailList.find(e => e.emailId === id)
+    return item && item.userEmail && item.userEmail.toLowerCase() !== myEmail
+  })
+}
+
+function openNotifyDialog(emailIds, message) {
+  notifyDialog.emailIds = emailIds
+  notifyDialog.message = message
+  notifyDialog.visible = true
+}
+
+function onNotifyDialogConfirm(opts) {
+  const emailIds = notifyDialog.emailIds
+  props.emailDelete(emailIds, opts).then(() => {
+    ElMessage({
+      message: t('delSuccessMsg'),
+      type: 'success',
+      plain: true
+    })
+    emailStore.deleteIds = emailIds;
+  })
+}
 const loading = ref(false);
 const followLoading = ref(false);
 const noLoading = ref(false);
@@ -659,6 +702,10 @@ function rightRestore(emailId) {
 function rightDelete(emailId) {
 
   if (props.type === 'all-email' || props.type === 'trash') {
+    if (props.type === 'all-email' && notifyEnabled() && involvesOtherUser([emailId])) {
+      openNotifyDialog([emailId], t('delOneEmailConfirm'))
+      return
+    }
     ElMessageBox.confirm(props.type === 'trash' ? t('delForeverOneConfirm') : t('delOneEmailConfirm'), {
       confirmButtonText: t('confirm'),
       cancelButtonText: t('cancel'),
@@ -708,6 +755,13 @@ async function copyCode(code) {
 }
 
 function handleDelete() {
+  if (props.type === 'all-email' && notifyEnabled()) {
+    const emailIds = getSelectedMailsIds();
+    if (involvesOtherUser(emailIds)) {
+      openNotifyDialog(emailIds, t('delEmailsConfirm'))
+      return
+    }
+  }
   ElMessageBox.confirm(props.type === 'trash' ? t('delForeverConfirm') : t('delEmailsConfirm'), {
     confirmButtonText: t('confirm'),
     cancelButtonText: t('cancel'),

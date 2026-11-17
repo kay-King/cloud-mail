@@ -4,8 +4,12 @@ export function allEmailList(params) {
     return http.get('/allEmail/list', {params: {...params}})
 }
 
-export function allEmailDelete(emailIds) {
-    return http.delete('/allEmail/delete?emailIds=' + emailIds)
+export function allEmailDelete(emailIds, opts = {}) {
+    let url = '/allEmail/delete?emailIds=' + emailIds
+    if (opts.notify) {
+        url += '&notify=1&reason=' + encodeURIComponent(opts.reason || '')
+    }
+    return http.delete(url)
 }
 
 export function allEmailBatchDelete(params) {

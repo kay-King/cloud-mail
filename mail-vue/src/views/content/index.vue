@@ -98,16 +98,20 @@
         show-progress
         @close="showPreview = false"
     />
+    <delete-notify-dialog v-model="notifyDialog.visible" :message="notifyDialog.message"
+                          @confirm="onNotifyDialogConfirm"/>
   </div>
 </template>
 <script setup>
 import ShadowHtml from '@/components/shadow-html/index.vue'
+import deleteNotifyDialog from "@/components/delete-notify-dialog/index.vue"
 import {computed, reactive, ref, watch, onMounted, onUnmounted, nextTick} from "vue";
 import {useRouter} from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import {emailDelete, emailRead, emailRestore, emailPhysicsDelete} from "@/request/email.js";
 import {Icon} from "@iconify/vue";
 import {useEmailStore} from "@/store/email.js";
+import {useUserStore} from "@/store/user.js";
 import {useAccountStore} from "@/store/account.js";
 import {formatDetailDate} from "@/utils/day.js";
 import {starAdd, starCancel} from "@/request/star.js";
@@ -125,7 +129,26 @@ const uiStore = useUiStore();
 const settingStore = useSettingStore();
 const accountStore = useAccountStore();
 const emailStore = useEmailStore();
+const userStore = useUserStore();
 const router = useRouter()
+
+// 管理员删除通知弹窗：仅全部邮件详情页、开关开启、且删到别人的邮件时出现
+const notifyDialog = reactive({
+  visible: false,
+  message: '',
+})
+
+function onNotifyDialogConfirm(opts) {
+  allEmailDelete(email.value.emailId, opts).then(() => {
+    ElMessage({
+      message: t('delSuccessMsg'),
+      type: 'success',
+      plain: true,
+    })
+    emailStore.deleteIds = [email.value.emailId]
+  })
+  router.back()
+}
 const sendNameRef = ref(null)
 const senderWrapped = ref(false)
 let senderResizeObserver = null
@@ -313,6 +336,18 @@ const handleBack = () => {
 }
 
 const handleDelete = () => {
+  const delType = emailStore.contentData.delType
+  if (delType !== 'logic' && delType !== 'trash') {
+    const v = settingStore.settings.adminDelNotify
+    const enabled = v === undefined || v === null || v !== 0
+    const myEmail = (userStore.user.email || '').toLowerCase()
+    const other = email.value.userEmail && email.value.userEmail.toLowerCase() !== myEmail
+    if (enabled && other) {
+      notifyDialog.message = t('delEmailConfirm')
+      notifyDialog.visible = true
+      return
+    }
+  }
   ElMessageBox.confirm(emailStore.contentData.delType === 'trash' ? t('delForeverOneConfirm') : t('delEmailConfirm'), {
     confirmButtonText: t('confirm'),
     cancelButtonText: t('cancel'),

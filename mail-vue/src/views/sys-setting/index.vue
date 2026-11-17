@@ -365,6 +365,25 @@
             </div>
           </div>
 
+          <!-- Admin Deletion Notice Card -->
+          <div class="settings-card">
+            <div class="card-title">{{ $t('adminDelNotify') }}</div>
+            <div class="card-content">
+              <div class="setting-item">
+                <div>
+                  <span>{{ $t('adminDelNotify') }}</span>
+                  <el-tooltip effect="dark" :content="$t('adminDelNotifyDesc')">
+                    <Icon class="warning" icon="fe:warning" width="18" height="18"/>
+                  </el-tooltip>
+                </div>
+                <div>
+                  <el-switch @change="change" :active-value="1" :inactive-value="0"
+                             v-model="setting.adminDelNotify"/>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Turnstile Verification Card -->
           <div class="settings-card">
             <div class="card-title">{{ $t('turnstileSetting') }}</div>

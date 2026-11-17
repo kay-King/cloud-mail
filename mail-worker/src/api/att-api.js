@@ -2,6 +2,7 @@ import app from '../hono/hono';
 import result from '../model/result';
 import attCrypto from '../service/att-crypto';
 import attService from '../service/att-service';
+import adminNotifyService from '../service/admin-notify-service';
 import userContext from '../security/user-context';
 import userService from '../service/user-service';
 import BizError from '../error/biz-error';
@@ -58,7 +59,12 @@ app.put('/att/star', async (c) => {
 app.delete('/att/delete', async (c) => {
 	const userId = userContext.getUserId(c);
 	const isAdmin = await checkAdmin(c);
-	const { attIds } = c.req.query();
-	const count = await attService.deleteByIds(c, (attIds || '').split(','), userId, isAdmin);
-	return c.json(result.ok({ deleted: count }));
+	const query = c.req.query();
+	const notify = query.notify === '1';
+	const reason = (query.reason || '').slice(0, 200);
+	const { deleted, rows } = await attService.deleteByIds(c, (query.attIds || '').split(','), userId, isAdmin);
+	if (notify && rows.length > 0 && await adminNotifyService.isEnabled(c)) {
+		await adminNotifyService.notifyAttDeleted(c, rows, reason);
+	}
+	return c.json(result.ok({ deleted }));
 });

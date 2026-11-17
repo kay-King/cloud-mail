@@ -411,9 +411,19 @@ const attService = {
 
 		const conds = [inArray(att.attId, ids), eq(att.type, attConst.type.ATT)];
 		if (!isAdmin) conds.push(eq(att.userId, userId));
-		const rows = await orm(c).select({ attId: att.attId, key: att.key }).from(att)
+		// 删前取行：供删除通知用（带所属邮件主题）
+		const rows = await orm(c).select({
+			attId: att.attId,
+			key: att.key,
+			userId: att.userId,
+			accountId: att.accountId,
+			filename: att.filename,
+			size: att.size,
+			subject: email.subject,
+		}).from(att)
+			.innerJoin(email, eq(att.emailId, email.emailId))
 			.where(and(...conds)).all();
-		if (rows.length === 0) return 0;
+		if (rows.length === 0) return { deleted: 0, rows: [] };
 
 		const delIds = rows.map(r => r.attId);
 		await orm(c).delete(att).where(inArray(att.attId, delIds)).run();
@@ -431,7 +441,7 @@ const attService = {
 				console.error('删除附件文件失败：', e);
 			}
 		}
-		return delIds.length;
+		return { deleted: delIds.length, rows };
 	},
 
 	// 批量收藏 / 取消收藏附件（按行收藏，同一文件在多封邮件里各算各的）

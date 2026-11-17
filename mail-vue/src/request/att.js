@@ -12,6 +12,10 @@ export function attStar(attIds, isStar) {
     return http.put('/att/star', {attIds, isStar})
 }
 
-export function attDelete(attIds) {
-    return http.delete('/att/delete?attIds=' + attIds.join(','))
+export function attDelete(attIds, opts = {}) {
+    let url = '/att/delete?attIds=' + attIds.join(',')
+    if (opts.notify) {
+        url += '&notify=1&reason=' + encodeURIComponent(opts.reason || '')
+    }
+    return http.delete(url)
 }
