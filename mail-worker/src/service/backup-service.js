@@ -4,6 +4,7 @@
 // 注意：备份含 KV 里的附件加密钥匙与用户密码哈希，本地文件请妥善保管，勿外传。
 import settingService from './setting-service';
 import backupStorageService from './backup-storage-service';
+import emailService from './email-service';
 import attCrypto from './att-crypto';
 import constant from '../const/constant';
 import BizError from '../error/biz-error';
@@ -12,6 +13,35 @@ const LAST_RUN_KEY = 'backup:last-run:';
 const LIST_KEY = 'backup:list:';
 const KEEP_COUNT = 7;
 const MIN_INTERVAL_MS = 20 * 60 * 60 * 1000;
+// 备份失败提醒节流：24 小时内只提醒一次，避免备份持续故障时刷屏
+const FAIL_NOTIFY_KEY = 'backup-fail-notify-last:';
+const FAIL_NOTIFY_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+function escapeHtml(s) {
+	return String(s ?? '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;');
+}
+
+// D1 存的时间是 UTC，转北京时间显示
+function nowCST() {
+	return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+}
+
+// manual=true 是手动导出时触发：备份文件本身已下载成功，失败的只是往服务商存副本那一步
+function buildBackupFailNotice(error, manual) {
+	const reason = String(error?.message || error || '未知原因').slice(0, 200);
+	const now = nowCST();
+	const manualLine = manual ? '<p>你刚才下载的备份文件本身是完整的，这次失败的只是往服务商上存副本那一步。</p>' : '';
+	const manualText = manual ? '\n你刚才下载的备份文件本身是完整的，这次失败的只是往服务商上存副本那一步。\n' : '';
+	return {
+		subject: '备份失败提醒',
+		html: `<p>你好：</p><p>备份失败了，备份没有存到备份服务商上。</p>${manualLine}<p>失败时间：${now}</p><p>失败原因：${escapeHtml(reason)}</p><p>数据本身不受影响。请检查系统设置 → 数据备份里的备份服务商配置是否正确（如地址、密钥有没有填错），修好后下一次备份会自动重试。</p>`,
+		text: `你好：\n\n备份失败了，备份没有存到备份服务商上。${manualText}\n失败时间：${now}\n失败原因：${reason}\n\n数据本身不受影响。请检查系统设置 → 数据备份里的备份服务商配置是否正确（如地址、密钥有没有填错），修好后下一次备份会自动重试。`
+	};
+}
 
 const backupService = {
 
@@ -124,6 +154,9 @@ const backupService = {
 			} catch (e) {
 				uploadError = e.message || String(e);
 				console.error('Backup upload failed', e);
+				// 定时与手动都提醒：定时失败本就静默，手动导出时用户只拿到下载文件，
+				// 存副本失败不提醒就没人知道；节流保证 24 小时内只提醒一次
+				await this.notifyBackupFailed(c, uploadError, { manual: force });
 			}
 		}
 		return { status: 'done', key, size: plain.length, uploaded, uploadError, time: now.getTime(), data: plain };
@@ -143,6 +176,37 @@ const backupService = {
 			lastRun: lastRun ? Number(lastRun) : null,
 			latest: list[0] || null
 		};
+	},
+
+	// 备份失败提醒：发给管理员（发件走系统通知邮箱），24 小时内只提醒一次。
+	// 提醒本身绝不能抛错影响备份流程，全程 try/catch，只记日志。
+	async notifyBackupFailed(c, error, { manual = false } = {}) {
+		try {
+			const sender = await emailService.getNotifySender(c);
+			if (!sender) return;
+			const kv = c.env?.kv;
+			if (kv) {
+				try {
+					const last = await kv.get(FAIL_NOTIFY_KEY);
+					if (last && Date.now() - Number(last) < FAIL_NOTIFY_INTERVAL_MS) return;
+					await kv.put(FAIL_NOTIFY_KEY, String(Date.now()));
+				} catch (e) {
+					console.error('备份失败提醒节流读写失败：', e);
+				}
+			}
+			const notice = buildBackupFailNotice(error, manual);
+			await emailService.send(c, {
+				accountId: sender.accountId,
+				name: '系统通知',
+				receiveEmail: [c.env.admin],
+				subject: notice.subject,
+				content: notice.html,
+				text: notice.text,
+				skipForward: true
+			}, sender.userId);
+		} catch (e) {
+			console.error('备份失败提醒发送失败：', e);
+		}
 	},
 
 	// 取服务商上最新的一份备份并解密；没有返回 null

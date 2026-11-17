@@ -48,6 +48,8 @@ export default {
 			await backupService.runBackup({ env })
 		} catch (e) {
 			console.error('Scheduled backup failed', e)
+			// 备份本身抛错（如打包失败）时也提醒管理员；上传失败已在 runBackup 里提醒过
+			await backupService.notifyBackupFailed({ env }, e.message || String(e))
 		}
 	},
 };
