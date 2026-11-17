@@ -1,6 +1,7 @@
 import s3Service from './s3-service';
 import settingService from './setting-service';
 import kvObjService from './kv-obj-service';
+import attCrypto from './att-crypto';
 
 const r2Service = {
 
@@ -22,6 +23,9 @@ const r2Service = {
 
 	async putObj(c, key, content, metadata) {
 
+		// 附件先在 Worker 里加密再上传，服务商只存密文；非附件 key 或未配密钥时原样透传
+		content = await attCrypto.encrypt(c, key, content);
+
 		const storageType = await this.storageType(c);
 
 		if (storageType === 'KV') {
@@ -40,20 +44,40 @@ const r2Service = {
 
 	},
 
+	// 统一返回 Response（或 null），读取时自动解密；明文对象（无魔术头）直接透传
 	async getObj(c, key) {
 		const storageType = await this.storageType(c);
 
+		let resp = null;
+
 		if (storageType === 'KV') {
-			return await kvObjService.getObj(c, key);
+			resp = await kvObjService.getObj(c, key);
 		}
 
 		if (storageType === 'R2') {
-			return await c.env.r2.get(key);
+			const obj = await c.env.r2.get(key);
+			if (!obj) {
+				return null;
+			}
+			resp = new Response(obj.body, {
+				headers: {
+					'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
+					'Content-Disposition': obj.httpMetadata?.contentDisposition || null,
+					'Cache-Control': obj.httpMetadata?.cacheControl || null
+				}
+			});
 		}
 
 		if (storageType === 'S3') {
-			return await s3Service.getObj(c, key);
+			resp = await s3Service.getObj(c, key);
 		}
+
+		if (!resp) {
+			return null;
+		}
+
+		const plain = await attCrypto.decrypt(c, key, resp);
+		return new Response(plain, { headers: resp.headers });
 	},
 
 	/**
@@ -62,31 +86,7 @@ const r2Service = {
 	 */
 	async toObjResp(c, key) {
 		try {
-			const storageType = await this.storageType(c);
-
-			if (storageType === 'KV') {
-				return await kvObjService.getObj(c, key);
-			}
-
-			if (storageType === 'R2') {
-				const obj = await c.env.r2.get(key);
-				if (!obj) {
-					return null;
-				}
-				return new Response(obj.body, {
-					headers: {
-						'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
-						'Content-Disposition': obj.httpMetadata?.contentDisposition || null,
-						'Cache-Control': obj.httpMetadata?.cacheControl || null
-					}
-				});
-			}
-
-			if (storageType === 'S3') {
-				return await s3Service.getObj(c, key);
-			}
-
-			return null;
+			return await this.getObj(c, key);
 		} catch (e) {
 			const status = e?.$metadata?.httpStatusCode;
 			const code = e?.name || e?.Code || e?.code;
