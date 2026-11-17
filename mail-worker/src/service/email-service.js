@@ -248,6 +248,8 @@ const emailService = {
 			SELECT e.email_id FROM email AS e INDEXED BY idx_email_to_email_nocase WHERE e.to_email COLLATE NOCASE LIKE ${pattern}
 			UNION
 			SELECT e.email_id FROM email AS e INDEXED BY idx_email_send_email_nocase WHERE e.send_email COLLATE NOCASE LIKE ${pattern}
+			UNION
+			SELECT e.email_id FROM email AS e WHERE e.recipient COLLATE NOCASE LIKE ${'%"address":"' + pattern}
 		)`;
 	},
 

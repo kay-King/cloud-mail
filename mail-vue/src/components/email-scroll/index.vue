@@ -113,7 +113,7 @@
                       <span>
                         <Icon icon="mynaui:user" width="20" height="20"/>
                       </span>
-                      <span v-html="item.userEmailHtml"></span>
+                      <span v-html="item.peerEmailHtml"></span>
                     </div>
                     <div class="account">
                       <span>
@@ -220,7 +220,7 @@
               </div>
             </template>
           </el-dropdown-item>
-          <el-dropdown-item v-if="props.type === 'all-email' " @click="handleSearch('account', rightClickEmail.toEmail)">
+          <el-dropdown-item v-if="props.type === 'all-email' " @click="handleSearch('account', rightClickEmail.type === 0 ? rightClickEmail.toEmail : rightClickEmail.sendEmail)">
             <template #default>
               <div class="right-dropdown-item">
                 <Icon icon="iconoir:search" width="20" height="20" />
@@ -944,8 +944,17 @@ function applyHighlight(email) {
   email.nameHtml = renderHighlight(email.name);
   email.subjectHtml = renderHighlight(email.subject);
   email.listHtml = renderHighlight(email.listText || email.text);
-  email.userEmailHtml = renderHighlight(email.userEmail);
+  email.peerEmailHtml = renderHighlight(email.type === 0 ? email.sendEmail : firstRecipient(email));
   email.accountEmailHtml = renderHighlight(email.type === 0 ? email.toEmail : email.sendEmail);
+}
+
+// 已发邮件的收件人存在 recipient JSON 里（to_email 为空），取第一个收件地址
+function firstRecipient(email) {
+  try {
+    const list = JSON.parse(email.recipient || '[]')
+    if (Array.isArray(list) && list.length > 0) return list[0].address || ''
+  } catch (e) {}
+  return email.toEmail || ''
 }
 
 watch(() => props.highlightText, () => {
