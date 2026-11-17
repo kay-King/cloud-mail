@@ -83,6 +83,7 @@
                       <div class="unread" v-if="isMobile && (item.unread === EmailUnreadEnum.UNREAD && showUnread) "/>
                       <slot name="name" :email="item"><span v-html="item.nameHtml"></span></slot>
                     </span>
+                    <span v-if="props.type === 'all-email'" class="type-tag" :class="item.type === 1 ? 'send' : 'receive'">{{ item.type === 1 ? $t('sent') : $t('received') }}</span>
                     <span>
                       <Icon v-if="item.isStar" icon="fluent-color:star-16" width="18" height="18"/>
                     </span>
@@ -922,8 +923,8 @@ function handleList(list) {
     email.test = t('received')
     const statusIconMap = {
       0: { icon: 'ic:round-mark-email-read', color: '#51C76B', content: t('received') },
-      1: { icon: 'bi:send-arrow-up-fill',  color: '#51C76B', content: t('sent') },
-      2: { icon: 'bi:send-check-fill',     color: '#51C76B', content: t('delivered') },
+      1: { icon: 'bi:send-arrow-up-fill',  color: '#409eff', content: t('sent') },
+      2: { icon: 'bi:send-check-fill',     color: '#409eff', content: t('delivered') },
       3: { icon: 'bi:send-x-fill',         color: '#F56C6C', content: t('bounced') },
       8: { icon: 'bi:send-x-fill',         color: '#F56C6C', content: t('bounced') },
       4: { icon: 'bi:send-exclamation-fill', color: '#FBBD08', content: t('complained') },
@@ -1200,7 +1201,7 @@ function renderHighlight(value) {
       .name {
         display: grid;
         gap: 5px;
-        grid-template-columns: auto 1fr;
+        grid-template-columns: auto auto 1fr;
 
         > span:last-child {
           display: flex;
@@ -1208,7 +1209,7 @@ function renderHighlight(value) {
         }
 
         @media (min-width: 1366px) {
-          grid-template-columns: 1fr;
+          grid-template-columns: 1fr auto;
           > span:last-child {
             display: none;
           }
@@ -1225,6 +1226,26 @@ function renderHighlight(value) {
           height: 1rem;
           @media (max-width: 767px) {
             width: 130px;
+          }
+        }
+
+        .type-tag {
+          align-self: center;
+          font-size: 11px;
+          font-weight: 400;
+          line-height: 16px;
+          padding: 1px 6px;
+          border-radius: 4px;
+          white-space: nowrap;
+
+          &.send {
+            color: #409eff;
+            background-color: #ecf5ff;
+          }
+
+          &.receive {
+            color: #67c23a;
+            background-color: #f0f9eb;
           }
         }
       }
