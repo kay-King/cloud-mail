@@ -189,45 +189,41 @@
                 </div>
               </div>
               <div class="setting-item">
-                <div><span>{{ setting.hasCfEmail ? $t('cloudflareEmailSending') : $t('resendToken') }}</span></div>
-                <div v-if="setting.hasCfEmail">
-                  <span>{{ $t('enabled') }}</span>
+                <div>
+                  <span>{{ $t('sendProvider') }}</span>
+                  <el-tooltip effect="dark" :content="$t('sendProviderDesc')">
+                    <Icon class="warning" icon="fe:warning" width="18" height="18"/>
+                  </el-tooltip>
                 </div>
-                <div v-else>
-                  <el-button class="opt-button" style="margin-top: 0" @click="openResendList" size="small"
-                             type="primary">
-                    <Icon icon="ic:round-list" width="18" height="18"/>
-                  </el-button>
-                  <el-button class="opt-button" style="margin-top: 0" @click="openResendForm" size="small"
-                             type="primary">
-                    <Icon icon="material-symbols:add-rounded" width="16" height="16"/>
-                  </el-button>
+                <div>
+                  <el-select v-model="manageProvider" style="width: 140px">
+                    <el-option label="Cloudflare" value="cloudflare"/>
+                    <el-option label="Resend" value="resend"/>
+                    <el-option label="Sendkit" value="sendkit"/>
+                    <el-option label="Brevo" value="brevo"/>
+                  </el-select>
+                  <span v-if="manageProvider === 'cloudflare'" style="margin-left: 10px">
+                    <template v-if="setting.hasCfEmail">{{ $t('enabled') }}</template>
+                    <el-tooltip v-else effect="dark" :content="$t('sendProviderNotBound')">
+                      <span>{{ $t('sendProviderUnbound') }}</span>
+                    </el-tooltip>
+                  </span>
+                  <template v-if="['resend', 'sendkit', 'brevo'].includes(manageProvider)">
+                    <el-button class="opt-button" style="margin-top: 0; margin-left: 8px" @click="openSendProviderList" size="small"
+                               type="primary">
+                      <Icon icon="ic:round-list" width="18" height="18"/>
+                    </el-button>
+                    <el-button class="opt-button" style="margin-top: 0" @click="openSendProviderForm" size="small"
+                               type="primary">
+                      <Icon icon="material-symbols:add-rounded" width="16" height="16"/>
+                    </el-button>
+                  </template>
                 </div>
               </div>
-              <div class="setting-item" v-if="!setting.hasCfEmail">
-                <div><span>{{ $t('sendkitToken') }}</span></div>
+              <div class="setting-item">
+                <div><span>{{ $t('sendProviderConfigured') }}</span></div>
                 <div>
-                  <el-button class="opt-button" style="margin-top: 0" @click="openSendkitList" size="small"
-                             type="primary">
-                    <Icon icon="ic:round-list" width="18" height="18"/>
-                  </el-button>
-                  <el-button class="opt-button" style="margin-top: 0" @click="openSendkitForm" size="small"
-                             type="primary">
-                    <Icon icon="material-symbols:add-rounded" width="16" height="16"/>
-                  </el-button>
-                </div>
-              </div>
-              <div class="setting-item" v-if="!setting.hasCfEmail">
-                <div><span>{{ $t('brevoToken') }}</span></div>
-                <div>
-                  <el-button class="opt-button" style="margin-top: 0" @click="openBrevoList" size="small"
-                             type="primary">
-                    <Icon icon="ic:round-list" width="18" height="18"/>
-                  </el-button>
-                  <el-button class="opt-button" style="margin-top: 0" @click="openBrevoForm" size="small"
-                             type="primary">
-                    <Icon icon="material-symbols:add-rounded" width="16" height="16"/>
-                  </el-button>
+                  <span>{{ sendProviderSummary }}</span>
                 </div>
               </div>
               <div class="setting-item">
@@ -405,8 +401,9 @@
                   <span>{{ $t('backupProvider') }}</span>
                 </div>
                 <div class="r2domain">
+                  <span>{{ backupProviderLabel }}</span>
                   <el-button class="opt-button" size="small" type="primary" @click="openBackupS3">
-                    {{ backupStatus.configured ? $t('configured') : $t('configure') }}
+                    <Icon icon="fluent:settings-48-regular" width="16" height="16"/>
                   </el-button>
                 </div>
               </div>
@@ -998,6 +995,17 @@ Authorization: &lt;secret&gt;</pre>
       <el-dialog v-model="addS3Show" :title="t('s3Configuration')" width="340" @closed="resetAddS3Form">
         <form @submit.prevent>
           <div class="backup-field-label">
+            <span>{{ t('attStorageType') }}</span>
+          </div>
+          <el-select v-model="s3.type" style="width: 100%; margin-bottom: 15px">
+            <el-option :label="t('attStorageTypeS3')" value="s3"/>
+            <el-option :label="t('attStorageTypeR2')" value="r2"/>
+            <el-option :label="t('attStorageTypeWebdav')" value="webdav"/>
+            <el-option :label="t('attStorageTypeKv')" value="kv"/>
+          </el-select>
+          <div v-if="s3.type !== (setting.attStorageType || 's3')" class="backup-kv-note" style="margin-bottom: 15px">{{ t('attStorageSwitchWarn') }}</div>
+          <template v-if="s3.type === 's3'">
+          <div class="backup-field-label">
             <span>{{ t('backupBucket') }}</span>
             <el-tooltip effect="dark" :content="$t('backupBucketHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
@@ -1043,8 +1051,62 @@ Authorization: &lt;secret&gt;</pre>
             <el-switch :before-change="beforeChange" :active-value="0" :inactive-value="1"
                        v-model="s3.forcePathStyle"/>
           </div>
+          </template>
+          <template v-else-if="s3.type === 'r2'">
+          <div class="backup-field-label">
+            <span>{{ t('r2AccountId') }}</span>
+            <el-tooltip effect="dark" :content="$t('r2AccountIdHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" placeholder="例如：32 位十六进制字符" v-model="r2.accountId" @keyup.enter="saveS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupBucket') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupBucketHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" placeholder="例如：cloud-mail-attachments" v-model="r2.bucket" @keyup.enter="saveS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupAccessKey') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupAccessKeyHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" :placeholder="setting.r2AccessKey || 'Access key'"
+                    v-model="r2.accessKey" @keyup.enter="saveS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupSecretKey') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupSecretKeyHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input style="margin-bottom: 10px" type="text" :placeholder="setting.r2SecretKey || 'Secret key'" v-model="r2.secretKey" @keyup.enter="saveS3"/>
+          <div class="backup-kv-note" style="margin-bottom: 15px">{{ t('attStorageR2ApiNote') }}</div>
+          </template>
+          <template v-else-if="s3.type === 'webdav'">
+          <div class="backup-field-label">
+            <span>{{ t('webdavUrl') }}</span>
+            <el-tooltip effect="dark" :content="$t('webdavUrlHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" placeholder="例如：https://dav.jianguoyun.com/dav/" v-model="webdav.url" @keyup.enter="saveS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('webdavUsername') }}</span>
+          </div>
+          <el-input class="dialog-input" type="text" :placeholder="setting.webdavUsername || 'Username'" v-model="webdav.username" @keyup.enter="saveS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('webdavPassword') }}</span>
+          </div>
+          <el-input style="margin-bottom: 10px" type="password" :placeholder="setting.webdavPassword || 'Password'" v-model="webdav.password" @keyup.enter="saveS3" show-password/>
+          <div class="backup-kv-note" style="margin-bottom: 15px">{{ t('attStorageWebdavNote') }}</div>
+          </template>
+          <template v-else-if="s3.type === 'kv'">
+            <div class="backup-kv-note">{{ t('attStorageKvNote') }}</div>
+          </template>
           <div class="s3-button">
-            <el-button :loading="clearS3Loading" @click="clearS3">{{ t('clear') }}</el-button>
+            <el-button :loading="clearS3Loading" :disabled="s3.type === 'kv'" @click="clearS3">{{ t('clear') }}</el-button>
             <el-button type="primary" :loading="settingLoading && !clearS3Loading" @click="saveS3">{{ t('save') }}</el-button>
           </div>
         </form>
@@ -1056,10 +1118,62 @@ Authorization: &lt;secret&gt;</pre>
           </div>
           <el-select v-model="backupS3.type" style="width: 100%; margin-bottom: 15px">
             <el-option :label="t('backupTypeS3')" value="s3"/>
+            <el-option :label="t('backupTypeR2')" value="r2"/>
+            <el-option :label="t('backupTypeWebdav')" value="webdav"/>
             <el-option :label="t('backupTypeKv')" value="kv"/>
           </el-select>
           <template v-if="backupS3.type === 'kv'">
             <div class="backup-kv-note">{{ t('backupKvNote') }}</div>
+          </template>
+          <template v-else-if="backupS3.type === 'r2'">
+          <div class="backup-field-label">
+            <span>{{ t('r2AccountId') }}</span>
+            <el-tooltip effect="dark" :content="$t('r2AccountIdHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" placeholder="例如：32 位十六进制字符" v-model="backupR2.accountId" @keyup.enter="saveBackupS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupBucket') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupBucketHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" placeholder="例如：cloud-mail-backups" v-model="backupR2.bucket" @keyup.enter="saveBackupS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupAccessKey') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupAccessKeyHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" :placeholder="setting.backupR2AccessKey || 'Access key'"
+                    v-model="backupR2.accessKey" @keyup.enter="saveBackupS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('backupSecretKey') }}</span>
+            <el-tooltip effect="dark" :content="$t('backupSecretKeyHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input style="margin-bottom: 10px" type="text" :placeholder="setting.backupR2SecretKey || 'Secret key'" v-model="backupR2.secretKey" @keyup.enter="saveBackupS3"/>
+          <div class="backup-kv-note" style="margin-bottom: 15px">{{ t('attStorageR2ApiNote') }}</div>
+          </template>
+          <template v-else-if="backupS3.type === 'webdav'">
+          <div class="backup-field-label">
+            <span>{{ t('webdavUrl') }}</span>
+            <el-tooltip effect="dark" :content="$t('webdavUrlHint')">
+              <Icon class="warning" icon="fe:warning" width="16" height="16"/>
+            </el-tooltip>
+          </div>
+          <el-input class="dialog-input" type="text" placeholder="例如：https://dav.jianguoyun.com/dav/" v-model="backupWebdav.url" @keyup.enter="saveBackupS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('webdavUsername') }}</span>
+          </div>
+          <el-input class="dialog-input" type="text" :placeholder="setting.backupWebdavUsername || 'Username'" v-model="backupWebdav.username" @keyup.enter="saveBackupS3"/>
+          <div class="backup-field-label">
+            <span>{{ t('webdavPassword') }}</span>
+          </div>
+          <el-input style="margin-bottom: 10px" type="password" :placeholder="setting.backupWebdavPassword || 'Password'" v-model="backupWebdav.password" @keyup.enter="saveBackupS3" show-password/>
+          <div class="backup-kv-note" style="margin-bottom: 15px">{{ t('attStorageWebdavNote') }}</div>
           </template>
           <template v-else>
           <div class="backup-field-label">
@@ -1110,7 +1224,7 @@ Authorization: &lt;secret&gt;</pre>
           </div>
           </template>
           <div class="s3-button">
-            <el-button :loading="clearBackupS3Loading" @click="clearBackupS3">{{ t('clear') }}</el-button>
+            <el-button :loading="clearBackupS3Loading" :disabled="backupS3.type === 'kv'" @click="clearBackupS3">{{ t('clear') }}</el-button>
             <el-button type="primary" :loading="settingLoading && !clearBackupS3Loading" @click="saveBackupS3">{{ t('save') }}</el-button>
           </div>
         </form>
@@ -1292,6 +1406,7 @@ const oauthForm = reactive({
 })
 
 const s3 = reactive({
+  type: 's3',
   bucket: '',
   endpoint: '',
   region: '',
@@ -1300,8 +1415,22 @@ const s3 = reactive({
   forcePathStyle: 1
 })
 
+const r2 = reactive({
+  accountId: '',
+  bucket: '',
+  accessKey: '',
+  secretKey: ''
+})
+
+const webdav = reactive({
+  url: '',
+  username: '',
+  password: ''
+})
+
 const backupStatus = reactive({
   configured: false,
+  type: 's3',
   lastRun: null
 })
 const backupS3Show = ref(false)
@@ -1318,6 +1447,31 @@ const backupS3 = reactive({
   s3AccessKey: '',
   s3SecretKey: '',
   forcePathStyle: 1
+})
+
+const backupR2 = reactive({
+  accountId: '',
+  bucket: '',
+  accessKey: '',
+  secretKey: ''
+})
+
+const backupWebdav = reactive({
+  url: '',
+  username: '',
+  password: ''
+})
+
+const backupProviderLabel = computed(() => {
+  const type = backupStatus.type || 's3'
+  if (type === 's3') {
+    return setting.value.backupBucket
+      ? `${t('backupProviderS3')}（${setting.value.backupBucket}）`
+      : t('backupProviderS3')
+  }
+  if (type === 'r2') return t('backupProviderR2')
+  if (type === 'webdav') return t('backupProviderWebdav')
+  return t('backupProviderKv')
 })
 
 const noticeForm = reactive({
@@ -1405,6 +1559,7 @@ function getSettings() {
     loginOpacity.value = setting.value.loginOpacity
     minEmailPrefix.value = setting.value.minEmailPrefix
     firstLoading.value = false
+    pickDefaultSendProvider()
     backgroundUrl.value = setting.value.background?.startsWith('http') ? setting.value.background : ''
     editTitle.value = setting.value.title
     addVerifyCount.value = setting.value.addVerifyCount
@@ -1436,12 +1591,20 @@ function openRegVerifyCount() {
 }
 
 function resetAddS3Form() {
+  s3.type = setting.value.attStorageType || 's3'
   s3.bucket = setting.value.bucket
   s3.endpoint = setting.value.endpoint
   s3.region = setting.value.region
   s3.s3AccessKey = ''
   s3.s3SecretKey = ''
   s3.forcePathStyle = setting.value.forcePathStyle
+  r2.accountId = setting.value.r2AccountId
+  r2.bucket = setting.value.r2Bucket
+  r2.accessKey = ''
+  r2.secretKey = ''
+  webdav.url = setting.value.webdavUrl
+  webdav.username = ''
+  webdav.password = ''
 }
 
 const resendList = computed(() => {
@@ -1584,6 +1747,47 @@ function openBrevoList() {
   showBrevoList.value = true
 }
 
+// 合并后的发信服务商管理：只切换看哪个服务商的配置，不保存、不改变发送优先级；
+// 首次加载默认选中第一个已配置的服务商（按发送优先级顺序），之后用户自己切换不再自动改
+const manageProvider = ref('resend')
+let sendProviderPicked = false
+
+function pickDefaultSendProvider() {
+  if (sendProviderPicked) return
+  sendProviderPicked = true
+  if (setting.value.hasCfEmail) manageProvider.value = 'cloudflare'
+  else if (Object.keys(setting.value.resendTokens || {}).length > 0) manageProvider.value = 'resend'
+  else if (Object.keys(setting.value.sendkitTokens || {}).length > 0) manageProvider.value = 'sendkit'
+  else if (Object.keys(setting.value.brevoTokens || {}).length > 0) manageProvider.value = 'brevo'
+}
+
+function openSendProviderList() {
+  if (manageProvider.value === 'resend') openResendList()
+  else if (manageProvider.value === 'sendkit') openSendkitList()
+  else if (manageProvider.value === 'brevo') openBrevoList()
+}
+
+function openSendProviderForm() {
+  if (manageProvider.value === 'resend') openResendForm()
+  else if (manageProvider.value === 'sendkit') openSendkitForm()
+  else if (manageProvider.value === 'brevo') openBrevoForm()
+}
+
+// 已配置服务商汇总：Cloudflare（绑定）+ 各服务商已配密钥的域名数
+const sendProviderSummary = computed(() => {
+  const parts = []
+  if (setting.value.hasCfEmail) parts.push('Cloudflare')
+  const counts = [
+    ['Resend', Object.keys(setting.value.resendTokens || {}).length],
+    ['Sendkit', Object.keys(setting.value.sendkitTokens || {}).length],
+    ['Brevo', Object.keys(setting.value.brevoTokens || {}).length]
+  ]
+  for (const [name, n] of counts) {
+    if (n > 0) parts.push(`${name}（${t('sendProviderDomainCount', { n })}）`)
+  }
+  return parts.length > 0 ? parts.join('、') : t('sendProviderNone')
+})
+
 function resetNoticeForm() {
   noticeForm.notice = setting.value.notice
   noticeForm.noticeContent = setting.value.noticeContent
@@ -1691,13 +1895,30 @@ function addChatTag(val) {
 
 function clearS3() {
 
+  if (s3.type === 'kv') {
+    return
+  }
+
   const form = {
-    bucket: '',
-    endpoint: '',
-    region: '',
-    s3AccessKey: '',
-    s3SecretKey: '',
-    forcePathStyle: 1
+    attStorageType: s3.type
+  }
+
+  if (s3.type === 'r2') {
+    form.r2AccountId = ''
+    form.r2Bucket = ''
+    form.r2AccessKey = ''
+    form.r2SecretKey = ''
+  } else if (s3.type === 'webdav') {
+    form.webdavUrl = ''
+    form.webdavUsername = ''
+    form.webdavPassword = ''
+  } else {
+    form.bucket = ''
+    form.endpoint = ''
+    form.region = ''
+    form.s3AccessKey = ''
+    form.s3SecretKey = ''
+    form.forcePathStyle = 1
   }
   clearS3Loading.value = true
   editSetting(form)
@@ -1706,14 +1927,22 @@ function clearS3() {
 function saveS3() {
 
   const form = {
+    attStorageType: s3.type,
     bucket: s3.bucket,
     endpoint: s3.endpoint,
     region: s3.region,
-    forcePathStyle: s3.forcePathStyle
+    forcePathStyle: s3.forcePathStyle,
+    r2AccountId: r2.accountId,
+    r2Bucket: r2.bucket,
+    webdavUrl: webdav.url
   }
 
   if (s3.s3AccessKey) form.s3AccessKey = s3.s3AccessKey
   if (s3.s3SecretKey) form.s3SecretKey = s3.s3SecretKey
+  if (r2.accessKey) form.r2AccessKey = r2.accessKey
+  if (r2.secretKey) form.r2SecretKey = r2.secretKey
+  if (webdav.username) form.webdavUsername = webdav.username
+  if (webdav.password) form.webdavPassword = webdav.password
 
   editSetting(form)
 }
@@ -2066,8 +2295,16 @@ function change(e) {
   delete settingForm.secretKey
   delete settingForm.s3AccessKey
   delete settingForm.s3SecretKey
+  delete settingForm.r2AccessKey
+  delete settingForm.r2SecretKey
+  delete settingForm.webdavUsername
+  delete settingForm.webdavPassword
   delete settingForm.backupS3AccessKey
   delete settingForm.backupS3SecretKey
+  delete settingForm.backupR2AccessKey
+  delete settingForm.backupR2SecretKey
+  delete settingForm.backupWebdavUsername
+  delete settingForm.backupWebdavPassword
   delete settingForm.tgBotToken
   delete settingForm.resendTokens
   delete settingForm.sendkitTokens
@@ -2179,6 +2416,13 @@ function resetBackupS3Form() {
   backupS3.s3AccessKey = ''
   backupS3.s3SecretKey = ''
   backupS3.forcePathStyle = setting.value.backupForcePathStyle
+  backupR2.accountId = setting.value.backupR2AccountId
+  backupR2.bucket = setting.value.backupR2Bucket
+  backupR2.accessKey = ''
+  backupR2.secretKey = ''
+  backupWebdav.url = setting.value.backupWebdavUrl
+  backupWebdav.username = ''
+  backupWebdav.password = ''
 }
 
 function saveBackupS3() {
@@ -2187,22 +2431,43 @@ function saveBackupS3() {
     backupBucket: backupS3.bucket,
     backupEndpoint: backupS3.endpoint,
     backupRegion: backupS3.region,
-    backupForcePathStyle: backupS3.forcePathStyle
+    backupForcePathStyle: backupS3.forcePathStyle,
+    backupR2AccountId: backupR2.accountId,
+    backupR2Bucket: backupR2.bucket,
+    backupWebdavUrl: backupWebdav.url
   }
   if (backupS3.s3AccessKey) form.backupS3AccessKey = backupS3.s3AccessKey
   if (backupS3.s3SecretKey) form.backupS3SecretKey = backupS3.s3SecretKey
+  if (backupR2.accessKey) form.backupR2AccessKey = backupR2.accessKey
+  if (backupR2.secretKey) form.backupR2SecretKey = backupR2.secretKey
+  if (backupWebdav.username) form.backupWebdavUsername = backupWebdav.username
+  if (backupWebdav.password) form.backupWebdavPassword = backupWebdav.password
   editSetting(form)
 }
 
 function clearBackupS3() {
+  if (backupS3.type === 'kv') {
+    return
+  }
   const form = {
-    backupType: 's3',
-    backupBucket: '',
-    backupEndpoint: '',
-    backupRegion: '',
-    backupS3AccessKey: '',
-    backupS3SecretKey: '',
-    backupForcePathStyle: 1
+    backupType: backupS3.type
+  }
+  if (backupS3.type === 'r2') {
+    form.backupR2AccountId = ''
+    form.backupR2Bucket = ''
+    form.backupR2AccessKey = ''
+    form.backupR2SecretKey = ''
+  } else if (backupS3.type === 'webdav') {
+    form.backupWebdavUrl = ''
+    form.backupWebdavUsername = ''
+    form.backupWebdavPassword = ''
+  } else {
+    form.backupBucket = ''
+    form.backupEndpoint = ''
+    form.backupRegion = ''
+    form.backupS3AccessKey = ''
+    form.backupS3SecretKey = ''
+    form.backupForcePathStyle = 1
   }
   clearBackupS3Loading.value = true
   editSetting(form)

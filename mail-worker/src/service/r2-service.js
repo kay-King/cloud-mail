@@ -2,10 +2,11 @@ import s3Service from './s3-service';
 import settingService from './setting-service';
 import kvObjService from './kv-obj-service';
 import attCrypto from './att-crypto';
+import webdavService from './webdav-service';
 import orm from '../entity/orm';
 import { att } from '../entity/att';
 import { eq } from 'drizzle-orm';
-import { attConst } from '../const/entity-const';
+import { attConst, settingConst } from '../const/entity-const';
 
 // 从文件名拼 Content-Disposition：纯 ASCII 安全名用引号形式，其余用 RFC 5987 编码
 //（与 s3-service 的 sanitizeContentDisposition 同一套规则，避免非 ASCII 文件名被拒收）
@@ -22,17 +23,126 @@ const r2Service = {
 	async storageType(c) {
 
 		const setting = await settingService.query(c);
-		const { bucket, endpoint, s3AccessKey, s3SecretKey } = setting;
+		const { bucket, endpoint, s3AccessKey, s3SecretKey, attStorageType } = setting;
 
-		if (!!(bucket && endpoint && s3AccessKey && s3SecretKey)) {
+		const s3Ready = !!(bucket && endpoint && s3AccessKey && s3SecretKey);
+		const r2Ready = !!(c.env.r2 || this.r2ApiConfig(setting));
+		const webdavReady = webdavService.isConfigured({
+			url: setting.webdavUrl, username: setting.webdavUsername, password: setting.webdavPassword
+		});
+		const type = attStorageType || 's3';
+
+		// 显式选择优先；所选类型不可用时按 S3 → R2 → WebDAV → KV 安全回落，保证读写不断
+		if (type === 's3' && s3Ready) {
 			return 'S3';
 		}
 
-		if (c.env.r2) {
+		if (type === 'r2' && r2Ready) {
 			return 'R2';
 		}
 
+		if (type === 'webdav' && webdavReady) {
+			return 'WebDAV';
+		}
+
+		if (type === 'kv') {
+			return 'KV';
+		}
+
+		if (s3Ready) {
+			return 'S3';
+		}
+
+		if (r2Ready) {
+			return 'R2';
+		}
+
+		if (webdavReady) {
+			return 'WebDAV';
+		}
+
 		return 'KV';
+	},
+
+	// 附件 WebDAV 配置（三项齐全才可用）
+	webdavConfig(setting) {
+		const config = {
+			url: (setting.webdavUrl || '').trim(),
+			username: (setting.webdavUsername || '').trim(),
+			password: (setting.webdavPassword || '').trim()
+		};
+		return webdavService.isConfigured(config) ? config : null;
+	},
+
+	// R2 的 S3 兼容 API 配置（网页里填的账号 ID + bucket + API 令牌），四项齐全才可用；
+	// 返回 null 表示未配，走绑定或回落。endpoint 由账号 ID 固定拼出，region 恒为 auto。
+	r2ApiConfig(setting) {
+		const accountId = (setting.r2AccountId || '').trim();
+		const bucket = (setting.r2Bucket || '').trim();
+		const s3AccessKey = (setting.r2AccessKey || '').trim();
+		const s3SecretKey = (setting.r2SecretKey || '').trim();
+		if (!(accountId && bucket && s3AccessKey && s3SecretKey)) {
+			return null;
+		}
+		return {
+			bucket,
+			endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+			region: 'auto',
+			s3AccessKey,
+			s3SecretKey,
+			// R2 标准用法是虚拟主机式（bucket 在域名里），不强制路径式
+			forcePathStyle: settingConst.forcePathStyle.CLOSE,
+		};
+	},
+
+	// R2 读写：有绑定走原生绑定，否则走 S3 兼容 API；两者都没有时返回 false
+	async r2PutObj(c, key, content, metadata) {
+		if (c.env.r2) {
+			await c.env.r2.put(key, content, {
+				httpMetadata: { ...metadata }
+			});
+			return true;
+		}
+		const config = this.r2ApiConfig(await settingService.query(c));
+		if (!config) {
+			return false;
+		}
+		await s3Service.putObj(c, key, content, metadata, config);
+		return true;
+	},
+
+	async r2GetObj(c, key) {
+		if (c.env.r2) {
+			const obj = await c.env.r2.get(key);
+			if (!obj) {
+				return null;
+			}
+			return new Response(obj.body, {
+				headers: {
+					'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
+					'Content-Disposition': obj.httpMetadata?.contentDisposition || null,
+					'Cache-Control': obj.httpMetadata?.cacheControl || null
+				}
+			});
+		}
+		const config = this.r2ApiConfig(await settingService.query(c));
+		if (!config) {
+			return null;
+		}
+		return await s3Service.getObj(c, key, config);
+	},
+
+	async r2Delete(c, key) {
+		if (c.env.r2) {
+			await c.env.r2.delete(key);
+			return true;
+		}
+		const config = this.r2ApiConfig(await settingService.query(c));
+		if (!config) {
+			return false;
+		}
+		await s3Service.deleteObj(c, key, config);
+		return true;
 	},
 
 	async putObj(c, key, content, metadata) {
@@ -47,13 +157,16 @@ const r2Service = {
 		}
 
 		if (storageType === 'R2') {
-			await c.env.r2.put(key, content, {
-				httpMetadata: { ...metadata }
-			});
+			await this.r2PutObj(c, key, content, metadata);
 		}
 
 		if (storageType === 'S3') {
 			await s3Service.putObj(c, key, content, metadata);
+		}
+
+		if (storageType === 'WebDAV') {
+			const config = this.webdavConfig(await settingService.query(c));
+			await webdavService.putObj(config, key, content, metadata?.contentType);
 		}
 
 	},
@@ -67,21 +180,16 @@ const r2Service = {
 		}
 
 		if (storageType === 'R2') {
-			const obj = await c.env.r2.get(key);
-			if (!obj) {
-				return null;
-			}
-			return new Response(obj.body, {
-				headers: {
-					'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
-					'Content-Disposition': obj.httpMetadata?.contentDisposition || null,
-					'Cache-Control': obj.httpMetadata?.cacheControl || null
-				}
-			});
+			return await this.r2GetObj(c, key);
 		}
 
 		if (storageType === 'S3') {
 			return await s3Service.getObj(c, key);
+		}
+
+		if (storageType === 'WebDAV') {
+			const config = this.webdavConfig(await settingService.query(c));
+			return await webdavService.getObj(config, key);
 		}
 
 		return null;
@@ -145,11 +253,16 @@ const r2Service = {
 		}
 
 		if (storageType === 'R2') {
-			await c.env.r2.delete(key);
+			await this.r2Delete(c, key);
 		}
 
 		if (storageType === 'S3'){
 			await s3Service.deleteObj(c, key);
+		}
+
+		if (storageType === 'WebDAV'){
+			const config = this.webdavConfig(await settingService.query(c));
+			await webdavService.deleteObj(config, key);
 		}
 
 	}

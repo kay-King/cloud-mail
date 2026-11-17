@@ -132,11 +132,13 @@ const backupService = {
 	async getStatus(c) {
 		const enabled = await this.isEnabled(c);
 		const configured = await backupStorageService.isConfigured(c);
+		const type = await backupStorageService.effectiveType(c);
 		const list = await this.listBackups(c);
 		const lastRun = await c.env.kv.get(LAST_RUN_KEY);
 		return {
 			enabled,
 			configured,
+			type,
 			count: list.length,
 			lastRun: lastRun ? Number(lastRun) : null,
 			latest: list[0] || null

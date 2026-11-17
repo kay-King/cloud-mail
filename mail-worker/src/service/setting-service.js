@@ -97,6 +97,14 @@ const settingService = {
 
 		settingRow.s3AccessKey = settingRow.s3AccessKey ? `${settingRow.s3AccessKey.slice(0, 12)}******` : null;
 		settingRow.s3SecretKey = settingRow.s3SecretKey ? `${settingRow.s3SecretKey.slice(0, 12)}******` : null;
+		settingRow.r2AccessKey = settingRow.r2AccessKey ? `${settingRow.r2AccessKey.slice(0, 12)}******` : null;
+		settingRow.r2SecretKey = settingRow.r2SecretKey ? `${settingRow.r2SecretKey.slice(0, 12)}******` : null;
+		settingRow.webdavUsername = settingRow.webdavUsername ? `${settingRow.webdavUsername.slice(0, 12)}******` : null;
+		settingRow.webdavPassword = settingRow.webdavPassword ? `${settingRow.webdavPassword.slice(0, 12)}******` : null;
+		settingRow.backupR2AccessKey = settingRow.backupR2AccessKey ? `${settingRow.backupR2AccessKey.slice(0, 12)}******` : null;
+		settingRow.backupR2SecretKey = settingRow.backupR2SecretKey ? `${settingRow.backupR2SecretKey.slice(0, 12)}******` : null;
+		settingRow.backupWebdavUsername = settingRow.backupWebdavUsername ? `${settingRow.backupWebdavUsername.slice(0, 12)}******` : null;
+		settingRow.backupWebdavPassword = settingRow.backupWebdavPassword ? `${settingRow.backupWebdavPassword.slice(0, 12)}******` : null;
 		settingRow.backupS3AccessKey = settingRow.backupS3AccessKey ? `${settingRow.backupS3AccessKey.slice(0, 12)}******` : null;
 		settingRow.backupS3SecretKey = settingRow.backupS3SecretKey ? `${settingRow.backupS3SecretKey.slice(0, 12)}******` : null;
 		settingRow.tgBotToken = settingRow.tgBotToken ? `${settingRow.tgBotToken.slice(0, 20)}******` : null;

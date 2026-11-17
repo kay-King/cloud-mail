@@ -100,7 +100,7 @@ const analysisService = {
 		//附件存储免费额度：R2 10GB，KV 1GB，B2（S3）10GB，其他 S3 未知上限
 		const storageLimitBytes = storageType === 'R2' ? 10 * 1024 * 1024 * 1024
 			: storageType === 'KV' ? 1024 * 1024 * 1024
-			: (storageType === 'S3' && (settingData.endpoint || '').includes('backblazeb2.com')) ? 10 * 1024 * 1024 * 1024 : null;
+			: (storageType === 'S3' && ((settingData.endpoint || '').includes('backblazeb2.com') || (settingData.endpoint || '').includes('r2.cloudflarestorage.com'))) ? 10 * 1024 * 1024 * 1024 : null;
 
 		return {
 			numberCount,

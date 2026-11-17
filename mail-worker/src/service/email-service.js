@@ -632,6 +632,7 @@ const emailService = {
 		};
 
 		// 全部站内收件人走本地投递；存在站外收件人时优先 CF，其次 Resend，再次 Sendkit，最后 Brevo。
+		// 多服务商同时配置、同时生效，设置页的服务商切换只切换看哪个的配置，不改变发送优先级。
 		let deliveries;
 		if (allInternal) {
 			deliveries = this.sendInternal(c, context);

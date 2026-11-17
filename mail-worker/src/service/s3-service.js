@@ -22,11 +22,11 @@ function sanitizeContentDisposition(disposition) {
 
 const s3Service = {
 
-	async putObj(c, key, content, metadata) {
+	async putObj(c, key, content, metadata, override) {
 
-		const client = await this.client(c);
+		const client = await this.client(c, override);
 
-		const { bucket } = await settingService.query(c);
+		const bucket = override?.bucket || (await settingService.query(c)).bucket;
 
 		let obj = { Bucket: bucket, Key: key, Body: content,
 			CacheControl: metadata.cacheControl
@@ -47,7 +47,7 @@ const s3Service = {
 		await client.send(new PutObjectCommand(obj))
 	},
 
-	async deleteObj(c, keys) {
+	async deleteObj(c, keys, override) {
 
 		if (typeof keys === 'string') {
 			keys = [keys];
@@ -57,8 +57,8 @@ const s3Service = {
 			return;
 		}
 
-		const client = await this.client(c);
-		const { bucket } = await settingService.query(c);
+		const client = await this.client(c, override);
+		const bucket = override?.bucket || (await settingService.query(c)).bucket;
 
 
 		client.middlewareStack.add(
@@ -93,9 +93,9 @@ const s3Service = {
 		);
 	},
 
-	async getObj(c, key) {
-		const client = await this.client(c);
-		const { bucket } = await settingService.query(c);
+	async getObj(c, key, override) {
+		const client = await this.client(c, override);
+		const bucket = override?.bucket || (await settingService.query(c)).bucket;
 		const result = await client.send(new GetObjectCommand({
 			Bucket: bucket,
 			Key: key
@@ -111,7 +111,19 @@ const s3Service = {
 	},
 
 
-	async client(c) {
+	// override 为另一套 S3 兼容配置（如 R2 的 S3 API），不传则用设置里的 S3 配置
+	async client(c, override) {
+		if (override) {
+			return new S3Client({
+				region: override.region || 'auto',
+				endpoint: domainUtils.toOssDomain(override.endpoint),
+				forcePathStyle: override.forcePathStyle === settingConst.forcePathStyle.OPEN,
+				credentials: {
+					accessKeyId: override.s3AccessKey,
+					secretAccessKey: override.s3SecretKey,
+				}
+			});
+		}
 		const { region, endpoint, s3AccessKey, s3SecretKey, forcePathStyle } = await settingService.query(c);
 		return new S3Client({
 			region: region || 'auto',

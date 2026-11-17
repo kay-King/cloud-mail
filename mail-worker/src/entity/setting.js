@@ -43,6 +43,14 @@ export const setting = sqliteTable('setting', {
 	s3AccessKey: text('s3_access_key').default('').notNull(),
 	s3SecretKey: text('s3_secret_key').default('').notNull(),
 	forcePathStyle: integer('force_path_style').default(1).notNull(),
+	attStorageType: text('att_storage_type').default('s3').notNull(),
+	r2AccountId: text('r2_account_id').default('').notNull(),
+	r2Bucket: text('r2_bucket').default('').notNull(),
+	r2AccessKey: text('r2_access_key').default('').notNull(),
+	r2SecretKey: text('r2_secret_key').default('').notNull(),
+	webdavUrl: text('webdav_url').default('').notNull(),
+	webdavUsername: text('webdav_username').default('').notNull(),
+	webdavPassword: text('webdav_password').default('').notNull(),
 	customDomain: text('custom_domain').default('').notNull(),
 	tgMsgFrom: text('tg_msg_from').default('only-name').notNull(),
 	tgMsgTo: text('tg_msg_to').default('show').notNull(),
@@ -79,6 +87,13 @@ export const setting = sqliteTable('setting', {
 	backupEndpoint: text('backup_endpoint').default('').notNull(),
 	backupS3AccessKey: text('backup_s3_access_key').default('').notNull(),
 	backupS3SecretKey: text('backup_s3_secret_key').default('').notNull(),
-	backupForcePathStyle: integer('backup_force_path_style').default(1).notNull()
+	backupForcePathStyle: integer('backup_force_path_style').default(1).notNull(),
+	backupR2AccountId: text('backup_r2_account_id').default('').notNull(),
+	backupR2Bucket: text('backup_r2_bucket').default('').notNull(),
+	backupR2AccessKey: text('backup_r2_access_key').default('').notNull(),
+	backupR2SecretKey: text('backup_r2_secret_key').default('').notNull(),
+	backupWebdavUrl: text('backup_webdav_url').default('').notNull(),
+	backupWebdavUsername: text('backup_webdav_username').default('').notNull(),
+	backupWebdavPassword: text('backup_webdav_password').default('').notNull()
 });
 export default setting
