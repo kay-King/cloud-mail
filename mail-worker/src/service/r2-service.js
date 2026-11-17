@@ -20,28 +20,32 @@ function buildContentDisposition(type, filename) {
 
 const r2Service = {
 
-	async storageType(c) {
-
-		const setting = await settingService.query(c);
-		const { bucket, endpoint, s3AccessKey, s3SecretKey, attStorageType } = setting;
-
-		const s3Ready = !!(bucket && endpoint && s3AccessKey && s3SecretKey);
+	// 各存储类型是否配好（KV 永远可用）；供写入回落、读取兜底与删除清理共用
+	readyTypes(c, setting) {
+		const s3Ready = !!(setting.bucket && setting.endpoint && setting.s3AccessKey && setting.s3SecretKey);
 		const r2Ready = !!(c.env.r2 || this.r2ApiConfig(setting));
 		const webdavReady = webdavService.isConfigured({
 			url: setting.webdavUrl, username: setting.webdavUsername, password: setting.webdavPassword
 		});
-		const type = attStorageType || 's3';
+		return { s3: s3Ready, r2: r2Ready, webdav: webdavReady, kv: true };
+	},
+
+	async storageType(c, setting) {
+
+		setting = setting || await settingService.query(c);
+		const ready = this.readyTypes(c, setting);
+		const type = setting.attStorageType || 's3';
 
 		// 显式选择优先；所选类型不可用时按 S3 → R2 → WebDAV → KV 安全回落，保证读写不断
-		if (type === 's3' && s3Ready) {
+		if (type === 's3' && ready.s3) {
 			return 'S3';
 		}
 
-		if (type === 'r2' && r2Ready) {
+		if (type === 'r2' && ready.r2) {
 			return 'R2';
 		}
 
-		if (type === 'webdav' && webdavReady) {
+		if (type === 'webdav' && ready.webdav) {
 			return 'WebDAV';
 		}
 
@@ -49,15 +53,15 @@ const r2Service = {
 			return 'KV';
 		}
 
-		if (s3Ready) {
+		if (ready.s3) {
 			return 'S3';
 		}
 
-		if (r2Ready) {
+		if (ready.r2) {
 			return 'R2';
 		}
 
-		if (webdavReady) {
+		if (ready.webdav) {
 			return 'WebDAV';
 		}
 
@@ -171,27 +175,69 @@ const r2Service = {
 
 	},
 
-	// 返回存储侧原始 Response（不解密），供需要检查密文本身的场景使用
+	// S3/R2 API 找不到文件时抛 NoSuchKey 而不是返回 null，这里统一识别为“没找到”
+	isNotFoundError(e) {
+		const status = e?.$metadata?.httpStatusCode;
+		const code = e?.name || e?.Code || e?.code;
+		return status === 404 || code === 'NoSuchKey' || code === 'NotFound';
+	},
+
+	// 在单个存储里读原始对象：找到返回 Response，找不到返回 null；
+	// 非 404 的报错（如密钥失效）直接抛给调用方处理
+	async getRawFrom(c, key, type, setting) {
+		try {
+			if (type === 'KV') {
+				return await kvObjService.getObj(c, key);
+			}
+			if (type === 'R2') {
+				return await this.r2GetObj(c, key);
+			}
+			if (type === 'S3') {
+				return await s3Service.getObj(c, key);
+			}
+			if (type === 'WebDAV') {
+				const config = this.webdavConfig(setting);
+				if (!config) {
+					return null;
+				}
+				return await webdavService.getObj(config, key);
+			}
+		} catch (e) {
+			if (this.isNotFoundError(e)) {
+				return null;
+			}
+			throw e;
+		}
+		return null;
+	},
+
+	// 返回存储侧原始 Response（不解密），供需要检查密文本身的场景使用；
+	// 读取多存储兜底：先找当前存储，找不到依次试其他已配存储——切换存储后
+	// 旧附件不用迁移，照常下载；新附件只写当前存储
 	async getRawObj(c, key) {
-		const storageType = await this.storageType(c);
+		const setting = await settingService.query(c);
+		const current = await this.storageType(c, setting);
+		const ready = this.readyTypes(c, setting);
+		const order = ['S3', 'R2', 'WebDAV', 'KV'];
+		const types = [current, ...order.filter(t => t !== current && ready[t.toLowerCase()])];
 
-		if (storageType === 'KV') {
-			return await kvObjService.getObj(c, key);
+		let firstError = null;
+		for (const type of types) {
+			try {
+				const resp = await this.getRawFrom(c, key, type, setting);
+				if (resp) {
+					return resp;
+				}
+			} catch (e) {
+				if (!firstError) {
+					firstError = e;
+				}
+			}
 		}
-
-		if (storageType === 'R2') {
-			return await this.r2GetObj(c, key);
+		// 全都没找到：有真实报错就抛出来（不是 404），否则返回 null
+		if (firstError) {
+			throw firstError;
 		}
-
-		if (storageType === 'S3') {
-			return await s3Service.getObj(c, key);
-		}
-
-		if (storageType === 'WebDAV') {
-			const config = this.webdavConfig(await settingService.query(c));
-			return await webdavService.getObj(config, key);
-		}
-
 		return null;
 	},
 
@@ -244,25 +290,42 @@ const r2Service = {
 		}
 	},
 
+	// 删除要清掉所有已配存储里的副本，否则读取兜底会把已删文件又找回来；
+	// 各家独立 try/catch，一家失败不影响其他家；key 可传单个或数组
 	async delete(c, key) {
 
-		const storageType = await this.storageType(c);
-
-		if (storageType === 'KV') {
-			await kvObjService.deleteObj(c, key);
+		const keys = Array.isArray(key) ? key : [key];
+		if (keys.length === 0) {
+			return;
 		}
 
-		if (storageType === 'R2') {
-			await this.r2Delete(c, key);
-		}
+		const setting = await settingService.query(c);
+		const ready = this.readyTypes(c, setting);
+		const order = ['S3', 'R2', 'WebDAV', 'KV'];
 
-		if (storageType === 'S3'){
-			await s3Service.deleteObj(c, key);
-		}
-
-		if (storageType === 'WebDAV'){
-			const config = this.webdavConfig(await settingService.query(c));
-			await webdavService.deleteObj(config, key);
+		for (const type of order) {
+			if (!ready[type.toLowerCase()]) {
+				continue;
+			}
+			try {
+				if (type === 'KV') {
+					await kvObjService.deleteObj(c, keys);
+				} else if (type === 'R2') {
+					await this.r2Delete(c, keys);
+				} else if (type === 'S3') {
+					await s3Service.deleteObj(c, keys);
+				} else if (type === 'WebDAV') {
+					const config = this.webdavConfig(setting);
+					if (!config) {
+						continue;
+					}
+					for (const k of keys) {
+						await webdavService.deleteObj(config, k);
+					}
+				}
+			} catch (e) {
+				console.error('Failed to delete', keys, 'from', type, e);
+			}
 		}
 
 	}
