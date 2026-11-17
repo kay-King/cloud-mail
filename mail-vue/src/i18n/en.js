@@ -36,6 +36,7 @@ const en = {
     allAttachments: 'All attachments',
     myAttachments: 'My attachments',
     ownerEmail: 'Owner',
+    deleteAttConfirm: 'Delete the selected attachments? The emails will stay, but the attachments will be gone.',
     favoriteAttachments: 'Favorite attachments',
     searchAttachments: 'Search all attachments',
     fileName: 'File name',

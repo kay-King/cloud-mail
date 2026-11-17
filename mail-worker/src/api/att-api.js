@@ -14,6 +14,12 @@ async function requireAdmin(c) {
 	}
 }
 
+async function checkAdmin(c) {
+	const userId = userContext.getUserId(c);
+	const userRow = await userService.selectById(c, userId);
+	return !!userRow && userRow.email === c.env.admin;
+}
+
 // 附件加密状态：开关 + 当前钥匙指纹（无钥匙时 fingerprint 为 null，不触发生成）
 app.get('/att/status', async (c) => {
 	await requireAdmin(c);
@@ -46,4 +52,13 @@ app.get('/att/all', async (c) => {
 app.put('/att/star', async (c) => {
 	await attService.setStar(c, await c.req.json(), userContext.getUserId(c));
 	return c.json(result.ok());
+});
+
+// 单独删除附件：只删选中的行，邮件还在；管理员可删全站的
+app.delete('/att/delete', async (c) => {
+	const userId = userContext.getUserId(c);
+	const isAdmin = await checkAdmin(c);
+	const { attIds } = c.req.query();
+	const count = await attService.deleteByIds(c, (attIds || '').split(','), userId, isAdmin);
+	return c.json(result.ok({ deleted: count }));
 });

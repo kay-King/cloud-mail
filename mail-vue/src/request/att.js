@@ -11,3 +11,7 @@ export function attAllList(params) {
 export function attStar(attIds, isStar) {
     return http.put('/att/star', {attIds, isStar})
 }
+
+export function attDelete(attIds) {
+    return http.delete('/att/delete?attIds=' + attIds.join(','))
+}

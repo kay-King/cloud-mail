@@ -28,6 +28,10 @@
         <Icon icon="solar:star-line-duotone" width="18" height="18"/>
         {{ tab === 'fav' ? $t('unFavorite') : $t('favorite') }}
       </el-button>
+      <el-button :disabled="selected.length === 0" @click="deleteSelected">
+        <Icon icon="fluent:delete-24-regular" width="18" height="18"/>
+        {{ $t('deleted') }}
+      </el-button>
       <el-select v-model="category" class="att-filter" @change="reload">
         <el-option v-for="opt in categoryOptions" :key="opt.value" :label="opt.label" :value="opt.value"/>
       </el-select>
@@ -87,9 +91,9 @@
 <script setup>
 import {computed, onMounted, reactive, ref} from "vue";
 import {useI18n} from "vue-i18n";
-import {ElMessage} from "element-plus";
+import {ElMessage, ElMessageBox} from "element-plus";
 import {Icon} from "@iconify/vue";
-import {attList, attAllList, attStar} from "@/request/att.js";
+import {attList, attAllList, attStar, attDelete} from "@/request/att.js";
 import {emailInfo} from "@/request/email.js";
 import {formatBytes, fileToBase64} from "@/utils/file-utils.js";
 import {getIconByName} from "@/utils/icon-utils.js";
@@ -215,6 +219,21 @@ async function starSelected() {
   ElMessage({message: t(next === 1 ? 'favoriteSuccess' : 'unFavoriteSuccess'), type: 'success', plain: true})
   selected.value = []
   fetchList()
+}
+
+function deleteSelected() {
+  ElMessageBox.confirm(t('deleteAttConfirm'), {
+    confirmButtonText: t('confirm'),
+    cancelButtonText: t('cancel'),
+    type: 'warning'
+  }).then(async () => {
+    const ids = selected.value.map(row => row.attId)
+    await attDelete(ids)
+    ElMessage({message: t('delSuccessMsg'), type: 'success', plain: true})
+    selected.value = []
+    fetchList()
+  }).catch(() => {
+  })
 }
 
 async function sendSelected() {

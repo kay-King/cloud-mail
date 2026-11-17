@@ -36,6 +36,7 @@ const zh = {
     allAttachments: '全部附件',
     myAttachments: '我的附件',
     ownerEmail: '所属邮箱',
+    deleteAttConfirm: '确认删除选中的附件吗？邮件还在，但附件删了就没了。',
     favoriteAttachments: '收藏附件',
     searchAttachments: '搜索全部附件',
     fileName: '文件名称',

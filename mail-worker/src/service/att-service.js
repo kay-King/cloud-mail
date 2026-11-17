@@ -403,6 +403,37 @@ const attService = {
 		return { list, total: totalRow ? Number(totalRow.total) : 0 };
 	},
 
+// 单独删除附件：只删 ATT 行（内嵌图不删）；文件对象等最后一个引用删掉时才删
+	async deleteByIds(c, attIds, userId, isAdmin) {
+
+		const ids = attIds.map(Number).filter(n => !isNaN(n));
+		if (ids.length === 0) return 0;
+
+		const conds = [inArray(att.attId, ids), eq(att.type, attConst.type.ATT)];
+		if (!isAdmin) conds.push(eq(att.userId, userId));
+		const rows = await orm(c).select({ attId: att.attId, key: att.key }).from(att)
+			.where(and(...conds)).all();
+		if (rows.length === 0) return 0;
+
+		const delIds = rows.map(r => r.attId);
+		await orm(c).delete(att).where(inArray(att.attId, delIds)).run();
+
+		// 还有其他行引用同一文件时不删对象
+		const keys = [...new Set(rows.map(r => r.key))];
+		const remaining = await orm(c).select({ key: att.key }).from(att)
+			.where(inArray(att.key, keys)).groupBy(att.key).all();
+		const remainingKeys = new Set(remaining.map(r => r.key));
+		const orphanKeys = keys.filter(k => !remainingKeys.has(k));
+		if (orphanKeys.length > 0) {
+			try {
+				await this.batchDelete(c, orphanKeys);
+			} catch (e) {
+				console.error('删除附件文件失败：', e);
+			}
+		}
+		return delIds.length;
+	},
+
 	// 批量收藏 / 取消收藏附件（按行收藏，同一文件在多封邮件里各算各的）
 	async setStar(c, params, userId) {
 		let { attIds, isStar } = params;
