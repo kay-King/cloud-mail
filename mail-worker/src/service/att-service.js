@@ -11,6 +11,7 @@ import { parseHTML } from 'linkedom';
 import { v4 as uuidv4 } from 'uuid';
 import domainUtils from '../utils/domain-uitls';
 import settingService from "./setting-service";
+import { isDangerousAttType, isSafeInlineAtt } from '../utils/att-headers';
 
 const attService = {
 
@@ -19,15 +20,17 @@ const attService = {
 		for (let attachment of attachments) {
 
 			let metadate = {
-				contentType: attachment.mimeType,
+				contentType: isDangerousAttType(attachment.mimeType)
+					? 'application/octet-stream'
+					: attachment.mimeType,
 			}
 
-			if (!attachment.contentId) {
-				// 不把原始文件名写进对象元数据，服务商看不到文件名；下载时从 D1 取文件名拼 Content-Disposition
-				metadate.contentDisposition = `attachment`
-			} else {
+			if (attachment.contentId && isSafeInlineAtt(attachment.mimeType)) {
+				// 内嵌图且是安全栅格图才 inline；不把原始文件名写进对象元数据（服务商看不到文件名），下载时从 D1 取文件名拼 Content-Disposition
 				metadate.contentDisposition = `inline`
 				metadate.cacheControl = `max-age=259200`
+			} else {
+				metadate.contentDisposition = `attachment`
 			}
 
 			await r2Service.putObj(c, attachment.key, attachment.content, metadate);
@@ -189,9 +192,11 @@ const attService = {
 				continue;
 			}
 			await r2Service.putObj(c, attData.key, attData.buff, {
-				contentType: attData.mimeType,
+				contentType: isDangerousAttType(attData.mimeType)
+					? 'application/octet-stream'
+					: attData.mimeType,
 				cacheControl: `max-age=259200`,
-				contentDisposition: `inline`
+				contentDisposition: isSafeInlineAtt(attData.mimeType) ? `inline` : `attachment`
 			});
 			delete attData.buff;
 		}

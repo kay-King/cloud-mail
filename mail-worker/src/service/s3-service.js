@@ -2,6 +2,7 @@ import { S3Client, PutObjectCommand, DeleteObjectsCommand, GetObjectCommand } fr
 import settingService from './setting-service';
 import domainUtils from '../utils/domain-uitls';
 import { settingConst } from '../const/entity-const';
+import { publicFileHeaders } from '../utils/att-headers';
 
 // B2 的 S3 接口不接受 Content-Disposition 里的非 ASCII 文件名（中文名会报 invalid b2-content-disposition），
 // 非纯 ASCII 文件名改用 RFC 5987 编码，下载时浏览器能还原原名。
@@ -102,11 +103,11 @@ const s3Service = {
 		}));
 
 		return new Response(result.Body, {
-			headers: {
-				'Content-Type': result.ContentType || 'application/octet-stream',
-				'Content-Disposition': result.ContentDisposition || null,
-				'Cache-Control': result.CacheControl || null
-			}
+			headers: publicFileHeaders({
+				contentType: result.ContentType,
+				contentDisposition: result.ContentDisposition,
+				cacheControl: result.CacheControl
+			})
 		});
 	},
 

@@ -7,6 +7,7 @@ import orm from '../entity/orm';
 import { att } from '../entity/att';
 import { eq } from 'drizzle-orm';
 import { attConst, settingConst } from '../const/entity-const';
+import { publicFileHeaders } from '../utils/att-headers';
 
 // 从文件名拼 Content-Disposition：纯 ASCII 安全名用引号形式，其余用 RFC 5987 编码
 //（与 s3-service 的 sanitizeContentDisposition 同一套规则，避免非 ASCII 文件名被拒收）
@@ -267,6 +268,18 @@ const r2Service = {
 				}
 			} catch (e) {
 				console.error('Failed to resolve attachment filename for', key, e);
+			}
+		}
+
+		// 读时再做一次安全头兜底：修复前上传的旧对象元数据未经危险类型清洗，靠这里统一转 octet-stream + attachment，并补 nosniff 与 CSP sandbox（上游 fix 在各存储 getObj 里做，咱多存储统一走 getObj，放这里一次覆盖全部路径）
+		const safeHeaders = publicFileHeaders({
+			contentType: headers.get('Content-Type'),
+			contentDisposition: headers.get('Content-Disposition'),
+			cacheControl: headers.get('Cache-Control')
+		});
+		for (const [name, value] of Object.entries(safeHeaders)) {
+			if (value !== undefined && value !== null) {
+				headers.set(name, value);
 			}
 		}
 
