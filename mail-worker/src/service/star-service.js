@@ -9,6 +9,7 @@ import { attConst, isDel } from '../const/entity-const';
 import { att } from '../entity/att';
 import attService from "./att-service";
 import { t } from '../i18n/i18n'
+import proxyService from './proxy-service';
 const starService = {
 
 	async add(c, params, userId) {
@@ -74,6 +75,8 @@ const starService = {
 			list.forEach(emailRow => {
 				emailRow.attList = attsList.filter(attsRow => attsRow.emailId === emailRow.emailId);
 			});
+			// 星标完整查询同样走图片代理改写。
+			await proxyService.rewriteList(c, list);
 		} else {
 			list.forEach(emailRow => {
 				emailRow.listText = emailService.toListText(emailRow);

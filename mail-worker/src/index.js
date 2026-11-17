@@ -8,10 +8,16 @@ import oauthService from './service/oauth-service';
 import analysisService from './service/analysis-service';
 import backupService from './service/backup-service';
 import auditService from './service/audit-service';
+import proxyService from './service/proxy-service';
 export default {
 	 async fetch(req, env, ctx) {
 
 		const url = new URL(req.url)
+
+		// 邮件图片代理：公开接口，img 无法带 JWT，由 Worker 代拉外链图，避免泄露用户 IP。
+		if (url.pathname === '/proxy') {
+			return proxyService.fetchImage(url.searchParams.get('url'));
+		}
 
 		if (url.pathname.startsWith('/api/')) {
 			url.pathname = url.pathname.replace('/api', '')
