@@ -621,6 +621,7 @@ const emailService = {
 		// sendParams 用于渠道请求，saveParams 保留保存记录所需的账号、权限和附件数据。
 		const context = {
 			separate, allInternal, useCloudflareEmail, resendToken, sendkitToken, brevoToken, sendParams,
+			skipForward: params.skipForward === true,
 			saveParams: {
 				accountId, userId, name, subject, text, html,
 				sendEmail: accountRow.email,
@@ -676,7 +677,7 @@ const emailService = {
 	},
 
 	// 站内发送：普通发送共用一条发件记录，分开发送则每人一条，再写入站内收件箱。
-	async *sendInternal(c, { separate, sendParams, saveParams }) {
+	async *sendInternal(c, { separate, sendParams, saveParams, skipForward }) {
 		const recipientGroups = separate
 			? sendParams.receiveEmail.map(address => [address])
 			: [sendParams.receiveEmail];
@@ -686,12 +687,15 @@ const emailService = {
 			// 收件副本要连内嵌图记录一起复制（emailResult.attList 只含真正附件），否则收件方看不到图片标志
 			const fullAttList = await attService.selectAllByEmailIds(c, [emailResult.emailId]);
 			const emailRowList = await this.HandleOnSiteEmail(c, inboxAddresses, emailResult, fullAttList);
-			//转发改后台跑：发件响应不等转发完成，转发失败仍记日志（本身无重试）
-			const forwardTask = this.forwardOnSiteEmail(c, emailRowList, { sendParams: { ...sendParams, receiveEmail } }).catch(e => console.error('转发失败：', e));
-			if (c.executionCtx?.waitUntil) {
-				c.executionCtx.waitUntil(forwardTask);
-			} else {
-				await forwardTask;
+			//系统通知（删除提醒、转发失败提醒）只站内投递，不再转发，避免提醒本身触发转发或转发失败循环
+			if (!skipForward) {
+				//转发改后台跑：发件响应不等转发完成，转发失败仍记日志（本身无重试）
+				const forwardTask = this.forwardOnSiteEmail(c, emailRowList, { sendParams: { ...sendParams, receiveEmail } }).catch(e => console.error('转发失败：', e));
+				if (c.executionCtx?.waitUntil) {
+					c.executionCtx.waitUntil(forwardTask);
+				} else {
+					await forwardTask;
+				}
 			}
 			yield { emails: [emailResult] };
 		}
@@ -1347,6 +1351,39 @@ const emailService = {
 		return emailRowList;
 	},
 
+	// 转发失败提醒：给管理员发一封站内通知（跳过转发，避免提醒本身再触发转发循环）。
+	// 同一转发地址 30 分钟内只提醒一次，避免转发持续故障时刷屏。
+	// 提醒本身绝不能抛错影响邮件流程，全程 try/catch，只记日志。
+	async notifyForwardFailed(c, { address, rows, error }) {
+		try {
+			const sender = await orm(c).select().from(account).where(eq(account.email, c.env.admin)).get();
+			if (!sender) return;
+			const kv = c.env?.kv;
+			if (kv) {
+				try {
+					const throttleKey = `forward-notify-last:${address}`;
+					const last = await kv.get(throttleKey);
+					if (last && Date.now() - Number(last) < 30 * 60 * 1000) return;
+					await kv.put(throttleKey, String(Date.now()));
+				} catch (e) {
+					console.error('转发提醒节流读写失败：', e);
+				}
+			}
+			const notice = buildForwardFailNotice(address, rows, error);
+			await this.send(c, {
+				accountId: sender.accountId,
+				name: '系统通知',
+				receiveEmail: [c.env.admin],
+				subject: notice.subject,
+				content: notice.html,
+				text: notice.text,
+				skipForward: true
+			}, sender.userId);
+		} catch (e) {
+			console.error('转发失败提醒发送失败：', e);
+		}
+	},
+
 	//站内邮件不经过 email 事件，在这里按转发规则推送
 	async forwardOnSiteEmail(c, emailRowList, { sendParams }) {
 
@@ -1387,9 +1424,11 @@ const emailService = {
 					const result = await forwardMime.send(c.env.forward, params, address);
 					if (result?.error) {
 						console.error(`转发邮箱 ${address} 失败：`, result.error);
+						await this.notifyForwardFailed(c, { address, rows: emailRowList, error: result.error });
 					}
 				} catch (e) {
 					console.error(`转发邮箱 ${address} 失败：`, e);
+					await this.notifyForwardFailed(c, { address, rows: emailRowList, error: e });
 				}
 
 			}));
@@ -1814,5 +1853,46 @@ const emailService = {
 		await orm(c).update(email).set({ unread: emailConst.unread.READ }).where(and(eq(email.userId, userId), inArray(email.emailId, emailIds)));
 	}
 };
+
+function escapeHtml(s) {
+	return String(s ?? '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;');
+}
+
+// D1 存的时间是 UTC，转北京时间显示
+function toCST(s) {
+	if (!s) return '';
+	const d = new Date(String(s).replace(' ', 'T') + 'Z');
+	if (isNaN(d.getTime())) return String(s);
+	return new Date(d.getTime() + 8 * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+}
+
+function nowCST() {
+	return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+}
+
+function buildForwardFailNotice(address, rows, error) {
+	const list = (rows || []).slice(0, 5);
+	const more = (rows || []).length - list.length;
+	const errText = String(error?.message || error || '未知错误').slice(0, 200);
+	const subject = (rows || []).length <= 1
+		? `转发失败提醒：《${list[0]?.subject || '(无主题)'}》`
+		: `转发失败提醒：${rows.length} 封邮件转发失败`;
+	const lines = list.map(row =>
+		`<li>《${escapeHtml(row.subject || '(无主题)')}》——发件人 ${escapeHtml(row.sendEmail || '')}，收件人 ${escapeHtml(row.toEmail || '')}，${toCST(row.createTime)}</li>`);
+	const textLines = list.map(row =>
+		`· 《${row.subject || '(无主题)'}》——发件人 ${row.sendEmail || ''}，收件人 ${row.toEmail || ''}，${toCST(row.createTime)}`);
+	const moreHtml = more > 0 ? `<p>另有 ${more} 封未列出。</p>` : '';
+	const moreText = more > 0 ? `\n另有 ${more} 封未列出。` : '';
+	const now = nowCST();
+	return {
+		subject,
+		html: `<p>以下邮件转发到 ${escapeHtml(address)} 失败：</p><ul>${lines.join('')}</ul>${moreHtml}<p>失败原因：${escapeHtml(errText)}</p><p>失败时间：${now}</p><p>邮件本身还在站内收件箱，没有丢失；请检查转发设置或目标邮箱。同一地址 30 分钟内只提醒一次。</p>`,
+		text: `以下邮件转发到 ${address} 失败：\n${textLines.join('\n')}${moreText}\n\n失败原因：${errText}\n失败时间：${now}\n\n邮件本身还在站内收件箱，没有丢失；请检查转发设置或目标邮箱。同一地址 30 分钟内只提醒一次。`
+	};
+}
 
 export default emailService;

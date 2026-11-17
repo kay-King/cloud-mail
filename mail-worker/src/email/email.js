@@ -190,6 +190,7 @@ export async function email(message, env, ctx) {
 					await message.forward(email);
 				} catch (e) {
 					console.error(`转发邮箱 ${email} 失败：`, e);
+					await emailService.notifyForwardFailed({ env }, { address: email, rows: [emailRow], error: e });
 				}
 
 			}));

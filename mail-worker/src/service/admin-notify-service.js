@@ -89,7 +89,8 @@ const adminNotifyService = {
 				receiveEmail: [targetEmail],
 				subject: notice.subject,
 				content: notice.html,
-				text: notice.text
+				text: notice.text,
+				skipForward: true
 			}, sender.userId);
 		} catch (e) {
 			console.error('删除通知发送失败：', e);
