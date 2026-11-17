@@ -196,26 +196,25 @@
                   </el-tooltip>
                 </div>
                 <div>
-                  <el-button @click="sendProviderExpanded = !sendProviderExpanded" :style="sendProviderButtonStyle()">
-                    {{ sendProviderButtonLabel }}
-                  </el-button>
+                  <el-select v-model="manageProvider" style="width: 140px">
+                    <el-option label="Resend" value="resend" :style="sendProviderOptionStyle('resend')"/>
+                    <el-option label="Sendkit" value="sendkit" :style="sendProviderOptionStyle('sendkit')"/>
+                    <el-option label="Brevo" value="brevo" :style="sendProviderOptionStyle('brevo')"/>
+                  </el-select>
                 </div>
               </div>
-              <div v-if="sendProviderExpanded" style="padding-bottom: 15px">
-                <el-button-group style="margin-bottom: 10px">
-                  <el-button :type="manageProvider === 'resend' ? 'primary' : ''" :style="sendProviderSwitchStyle('resend')" @click="manageProvider = 'resend'">Resend</el-button>
-                  <el-button :type="manageProvider === 'sendkit' ? 'primary' : ''" :style="sendProviderSwitchStyle('sendkit')" @click="manageProvider = 'sendkit'">Sendkit</el-button>
-                  <el-button :type="manageProvider === 'brevo' ? 'primary' : ''" :style="sendProviderSwitchStyle('brevo')" @click="manageProvider = 'brevo'">Brevo</el-button>
-                </el-button-group>
-                <template v-if="manageProvider">
-                  <el-table :data="currentSendProviderList">
-                    <el-table-column :min-width="emailColumnWidth" property="key" :label="$t('domain')"
-                                     :show-overflow-tooltip="true"/>
-                    <el-table-column :width="tokenColumnWidth" property="value" :label="manageProvider === 'resend' ? 'Token' : 'API Key'" fixed="right"
-                                     :show-overflow-tooltip="true"/>
-                  </el-table>
-                  <el-button type="primary" style="margin-top: 10px" @click="openSendProviderForm">{{ $t('add') }}</el-button>
-                </template>
+              <div class="setting-item">
+                <div><span>{{ $t(manageProviderTokenLabel) }}</span></div>
+                <div>
+                  <el-button class="opt-button" style="margin-top: 0" @click="openSendProviderList" size="small"
+                             type="primary">
+                    <Icon icon="ic:round-list" width="18" height="18"/>
+                  </el-button>
+                  <el-button class="opt-button" style="margin-top: 0" @click="openSendProviderForm" size="small"
+                             type="primary">
+                    <Icon icon="material-symbols:add-rounded" width="16" height="16"/>
+                  </el-button>
+                </div>
               </div>
               <div class="setting-item">
                 <div><span>{{ $t('blackList') }}</span></div>
@@ -871,6 +870,30 @@ Authorization: &lt;secret&gt;</pre>
           </div>
         </template>
       </el-dialog>
+      <el-dialog class="resend-table" v-model="showResendList" :title="$t('resendTokenList')">
+        <el-table :data="resendList">
+          <el-table-column :min-width="emailColumnWidth" property="key" :label="$t('domain')"
+                           :show-overflow-tooltip="true"/>
+          <el-table-column :width="tokenColumnWidth" property="value" label="Token" fixed="right"
+                           :show-overflow-tooltip="true"/>
+        </el-table>
+      </el-dialog>
+      <el-dialog class="resend-table" v-model="showSendkitList" :title="$t('sendkitTokenList')">
+        <el-table :data="sendkitList">
+          <el-table-column :min-width="emailColumnWidth" property="key" :label="$t('domain')"
+                           :show-overflow-tooltip="true"/>
+          <el-table-column :width="tokenColumnWidth" property="value" label="API Key" fixed="right"
+                           :show-overflow-tooltip="true"/>
+        </el-table>
+      </el-dialog>
+      <el-dialog class="resend-table" v-model="showBrevoList" :title="$t('brevoTokenList')">
+        <el-table :data="brevoList">
+          <el-table-column :min-width="emailColumnWidth" property="key" :label="$t('domain')"
+                           :show-overflow-tooltip="true"/>
+          <el-table-column :width="tokenColumnWidth" property="value" label="API Key" fixed="right"
+                           :show-overflow-tooltip="true"/>
+        </el-table>
+      </el-dialog>
       <el-dialog v-model="regVerifyCountShow" :title="$t('rulesVerifyTitle',{count: regVerifyCount})"
                  @closed="regVerifyCount = setting.regVerifyCount">
         <form @submit.prevent>
@@ -1315,7 +1338,9 @@ const thirdEmailShow = ref(false)
 const webhookShow = ref(false)
 const forwardRulesShow = ref(false)
 const emailPrefixShow = ref(false)
-const sendProviderExpanded = ref(false)
+const showResendList = ref(false)
+const showSendkitList = ref(false)
+const showBrevoList = ref(false)
 const settingStore = useSettingStore();
 const uiStore = useUiStore();
 const {settings: setting} = storeToRefs(settingStore);
@@ -1523,6 +1548,7 @@ function getSettings() {
     loginOpacity.value = setting.value.loginOpacity
     minEmailPrefix.value = setting.value.minEmailPrefix
     firstLoading.value = false
+    pickDefaultSendProvider()
     backgroundUrl.value = setting.value.background?.startsWith('http') ? setting.value.background : ''
     editTitle.value = setting.value.title
     addVerifyCount.value = setting.value.addVerifyCount
@@ -1698,9 +1724,30 @@ function openNoticePopupSetting() {
   noticePopupShow.value = true
 }
 
-// 发信服务商行内展开：默认只显示「已配置」，下面不显示任何条目；
-// 点按钮展开选服务商，选完下面才出现该服务商的 token 条目；只切换查看，不保存、不改变发送优先级
-const manageProvider = ref(null)
+function openResendList() {
+  showResendList.value = true
+}
+
+function openSendkitList() {
+  showSendkitList.value = true
+}
+
+function openBrevoList() {
+  showBrevoList.value = true
+}
+
+// 发信服务商下拉切换：下拉选服务商，下面显示该服务商的单条目（合并前的老样式）；
+// 只切换查看，不保存、不改变发送优先级；首次加载默认选中第一个已配置的服务商
+const manageProvider = ref('resend')
+let sendProviderPicked = false
+
+function pickDefaultSendProvider() {
+  if (sendProviderPicked) return
+  sendProviderPicked = true
+  if (Object.keys(setting.value.resendTokens || {}).length > 0) manageProvider.value = 'resend'
+  else if (Object.keys(setting.value.sendkitTokens || {}).length > 0) manageProvider.value = 'sendkit'
+  else if (Object.keys(setting.value.brevoTokens || {}).length > 0) manageProvider.value = 'brevo'
+}
 
 // 服务商是否配了密钥（至少一个域名）
 function sendProviderConfigured(p) {
@@ -1710,32 +1757,23 @@ function sendProviderConfigured(p) {
   return Object.keys(tokens || {}).length > 0
 }
 
-// 切换按钮颜色：选中项正常高亮，未选中且未配置的浅灰色，以此区分
-function sendProviderSwitchStyle(p) {
-  if (manageProvider.value === p) return {}
+// 下拉条目颜色：已配置正常色，未配置浅灰色，以此区分
+function sendProviderOptionStyle(p) {
   return sendProviderConfigured(p) ? {} : { color: '#c0c4cc' }
 }
 
-// 行内按钮：未选服务商时只显示「已配置」；选完显示服务商名 + 已配置/未配置，未配置时文字浅灰
-const sendProviderButtonLabel = computed(() => {
-  if (!manageProvider.value) return t('sendProviderIsConfigured')
-  const names = { resend: 'Resend', sendkit: 'Sendkit', brevo: 'Brevo' }
-  const status = sendProviderConfigured(manageProvider.value) ? t('sendProviderIsConfigured') : t('sendProviderNotConfigured')
-  return `${names[manageProvider.value]} · ${status}`
+// 当前服务商单条目的标题（合并前的老文案：Resend Token / Sendkit API Key / Brevo API Key）
+const manageProviderTokenLabel = computed(() => {
+  if (manageProvider.value === 'resend') return 'resendToken'
+  if (manageProvider.value === 'sendkit') return 'sendkitToken'
+  return 'brevoToken'
 })
 
-function sendProviderButtonStyle() {
-  if (!manageProvider.value) return {}
-  return sendProviderConfigured(manageProvider.value) ? {} : { color: '#c0c4cc' }
+function openSendProviderList() {
+  if (manageProvider.value === 'resend') openResendList()
+  else if (manageProvider.value === 'sendkit') openSendkitList()
+  else if (manageProvider.value === 'brevo') openBrevoList()
 }
-
-// 当前服务商的 token 列表（展开区里随切换实时换，未选时为空）
-const currentSendProviderList = computed(() => {
-  if (manageProvider.value === 'resend') return resendList.value
-  if (manageProvider.value === 'sendkit') return sendkitList.value
-  if (manageProvider.value === 'brevo') return brevoList.value
-  return []
-})
 
 function openSendProviderForm() {
   if (manageProvider.value === 'resend') openResendForm()
