@@ -162,14 +162,15 @@ const attService = {
 			attDataList.push(attData);
 		}
 
-		await orm(c).insert(att).values(attDataList).run();
-
+		//先上传对象，全部成功后再写数据库，避免上传失败留下指向不存在对象的记录
 		for (let att of attList) {
 			await r2Service.putObj(c, att.key, att.buff, {
 				contentType: att.type,
 				contentDisposition: `attachment;filename=${att.filename}`
 			});
 		}
+
+		await orm(c).insert(att).values(attDataList).run();
 
 	},
 

@@ -2,6 +2,24 @@ import { S3Client, PutObjectCommand, DeleteObjectsCommand, GetObjectCommand } fr
 import settingService from './setting-service';
 import domainUtils from '../utils/domain-uitls';
 import { settingConst } from '../const/entity-const';
+
+// B2 的 S3 接口不接受 Content-Disposition 里的非 ASCII 文件名（中文名会报 invalid b2-content-disposition），
+// 非纯 ASCII 文件名改用 RFC 5987 编码，下载时浏览器能还原原名。
+function sanitizeContentDisposition(disposition) {
+	const match = disposition.match(/^(attachment|inline);\s*filename=(.*)$/i);
+	if (!match) return disposition;
+	const type = match[1].toLowerCase();
+	let filename = match[2].trim();
+	if (filename.startsWith('"') && filename.endsWith('"')) {
+		filename = filename.slice(1, -1);
+	}
+	if (/^[A-Za-z0-9._-]+$/.test(filename)) {
+		return `${type}; filename="${filename}"`;
+	}
+	const encoded = encodeURIComponent(filename).replace(/['()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
+	return `${type}; filename*=UTF-8''${encoded}`;
+}
+
 const s3Service = {
 
 	async putObj(c, key, content, metadata) {
@@ -19,7 +37,7 @@ const s3Service = {
 		}
 
 		if (metadata.contentDisposition) {
-			obj.ContentDisposition = metadata.contentDisposition
+			obj.ContentDisposition = sanitizeContentDisposition(metadata.contentDisposition)
 		}
 
 		if (metadata.contentType) {
