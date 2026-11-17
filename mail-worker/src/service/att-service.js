@@ -21,9 +21,10 @@ const attService = {
 			}
 
 			if (!attachment.contentId) {
-				metadate.contentDisposition = `attachment;filename=${attachment.filename}`
+				// 不把原始文件名写进对象元数据，服务商看不到文件名；下载时从 D1 取文件名拼 Content-Disposition
+				metadate.contentDisposition = `attachment`
 			} else {
-				metadate.contentDisposition = `inline;filename=${attachment.filename}`
+				metadate.contentDisposition = `inline`
 				metadate.cacheControl = `max-age=259200`
 			}
 
@@ -65,7 +66,8 @@ const attService = {
 				const file = fileUtils.base64ToFile(src);
 				const buff = await file.arrayBuffer();
 				const cid = uuidv4().replace(/-/g, '');
-				const key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(buff) + fileUtils.getExtFileName(file.name);
+				// key 只用内容哈希，不带扩展名，避免从对象名泄露文件类型
+				const key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(buff);
 
 				img.setAttribute('src', 'cid:' + cid);
 
@@ -152,7 +154,8 @@ const attService = {
 
 		for (let att of attList) {
 			att.buff = fileUtils.base64ToUint8Array(att.content);
-			att.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(att.buff) + fileUtils.getExtFileName(att.filename);
+			// key 只用内容哈希，不带扩展名，避免从对象名泄露文件类型
+			att.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(att.buff);
 			const attData = { userId, accountId, emailId };
 			attData.key = att.key;
 			attData.size = att.buff.length;
@@ -166,7 +169,7 @@ const attService = {
 		//并行上传：多附件时不再一张一张串行等，任一失败仍整体中止
 		await Promise.all(attList.map(att => r2Service.putObj(c, att.key, att.buff, {
 			contentType: att.type,
-			contentDisposition: `attachment;filename=${att.filename}`
+			contentDisposition: `attachment`
 		})));
 
 		await orm(c).insert(att).values(attDataList).run();
@@ -186,7 +189,7 @@ const attService = {
 			await r2Service.putObj(c, attData.key, attData.buff, {
 				contentType: attData.mimeType,
 				cacheControl: `max-age=259200`,
-				contentDisposition: `inline;filename=${attData.filename}`
+				contentDisposition: `inline`
 			});
 			delete attData.buff;
 		}

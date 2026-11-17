@@ -2,6 +2,20 @@ import s3Service from './s3-service';
 import settingService from './setting-service';
 import kvObjService from './kv-obj-service';
 import attCrypto from './att-crypto';
+import orm from '../entity/orm';
+import { att } from '../entity/att';
+import { eq } from 'drizzle-orm';
+import { attConst } from '../const/entity-const';
+
+// 从文件名拼 Content-Disposition：纯 ASCII 安全名用引号形式，其余用 RFC 5987 编码
+//（与 s3-service 的 sanitizeContentDisposition 同一套规则，避免非 ASCII 文件名被拒收）
+function buildContentDisposition(type, filename) {
+	if (/^[A-Za-z0-9._-]+$/.test(filename)) {
+		return `${type}; filename="${filename}"`;
+	}
+	const encoded = encodeURIComponent(filename).replace(/['()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
+	return `${type}; filename*=UTF-8''${encoded}`;
+}
 
 const r2Service = {
 
@@ -77,7 +91,27 @@ const r2Service = {
 		}
 
 		const plain = await attCrypto.decrypt(c, key, resp);
-		return new Response(plain, { headers: resp.headers });
+		const headers = new Headers(resp.headers);
+
+		// 附件文件名不存对象元数据，下载时从 D1 按 key 查文件名再拼 Content-Disposition；
+		// 查不到记录（如孤儿对象）时保留存储侧的头，下载不受影响
+		if (attCrypto.isAttachmentKey(key)) {
+			try {
+				const rows = await orm(c).select().from(att).where(eq(att.key, key)).all();
+				if (rows.length > 0) {
+					const attRow = rows.find(r => r.type === attConst.type.ATT && r.filename) || rows[0];
+					if (attRow.type === attConst.type.ATT && attRow.filename) {
+						headers.set('Content-Disposition', buildContentDisposition('attachment', attRow.filename));
+					} else {
+						headers.set('Content-Disposition', 'inline');
+					}
+				}
+			} catch (e) {
+				console.error('Failed to resolve attachment filename for', key, e);
+			}
+		}
+
+		return new Response(plain, { headers });
 	},
 
 	/**

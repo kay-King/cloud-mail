@@ -134,7 +134,8 @@ export async function email(message, env, ctx) {
 
 		for (let item of email.attachments) {
 			let attachment = { ...item };
-			attachment.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(attachment.content) + fileUtils.getExtFileName(item.filename);
+			// key 只用内容哈希，不带扩展名，避免从对象名泄露文件类型
+			attachment.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(attachment.content);
 			attachment.size = item.content.length ?? item.content.byteLength;
 			attachments.push(attachment);
 			if (attachment.contentId) {
