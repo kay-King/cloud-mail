@@ -615,7 +615,13 @@ const emailService = {
 			const emailResult = await this.saveSentEmail(c, { ...saveParams, receiveEmail });
 			const inboxAddresses = [...receiveEmail, ...sendParams.ccEmail, ...sendParams.bccEmail];
 			const emailRowList = await this.HandleOnSiteEmail(c, inboxAddresses, emailResult, emailResult.attList);
-			await this.forwardOnSiteEmail(c, emailRowList, { sendParams: { ...sendParams, receiveEmail } });
+			//转发改后台跑：发件响应不等转发完成，转发失败仍记日志（本身无重试）
+			const forwardTask = this.forwardOnSiteEmail(c, emailRowList, { sendParams: { ...sendParams, receiveEmail } }).catch(e => console.error('转发失败：', e));
+			if (c.executionCtx?.waitUntil) {
+				c.executionCtx.waitUntil(forwardTask);
+			} else {
+				await forwardTask;
+			}
 			yield { emails: [emailResult] };
 		}
 	},

@@ -163,12 +163,11 @@ const attService = {
 		}
 
 		//先上传对象，全部成功后再写数据库，避免上传失败留下指向不存在对象的记录
-		for (let att of attList) {
-			await r2Service.putObj(c, att.key, att.buff, {
-				contentType: att.type,
-				contentDisposition: `attachment;filename=${att.filename}`
-			});
-		}
+		//并行上传：多附件时不再一张一张串行等，任一失败仍整体中止
+		await Promise.all(attList.map(att => r2Service.putObj(c, att.key, att.buff, {
+			contentType: att.type,
+			contentDisposition: `attachment;filename=${att.filename}`
+		})));
 
 		await orm(c).insert(att).values(attDataList).run();
 
