@@ -8,17 +8,33 @@
 - 一个已经接入 Cloudflare 的域名（域名的 NS 是 Cloudflare 的，即 DNS 由 Cloudflare 托管）
 - 费用：Cloudflare 免费额度足够个人使用，发信服务商用免费档，全程不用花钱
 
-## 两种部署方式怎么选
+## 先看懂这几个词（小白必读）
 
-| | 方式一 GitHub Actions | 方式二 命令行 |
-|---|---|---|
-| 要装软件 | 不用 | 要装 Node.js + pnpm + Git |
-| 要敲命令 | 不用 | 要 |
-| 自动创建 D1 / KV | 是 | 手动创建（或用命令创建） |
-| 自动初始化数据库 | 是 | 手动打开一个链接 |
-| 适合 | 不想碰命令行的人 | 想完全掌控每一步的人 |
+| 词 | 大白话解释 |
+|---|---|
+| Worker | 跑在 Cloudflare 上的一段程序，咱们的邮箱就跑在上面，不用买服务器 |
+| D1 | Cloudflare 的数据库，存邮件、账号、设置 |
+| KV | Cloudflare 的键值存储，存缓存、附件（默认）、备份 |
+| 域名 | 比如 example.com；要先把域名的 DNS 交给 Cloudflare 管（在域名注册商那里把 NS 改成 Cloudflare 给的两个地址） |
+| MX 记录 | 告诉全世界"这个域名的邮件交给谁收"，收信必须配 |
+| SPF / DKIM / DMARC | 发信用的防伪记录，配了对方才不容易把你的邮件当垃圾邮件 |
+| API Token | 给程序用的"钥匙"，让 GitHub Actions 能代你操作 Cloudflare |
+| JWT_SECRET | 登录密钥，系统用它验证你是不是本人；也是初始化数据库的口令 |
+| wrangler.toml | 部署配置文件，告诉 Cloudflare 用哪个数据库、管理员是谁 |
+| Fork | 把别人的仓库复制一份到你自己名下，之后改的是你自己的那份 |
 
-两种方式部署出来的东西完全一样，选一个就行。
+## 三种部署方式怎么选
+
+| | 方式一 GitHub Actions | 方式二 命令行 | 方式三 纯手动 |
+|---|---|---|---|
+| 要装软件 | 不用 | 要装 Node.js + pnpm + Git | 不用 |
+| 要敲命令 | 不用 | 要 | 不用 |
+| 要建 API Token | 要（1 个） | 登录用（或 Token） | 不用 |
+| 自动创建 D1 / KV | 是 | 手动创建（或用命令创建） | 手动在仪表板创建 |
+| 自动初始化数据库 | 是 | 手动打开一个链接 | 手动打开一个链接 |
+| 适合 | 不想碰命令行的人 | 想完全掌控每一步的人 | 只想点鼠标的人 |
+
+三种方式部署出来的东西完全一样，选一个就行。**小白推荐方式一或方式三**，都不用碰命令行。
 
 ---
 
@@ -174,6 +190,76 @@ https://你的域名/api/init/你的JWT_SECRET
 
 ---
 
+## 方式三：纯手动部署（仪表板 + GitHub 网页，全程点鼠标）
+
+不用装任何软件，不用敲任何命令，不用建 API Token，全程在浏览器里点。适合只想点鼠标的小白。
+
+### 第 1 步：Fork 仓库
+
+和方式一第 1 步一样：打开本仓库页面 → 点右上角 **Fork** → **Create fork**。
+
+### 第 2 步：在仪表板手动建 D1 和 KV
+
+1. 打开 [dash.cloudflare.com](https://dash.cloudflare.com)，登录
+2. 左侧 Workers & Pages → **D1 SQL Database** → **Create database** → 名字填 `cloud-mail` → Create
+3. 点进刚建的库，页面上能看到 Database ID，复制下来存到记事本
+4. 左侧 Workers & Pages → **KV** → **Create a namespace** → 名字填 `cloud-mail` → Add
+5. 点进刚建的命名空间，页面上能看到 ID，复制下来存到记事本
+
+### 第 3 步：在 GitHub 网页上改配置文件
+
+不用把代码下载到本地，直接在网页上改：
+
+1. 进你 Fork 的仓库 → 点进 **mail-worker** 文件夹 → 点 **wrangler.toml**
+2. 点右上角铅笔图标（Edit this file）
+3. 改下面几处（其余不用动）：
+   - `database_id = "..."` → 填第 2 步的 D1 ID
+   - `[[kv_namespaces]]` 里的 `id = "..."` → 填第 2 步的 KV ID
+   - `admin = "admin@example.com"` → 填你的管理员邮箱
+   - `domain = "[\"example.com\"]"` → 填你的域名（多个用逗号隔开，都在双引号里）
+   - `[[routes]]` 里的 `pattern = "mail.example.com"` → 填你的后台域名；暂时没有域名就把整个 `[[routes]]` 这三行删掉（部署后用 workers.dev 地址）
+   - `cf_account_id` → 填你的 Cloudflare 账号 ID（dash.cloudflare.com 首页右侧 Account ID；只影响转发自动添加，不填就删掉这行）
+4. 点 **Commit changes**（直接提交到 main 分支）
+   - 注意：改的是你 Fork 里自己的文件，不影响原仓库
+
+### 第 4 步：Cloudflare 仪表板连 Git 自动部署
+
+1. dash.cloudflare.com → Workers & Pages → 点 **Create** → 选 **Workers** → 点 **Import a repository**（有的版本叫 Connect to Git）
+2. 第一次用要授权 GitHub：点 **Install & Authorize**，选 **Only select repositories** → 勾上你 Fork 的仓库 → Install
+3. 选你的 Fork 仓库，点 Begin setup（或 Continue）
+4. 填构建设置（照下面填，一项都不能错）：
+   - **Worker name**：`cloud-mail`（必须和 wrangler.toml 里的 name 一致）
+   - **Production branch**：`main`
+   - **Root directory**：`mail-worker`（点开 Advanced 才能看到这个选项；不填这个构建会失败）
+   - **Build command**：留空（构建命令在 wrangler.toml 里，部署时自动跑）
+   - **Deploy command**：`npx wrangler deploy`（默认就是这个，不用改）
+   - **Build watch paths**：点开 Advanced，在 Include 里加上 `../*`（这样以后改前端代码也会触发重新部署；不加的话只改前端不会自动部署）
+   - **Build API token**：保持默认 Create new token（Cloudflare 自动配，不用你建 Token）
+5. 点 **Deploy**（或 Save and Deploy），等构建跑完（约 3–5 分钟）
+6. 构建成功后页面会显示 workers.dev 地址
+
+以后每次在 GitHub 上改代码（或点 Sync fork 同步上游更新），Cloudflare 都会自动重新部署，不用再操作。
+
+### 第 5 步：在仪表板设 JWT_SECRET
+
+1. Workers & Pages → 点进 **cloud-mail** → **Settings** → **Variables and Secrets**
+2. 点 **Add** → 选 **Secret** → 名字填 `jwt_secret` → 值粘贴你编的随机字符串（字母+数字，至少 16 位，不能含 `? % # / \`）→ Save
+3. 记好这个值，后面初始化要用
+
+### 第 6 步：初始化数据库
+
+浏览器打开：
+
+```
+https://你的域名/api/init/你的JWT_SECRET
+```
+
+域名用 workers.dev 地址或你绑的自定义域名都行；`你的JWT_SECRET` 换成第 5 步设的那个。页面显示 `success` 就是初始化完成。
+
+之后继续看下面的「部署后必做」。
+
+---
+
 ## 部署后必做
 
 ### 1. 注册管理员账号并关闭开放注册
@@ -307,10 +393,19 @@ API Token 权限没给够，对照方式一第 2 步的权限清单重新建一�
 
 钥匙丢了，加密的附件就读不出来了。所以定期备份很重要——备份文件里包含钥匙，恢复备份后附件照常可读。
 
+**方式三构建失败，日志里报 pnpm 或 lockfile 的错？**
+
+在 Workers & Pages → cloud-mail → Settings → Builds → Build variables 里加一个变量：名字 `PNPM_VERSION`，值 `10`，保存后点 Retry deployment 重新构建。
+
+**方式三改了前端代码（mail-vue）却没有自动重新部署？**
+
+构建监控路径默认只看 Root directory 里面。去 Settings → Builds → Build watch paths，在 Include 里加上 `../*`，保存后下次推送就会触发构建。
+
 ---
 
 ## 升级
 
 - GitHub Actions 部署：Fork 仓库点 Sync fork 同步上游更新（或直接推送代码到 main），工作流会自动重新部署
+- 纯手动部署（方式三）：同上，点 Sync fork 或推送代码后 Cloudflare 自动重新部署
 - 命令行部署：`git pull` 拉最新代码，再跑一次 `npx wrangler deploy`
 - 升级前建议先在系统设置 → 数据备份 → 立即备份导出，留一份备份
