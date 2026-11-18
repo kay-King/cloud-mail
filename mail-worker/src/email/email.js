@@ -13,6 +13,7 @@ import telegramService from '../service/telegram-service';
 import aiService from '../service/ai-service';
 import webhookService from '../service/webhook-service';
 import { matchesForwardRule } from '../utils/forward-rule';
+import { mergeForwardTargets } from '../utils/forward-targets';
 
 export async function email(message, env, ctx) {
 
@@ -173,45 +174,31 @@ export async function email(message, env, ctx) {
 			await telegramService.sendEmailToBot({ env }, emailRow)
 		}
 
-		//按收件账号转发到其他邮箱（须符合该账号的转发规则，否则只留收件箱）
-		const accountForwarded = !!(account && account.forwardStatus === settingConst.forwardStatus.OPEN && account.forwardEmail
-			&& matchesForwardRule(account, { from: emailRow.sendEmail, subject: emailRow.subject }));
-
-		if (accountForwarded) {
-
-			const emails = account.forwardEmail.split(',').map(e => e.trim()).filter(Boolean);
-
-			await Promise.all(emails.map(async email => {
-
-				try {
-					await message.forward(email);
-				} catch (e) {
-					console.error(`转发邮箱 ${email} 失败：`, e);
-					await emailService.notifyForwardFailed({ env }, { address: email, rows: [emailRow], error: e, accountId: account.accountId });
-				}
-
-			}));
-
+		//按收件账号转发与全局转发并存：两边各算各的目标，合在一起去重后各发一份；
+		//同一封邮件发到同一个目标只发一次（全局管的范围更大，不因账号转发接手了就不转）
+		const accountTargets = [];
+		if (account && account.forwardStatus === settingConst.forwardStatus.OPEN && account.forwardEmail
+			&& matchesForwardRule(account, { from: emailRow.sendEmail, subject: emailRow.subject })) {
+			account.forwardEmail.split(',').map(e => e.trim()).filter(Boolean)
+				.forEach(email => accountTargets.push({ email, accountId: account.accountId, source: '账号' }));
 		}
 
-		//全局转发（系统设置，兜底层）：只接手按账号转发没处理的邮件——无账号（未注册地址），
-		//或有账号但账号转发关着/不符合账号规则；须符合全局规则（全部，或收件地址在规则列表里）
-		if (!accountForwarded && forwardStatus === settingConst.forwardStatus.OPEN && forwardEmail && ruleMatched) {
-
-			const emails = forwardEmail.split(',').map(e => e.trim()).filter(Boolean);
-
-			await Promise.all(emails.map(async email => {
-
-				try {
-					await message.forward(email);
-				} catch (e) {
-					console.error(`全局转发邮箱 ${email} 失败：`, e);
-					await emailService.notifyForwardFailed({ env }, { address: email, rows: [emailRow], error: e, accountId: account?.accountId });
-				}
-
-			}));
-
+		const globalTargets = [];
+		if (forwardStatus === settingConst.forwardStatus.OPEN && forwardEmail && ruleMatched) {
+			forwardEmail.split(',').map(e => e.trim()).filter(Boolean)
+				.forEach(email => globalTargets.push({ email, accountId: undefined, source: '全局' }));
 		}
+
+		await Promise.all(mergeForwardTargets(accountTargets, globalTargets).map(async ({ email, accountId, source }) => {
+
+			try {
+				await message.forward(email);
+			} catch (e) {
+				console.error(`转发邮箱 ${email} 失败（${source}）：`, e);
+				await emailService.notifyForwardFailed({ env }, { address: email, rows: [emailRow], error: e, accountId });
+			}
+
+		}));
 
 		//转发到 Webhook
 		if (ruleMatched && webhookStatus === settingConst.webhookStatus.OPEN && webhookUrl) {

@@ -412,7 +412,7 @@ const zh = {
     globalForwardDesc: '管理员级转发：所有发到本站域名的邮件都会按规则转到目标邮箱，包括没注册的地址',
     globalForwardTarget: '目标邮箱，多个用逗号分开',
     globalForwardRulePlaceholder: '收件地址，多个用逗号分开',
-    globalForwardTip: '兜底层：有账号且账号转发开着的邮件走账号转发，其余（没注册的地址、账号转发关着或不符合账号规则）走这里；这条规则同时影响 TG 与 Webhook 推送',
+    globalForwardTip: '与按账号转发并存：两边都符合时各转各的，目标相同时只转一次；这条规则同时影响 TG 与 Webhook 推送',
     ruleEmailsInputDesc: '多个邮箱用, 分开',
     domain: '域名',
     resendTokenList: 'Token 列表',

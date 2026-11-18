@@ -412,7 +412,7 @@ const en = {
     globalForwardDesc: 'Admin-level forwarding: all mail sent to this site\'s domains is forwarded to the destination per the rule, including unregistered addresses.',
     globalForwardTarget: 'Destination email, separate multiple with commas',
     globalForwardRulePlaceholder: 'Recipient addresses, separate multiple with commas',
-    globalForwardTip: 'Fallback layer: mail handled by per-account forwarding goes there; the rest (unregistered addresses, or accounts with forwarding off or not matching their rules) goes here. This rule also applies to Telegram and Webhook pushes.',
+    globalForwardTip: 'Works alongside per-account forwarding: when both apply, each forwards to its own target; the same target only gets one copy. This rule also applies to Telegram and Webhook pushes.',
     ruleEmailsInputDesc: 'Separate multiple email addresses with commas',
     domain: 'Domain',
     resendTokenList: 'Token list',
