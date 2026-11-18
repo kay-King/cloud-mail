@@ -11,6 +11,8 @@ export const useUiStore = defineStore('ui', {
         previewData: {},
         key: 0,
         dark: false,
+        // 界面主题（品牌风）：default 默认 / gmail / outlook / qq / apple，与深浅 dark 正交
+        brand: 'default',
         asideCount: {
             email: 0,
             send: 0,
@@ -27,6 +29,6 @@ export const useUiStore = defineStore('ui', {
         }
     },
     persist: {
-        pick: ['accountShow','dark'],
+        pick: ['accountShow','dark','brand'],
     },
 })

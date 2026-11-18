@@ -572,7 +572,7 @@
                   <el-button @click="jump('https://github.com/maillab/cloud-mail/releases')">
                     {{ currentVersion }}
                     <template #icon>
-                      <Icon icon="qlementine-icons:version-control-16" style="font-size: 20px" color="#1890FF"/>
+                      <Icon icon="qlementine-icons:version-control-16" style="font-size: 20px" color="var(--el-color-primary)"/>
                     </template>
                   </el-button>
                 </el-badge>
@@ -1772,7 +1772,7 @@ function sendProviderConfigured(p) {
 
 // 下拉条目颜色：已配置正常色，未配置浅灰色，以此区分
 function sendProviderOptionStyle(p) {
-  return sendProviderConfigured(p) ? {} : { color: '#c0c4cc' }
+  return sendProviderConfigured(p) ? {} : { color: 'var(--el-text-color-placeholder)' }
 }
 
 // 当前服务商单条目的标题（合并前的老文案：Resend Token / Sendkit API Key / Brevo API Key）
@@ -2685,7 +2685,7 @@ function editSetting(settingForm, refreshStatus = true) {
 
 .backup-kv-tip {
   font-size: 12px;
-  color: #909399;
+  color: var(--secondary-text-color);
   line-height: 1.6;
   margin-top: -6px;
 }
@@ -2733,7 +2733,7 @@ function editSetting(settingForm, refreshStatus = true) {
 
 .cropper {
   border-radius: 4px;
-  border: 1px solid #D4D7DE;
+  border: 1px solid var(--el-border-color);
   height: 397px;
   width: 705px;
   @media (max-width: 767px) {
@@ -3082,15 +3082,15 @@ function editSetting(settingForm, refreshStatus = true) {
   align-items: center;
   gap: 4px;
   font-size: 13px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
 .backup-kv-note {
   font-size: 12px;
   line-height: 1.6;
-  color: #606266;
-  background: #f5f7fa;
+  color: var(--el-text-color-regular);
+  background: var(--light-ill);
   border-radius: 4px;
   padding: 8px 10px;
   margin-bottom: 15px;

@@ -1,0 +1,232 @@
+/* 界面主题（品牌风）：骨架不变，只换样式，像 Obsidian 主题那样。
+   切换方式：<html data-brand="gmail|outlook|qq|apple">，默认 default 不设覆盖块、沿用 :root。
+   深浅是另一个独立维度（.dark 类），每个品牌另有 html.dark[data-brand] 深色修正块。
+   加载顺序：main.js 里在 style.css 之后引入，品牌块后于 .dark 块，优先级靠后者 + 更具体的选择器保证。 */
+
+/* ---------- Gmail 风：Google 蓝主色 + 浅灰蓝侧栏 + Roboto ---------- */
+html[data-brand="gmail"] {
+  --el-color-primary: #1a73e8;
+  --el-color-primary-dark-2: #1557b0;
+  --el-color-primary-light-3: #4d94ee;
+  --el-color-primary-light-5: #7ab3f3;
+  --el-color-primary-light-7: #a8ccf8;
+  --el-color-primary-light-8: #c2d9fb;
+  --el-color-primary-light-9: #e8f0fe;
+  --aside-backgound: #f6f8fc;
+  --aside-menu-active-background: #e8f0fe;
+  --aside-text-color: #202124;
+  --aside-active-color: var(--el-color-primary);
+  --aside-hover-bg: rgba(0, 0, 0, 0.06);
+  --settings-page-background: #f6f8fc;
+  --light-ill: #f1f3f4;
+  --email-hover-background: #f2f6fc;
+  --email-scroll-content-color: rgba(32, 33, 36, 0.4);
+  --login-switch-color: #1a73e8;
+  --app-font-family: Roboto, "Google Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --el-border-radius-base: 6px;
+  --el-border-radius-small: 4px;
+}
+
+html.dark[data-brand="gmail"] {
+  --el-color-primary: #8ab4f8;
+  --el-color-primary-dark-2: #aecbfa;
+  --el-color-primary-light-9: #1e2a38;
+  --email-scroll-content-color: rgba(255, 255, 255, 0.55);
+  --aside-backgound: #202124;
+  --aside-menu-active-background: rgba(138, 180, 248, 0.16);
+  --aside-text-color: #e8eaed;
+  --aside-active-color: var(--el-color-primary);
+  --aside-hover-bg: rgba(255, 255, 255, 0.08);
+  --settings-page-background: #202124;
+  --email-hover-background: #2d2e30;
+}
+
+/* ---------- Outlook 风：Fluent 蓝 + Segoe UI + 方正圆角 ---------- */
+html[data-brand="outlook"] {
+  --el-color-primary: #0f6cbd;
+  --el-color-primary-dark-2: #0b5a9e;
+  --el-color-primary-light-3: #4790d2;
+  --el-color-primary-light-5: #7fb3e0;
+  --el-color-primary-light-7: #b3d4ef;
+  --el-color-primary-light-8: #cce3f6;
+  --el-color-primary-light-9: #e5f1fb;
+  --aside-backgound: #f3f2f1;
+  --aside-menu-active-background: #e5f1fb;
+  --aside-text-color: #242424;
+  --aside-active-color: var(--el-color-primary);
+  --aside-hover-bg: rgba(0, 0, 0, 0.05);
+  --settings-page-background: #f3f2f1;
+  --light-ill: #edebe9;
+  --email-hover-background: #f3f2f1;
+  --email-scroll-content-color: rgba(36, 36, 36, 0.4);
+  --login-switch-color: #0f6cbd;
+  --app-font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --el-border-radius-base: 4px;
+  --el-border-radius-small: 2px;
+}
+
+html.dark[data-brand="outlook"] {
+  --el-color-primary: #479ef5;
+  --el-color-primary-dark-2: #6cb0f7;
+  --el-color-primary-light-9: #16283a;
+  --email-scroll-content-color: rgba(255, 255, 255, 0.55);
+  --aside-backgound: #1f1f1f;
+  --aside-menu-active-background: rgba(71, 158, 245, 0.16);
+  --aside-text-color: #f3f2f1;
+  --aside-active-color: var(--el-color-primary);
+  --aside-hover-bg: rgba(255, 255, 255, 0.08);
+  --settings-page-background: #1f1f1f;
+  --email-hover-background: #2b2b2b;
+}
+
+/* ---------- QQ 邮箱风：经典亮蓝 + 浅蓝侧栏 ---------- */
+html[data-brand="qq"] {
+  --el-color-primary: #2f9be8;
+  --el-color-primary-dark-2: #1e7cc0;
+  --el-color-primary-light-3: #62b3ec;
+  --el-color-primary-light-5: #8fcbf2;
+  --el-color-primary-light-7: #bce0f8;
+  --el-color-primary-light-8: #d0eafb;
+  --el-color-primary-light-9: #e8f4fd;
+  --aside-backgound: #eef4fb;
+  --aside-menu-active-background: #dcebf9;
+  --aside-text-color: #333333;
+  --aside-active-color: var(--el-color-primary);
+  --aside-hover-bg: rgba(0, 0, 0, 0.05);
+  --settings-page-background: #f2f6fb;
+  --light-ill: #eef3f8;
+  --email-hover-background: #f2f8fd;
+  --email-scroll-content-color: rgba(51, 51, 51, 0.4);
+  --login-switch-color: #2f9be8;
+  --app-font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", sans-serif;
+  --el-border-radius-base: 4px;
+  --el-border-radius-small: 2px;
+}
+
+html.dark[data-brand="qq"] {
+  --el-color-primary: #53a8ff;
+  --el-color-primary-dark-2: #7dbdff;
+  --el-color-primary-light-9: #1a2b3d;
+  --email-scroll-content-color: rgba(255, 255, 255, 0.55);
+  --aside-backgound: #1a1a1a;
+  --aside-menu-active-background: rgba(83, 168, 255, 0.16);
+  --aside-text-color: #e6e6e6;
+  --aside-active-color: var(--el-color-primary);
+  --aside-hover-bg: rgba(255, 255, 255, 0.08);
+  --settings-page-background: #1a1a1a;
+  --email-hover-background: #262626;
+}
+
+/* ---------- Apple Mail 风：iOS 蓝 + 极简浅灰 + 大圆角 ---------- */
+html[data-brand="apple"] {
+  --el-color-primary: #007aff;
+  --el-color-primary-dark-2: #0062cc;
+  --el-color-primary-light-3: #3395ff;
+  --el-color-primary-light-5: #66b0ff;
+  --el-color-primary-light-7: #99cbff;
+  --el-color-primary-light-8: #b3d9ff;
+  --el-color-primary-light-9: #e5f1ff;
+  --aside-backgound: #ececf1;
+  --aside-menu-active-background: #e8e8ed;
+  --aside-text-color: #1d1d1f;
+  --aside-active-color: var(--el-color-primary);
+  --aside-hover-bg: rgba(0, 0, 0, 0.05);
+  --settings-page-background: #f5f5f7;
+  --light-ill: #f5f5f7;
+  --email-hover-background: #f5f5f7;
+  --email-scroll-content-color: rgba(29, 29, 31, 0.4);
+  --login-switch-color: #007aff;
+  --app-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: 6px;
+}
+
+html.dark[data-brand="apple"] {
+  --el-color-primary: #0a84ff;
+  --el-color-primary-dark-2: #409cff;
+  --el-color-primary-light-9: #16283f;
+  --email-scroll-content-color: rgba(255, 255, 255, 0.55);
+  --aside-backgound: #1c1c1e;
+  --aside-menu-active-background: rgba(10, 132, 255, 0.18);
+  --aside-text-color: #f5f5f7;
+  --aside-active-color: var(--el-color-primary);
+  --aside-hover-bg: rgba(255, 255, 255, 0.08);
+  --settings-page-background: #1c1c1e;
+  --email-hover-background: #2c2c2e;
+}
+
+/* ---------- 163 邮箱风：网易红 + 浅灰 ---------- */
+html[data-brand="163"] {
+  --el-color-primary: #d71918;
+  --el-color-primary-dark-2: #ac1413;
+  --el-color-primary-light-3: #e35e5d;
+  --el-color-primary-light-5: #eb8c8b;
+  --el-color-primary-light-7: #f3bab9;
+  --el-color-primary-light-8: #f7d1d0;
+  --el-color-primary-light-9: #fbe8e7;
+  --aside-backgound: #f7f7f7;
+  --aside-menu-active-background: #fde8e8;
+  --aside-text-color: #333333;
+  --aside-active-color: var(--el-color-primary);
+  --aside-hover-bg: rgba(0, 0, 0, 0.04);
+  --settings-page-background: #f7f7f7;
+  --light-ill: #f5f5f5;
+  --email-hover-background: #f7f7f7;
+  --email-scroll-content-color: rgba(51, 51, 51, 0.4);
+  --login-switch-color: #d71918;
+  --app-font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", sans-serif;
+  --el-border-radius-base: 4px;
+  --el-border-radius-small: 2px;
+}
+
+html.dark[data-brand="163"] {
+  --el-color-primary: #f07070;
+  --el-color-primary-dark-2: #f59a9a;
+  --el-color-primary-light-9: #2e1a1a;
+  --email-scroll-content-color: rgba(255, 255, 255, 0.55);
+  --aside-backgound: #1a1a1a;
+  --aside-menu-active-background: rgba(240, 112, 112, 0.16);
+  --aside-text-color: #e6e6e6;
+  --aside-active-color: var(--el-color-primary);
+  --aside-hover-bg: rgba(255, 255, 255, 0.06);
+  --settings-page-background: #141414;
+  --email-hover-background: #262626;
+}
+
+/* ---------- Yahoo 风：雅虎紫 + 淡紫灰 ---------- */
+html[data-brand="yahoo"] {
+  --el-color-primary: #6001d2;
+  --el-color-primary-dark-2: #4d01a8;
+  --el-color-primary-light-3: #904ddf;
+  --el-color-primary-light-5: #af80e8;
+  --el-color-primary-light-7: #cfb3f1;
+  --el-color-primary-light-8: #dfccf6;
+  --el-color-primary-light-9: #efe6fa;
+  --aside-backgound: #f5f2fa;
+  --aside-menu-active-background: #ece5f8;
+  --aside-text-color: #262626;
+  --aside-active-color: var(--el-color-primary);
+  --aside-hover-bg: rgba(96, 1, 210, 0.05);
+  --settings-page-background: #f5f2fa;
+  --light-ill: #f7f5fa;
+  --email-hover-background: #f5f2fa;
+  --email-scroll-content-color: rgba(38, 38, 38, 0.4);
+  --login-switch-color: #6001d2;
+  --app-font-family: Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --el-border-radius-base: 6px;
+  --el-border-radius-small: 4px;
+}
+
+html.dark[data-brand="yahoo"] {
+  --el-color-primary: #b07ff0;
+  --el-color-primary-dark-2: #c49ef5;
+  --el-color-primary-light-9: #241535;
+  --email-scroll-content-color: rgba(255, 255, 255, 0.55);
+  --aside-backgound: #17121f;
+  --aside-menu-active-background: rgba(176, 127, 240, 0.16);
+  --aside-text-color: #ece8f2;
+  --aside-active-color: var(--el-color-primary);
+  --aside-hover-bg: rgba(255, 255, 255, 0.06);
+  --settings-page-background: #14101a;
+  --email-hover-background: #241d30;
+}

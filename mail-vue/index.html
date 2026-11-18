@@ -16,6 +16,9 @@
       isDark = uiStore.dark
       const root = document.documentElement
       root.setAttribute('class', isDark ? 'dark' : '');
+      // 界面主题（品牌风）：启动时先应用，防闪烁；非法值回落默认
+      const brand = ['default', 'gmail', 'outlook', 'qq', 'apple', '163', 'yahoo'].includes(uiStore.brand) ? uiStore.brand : 'default'
+      root.setAttribute('data-brand', brand);
     }
     const metaTag = document.getElementById('theme-color-meta');
     const isMobile =  !window.matchMedia("(pointer: fine) and (hover: hover)").matches;
@@ -136,6 +139,17 @@
 </div>
 <div id="app"></div>
 <script>
+  // 加载屏 Logo 跟随品牌主题（启动脚本在 head 里已读过 localStorage，这里只换图）
+  (function () {
+    try {
+      var ui = JSON.parse(localStorage.getItem('ui') || '{}');
+      var brand = ui.brand;
+      if (['gmail', 'outlook', 'qq', 'apple', '163', 'yahoo'].indexOf(brand) !== -1) {
+        var img = document.querySelector('#loading-first .loading-image');
+        if (img) img.src = '/mail-' + brand + '.svg';
+      }
+    } catch (e) {}
+  })();
   // 启动自救：如果主文件 25 秒内没开始执行（通常是离线缓存给了旧页面、旧文件已不存在，
   // 服务器对不存在的文件返回首页 HTML，浏览器因类型不对拒绝执行，卡在信封启动屏），
   // 注销离线缓存、清空全部缓存再刷新，拿新版。5 分钟内最多自救两次，防循环刷新。

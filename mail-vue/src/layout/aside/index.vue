@@ -9,7 +9,7 @@
         <Icon icon="hugeicons:quill-write-01" width="22" height="22" />
         <span>{{ $t('compose') }}</span>
       </button>
-      <el-menu :collapse="false" text-color="#fff" active-text-color="#fff" style="margin-top: 6px">
+      <el-menu :collapse="false" style="margin-top: 6px">
         <el-menu-item @click="router.push({name: 'email'})" index="email"
                       :class="route.meta.name === 'email' ? 'choose-item' : ''">
           <Icon icon="hugeicons:mailbox-01" width="20" height="20" />
@@ -104,7 +104,12 @@ import {useUiStore} from "@/store/ui.js";
 const settingStore = useSettingStore();
 const uiStore = useUiStore();
 const route = useRoute();
-const logoUrl = `${import.meta.env.BASE_URL}mail.png`
+const logoUrl = computed(() => {
+  // Logo 跟随品牌主题：默认用 mail.png，各品牌用对应的 SVG 信封
+  const brand = uiStore.brand
+  const file = brand === 'default' ? 'mail.png' : `mail-${brand}.svg`
+  return `${import.meta.env.BASE_URL}${file}`
+})
 const titleUsesDisplayFont = computed(() => !/\p{Script=Han}/u.test(settingStore.settings.title || ''))
 
 function openCompose() {
@@ -134,7 +139,7 @@ function openCompose() {
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
-  color: #ffffff;
+  color: var(--aside-text-color);
   transition: all 0.3s ease;
   max-width: 240px;
   padding: 0 10px;
@@ -157,7 +162,7 @@ function openCompose() {
     position: absolute;
     font-size: 12px;
     right: 8px;
-    color: #ffffff;
+    color: var(--aside-text-color);
   }
 
 }
@@ -180,7 +185,7 @@ function openCompose() {
   margin-bottom: 15px;
   border: 0;
   border-radius: 8px;
-  background: #1890ff;
+  background: var(--el-color-primary);
   color: #ffffff;
   font-family: inherit;
   font-size: 15px;
@@ -188,7 +193,7 @@ function openCompose() {
   cursor: pointer;
 
   &:hover {
-    background: #1064c0;
+    background: var(--el-color-primary-dark-2);
   }
 
   @media (max-width: 767px) {
@@ -199,7 +204,7 @@ function openCompose() {
 .manage-title {
   margin-top: 12px;
   padding-left: 20px;
-  color: #fff;
+  color: var(--aside-text-color);
 }
 
 .el-menu-item {
@@ -212,12 +217,14 @@ function openCompose() {
 .choose-item {
   font-weight: 400;
   background: var(--aside-menu-active-background) !important;
+  /* 当前选中菜单的文字与图标跟随品牌主色（默认主题保持白色） */
+  color: var(--aside-active-color) !important;
   backdrop-filter: blur(4px);
 }
 
 @media (hover: hover) {
   .el-menu-item:hover {
-    background: rgba(255, 255, 255, 0.08) !important;
+    background: var(--aside-hover-bg) !important;
   }
 }
 
@@ -241,11 +248,16 @@ function openCompose() {
 .el-menu {
   border-right: 0;
   width: 260px;
+  /* 菜单文字/悬停跟随品牌主题（原 text-color/active-text-color 属性已改由变量控制） */
+  --el-menu-text-color: var(--aside-text-color);
+  --el-menu-active-color: var(--aside-text-color);
+  --el-menu-bg-color: transparent;
+  --el-menu-hover-bg-color: var(--aside-hover-bg);
 }
 
 :deep(.el-divider__text) {
   background: var(--aside-backgound);
-  color: #FFFFFF;
+  color: var(--aside-text-color);
 }
 
 .scroll {

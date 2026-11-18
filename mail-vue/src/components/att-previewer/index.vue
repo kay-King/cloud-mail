@@ -571,8 +571,8 @@ async function toggleStar(row) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.85);
-  color: #909399;
+  background: var(--loadding-background);
+  color: var(--secondary-text-color);
   font-size: 14px;
 }
 
@@ -585,7 +585,7 @@ async function toggleStar(row) {
 
 .preview-error-detail {
   margin-top: 8px;
-  color: #c0c4cc;
+  color: var(--el-text-color-placeholder);
   font-size: 12px;
   word-break: break-all;
 }
@@ -604,7 +604,7 @@ async function toggleStar(row) {
   flex: 1;
   min-width: 0;
   min-height: 0;
-  background: #fff;
+  background: var(--el-bg-color);
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
   display: flex;
@@ -619,7 +619,7 @@ async function toggleStar(row) {
   align-items: center;
   gap: 10px;
   padding: 0 16px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .panel-title {
@@ -658,7 +658,7 @@ async function toggleStar(row) {
 .panel-list {
   width: 260px;
   flex-shrink: 0;
-  border-right: 1px solid #eee;
+  border-right: 1px solid var(--el-border-color-lighter);
   overflow-y: auto;
 }
 
@@ -668,7 +668,7 @@ async function toggleStar(row) {
   font-weight: 700;
   position: sticky;
   top: 0;
-  background: #fff;
+  background: var(--el-bg-color);
   z-index: 1;
 }
 
@@ -681,11 +681,11 @@ async function toggleStar(row) {
 }
 
 .panel-list-item:hover {
-  background: #f5f7fa;
+  background: var(--light-ill);
 }
 
 .panel-list-item.active {
-  background: #f0f7ff;
+  background: var(--el-color-primary-light-9);
 }
 
 .panel-list-name {
@@ -698,7 +698,7 @@ async function toggleStar(row) {
 .panel-view {
   flex: 1;
   min-width: 0;
-  background: #f7f8fa;
+  background: var(--light-ill);
   overflow: auto;
   display: flex;
   position: relative;
@@ -776,13 +776,13 @@ async function toggleStar(row) {
 .panel-office :deep(.pptx-preview-wrapper),
 .preview-office :deep(.pptx-preview-wrapper) {
   overflow-x: hidden;
-  background: #f5f7fa !important;
+  background: var(--light-ill) !important;
 }
 
 .panel-state {
   margin: auto;
   text-align: center;
-  color: #909399;
+  color: var(--secondary-text-color);
   font-size: 14px;
   line-height: 2;
   padding: 20px;
@@ -793,13 +793,13 @@ async function toggleStar(row) {
 }
 
 .panel-state-name {
-  color: #222;
+  color: var(--el-text-color-primary);
   font-size: 15px;
   word-break: break-all;
 }
 
 .panel-error-detail {
-  color: #c0c4cc;
+  color: var(--el-text-color-placeholder);
   font-size: 12px;
   line-height: 1.5;
   word-break: break-all;
@@ -809,13 +809,13 @@ async function toggleStar(row) {
 .panel-loading {
   position: absolute;
   inset: 0;
-  background: rgba(247, 248, 250, 0.9);
+  background: var(--light-ill);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: #909399;
+  color: var(--secondary-text-color);
   font-size: 14px;
   z-index: 5;
 }

@@ -1181,7 +1181,7 @@ function adjustWidth() {
   gap: 10px;
   .details-item-title {
     white-space: pre;
-    color: #909399;
+    color: var(--secondary-text-color);
     font-weight: bold;
     padding-right: 10px;
   }
@@ -1331,7 +1331,7 @@ function adjustWidth() {
 }
 
 :deep(.el-table th.el-table__cell>.cell.highlight) {
-  color: #909399;
+  color: var(--secondary-text-color);
 }
 
 :deep(.el-table__inner-wrapper:before) {

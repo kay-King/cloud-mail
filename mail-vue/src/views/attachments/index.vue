@@ -434,22 +434,22 @@ async function jumpToEmail(row) {
 
 .att-tab {
   cursor: pointer;
-  color: #666;
+  color: var(--el-text-color-regular);
 }
 
 .att-tab.active {
-  color: #222;
+  color: var(--el-text-color-primary);
   font-weight: 700;
 }
 
 .att-title {
   font-size: 16px;
-  color: #222;
+  color: var(--el-text-color-primary);
   font-weight: 700;
 }
 
 .tab-divider {
-  color: #ddd;
+  color: var(--el-border-color);
 }
 
 .att-search {
@@ -503,7 +503,7 @@ async function jumpToEmail(row) {
 
 .subject-cell {
   cursor: pointer;
-  color: #666;
+  color: var(--el-text-color-regular);
 }
 
 .subject-cell:hover {
@@ -515,7 +515,7 @@ async function jumpToEmail(row) {
   gap: 22px;
   overflow-x: auto;
   scrollbar-width: none;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
   margin-bottom: 4px;
 }
 
@@ -527,14 +527,14 @@ async function jumpToEmail(row) {
   flex-shrink: 0;
   padding: 6px 2px 10px;
   font-size: 15px;
-  color: #888;
+  color: var(--secondary-text-color);
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
 }
 
 .cat-tab.active {
-  color: #222;
+  color: var(--el-text-color-primary);
   font-weight: 600;
   border-bottom-color: var(--el-color-primary);
 }
@@ -545,7 +545,7 @@ async function jumpToEmail(row) {
 
 .att-empty {
   text-align: center;
-  color: #999;
+  color: var(--secondary-text-color);
   padding: 60px 0;
   font-size: 14px;
 }
@@ -555,12 +555,12 @@ async function jumpToEmail(row) {
   align-items: center;
   gap: 12px;
   padding: 14px 2px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--el-border-color-lighter);
   cursor: pointer;
 }
 
 .att-card.selected {
-  background: #f0f7ff;
+  background: var(--el-color-primary-light-9);
 }
 
 .card-icon {
@@ -568,7 +568,7 @@ async function jumpToEmail(row) {
   height: 44px;
   flex-shrink: 0;
   border-radius: 10px;
-  background: #f5f7fa;
+  background: var(--light-ill);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -586,7 +586,7 @@ async function jumpToEmail(row) {
 
 .card-name {
   font-size: 15px;
-  color: #222;
+  color: var(--el-text-color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -594,13 +594,13 @@ async function jumpToEmail(row) {
 
 .card-meta {
   font-size: 13px;
-  color: #999;
+  color: var(--secondary-text-color);
   margin-top: 5px;
 }
 
 .card-sub {
   font-size: 13px;
-  color: #999;
+  color: var(--secondary-text-color);
   margin-top: 5px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -614,7 +614,7 @@ async function jumpToEmail(row) {
 
 .att-more {
   text-align: center;
-  color: #999;
+  color: var(--secondary-text-color);
   font-size: 13px;
   padding: 16px 0;
 }

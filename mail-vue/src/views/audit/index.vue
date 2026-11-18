@@ -372,7 +372,7 @@ onUnmounted(() => {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 1.5px solid #dcdfe6;
+  border: 1.5px solid var(--el-border-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -427,7 +427,7 @@ onUnmounted(() => {
 
 .loading-more {
   text-align: center;
-  color: #999;
+  color: var(--secondary-text-color);
   font-size: 13px;
   padding: 16px 0;
 }
@@ -465,7 +465,7 @@ onUnmounted(() => {
 
 .audit-empty {
   text-align: center;
-  color: #999;
+  color: var(--secondary-text-color);
   padding: 60px 0;
   font-size: 14px;
 }
@@ -475,12 +475,12 @@ onUnmounted(() => {
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--el-border-color-lighter);
   cursor: pointer;
 }
 
 .audit-card.selected {
-  background: #f0f7ff;
+  background: var(--el-color-primary-light-9);
 }
 
 .card-check {
@@ -489,7 +489,7 @@ onUnmounted(() => {
   flex-shrink: 0;
   margin-top: 2px;
   border-radius: 50%;
-  border: 1.5px solid #dcdfe6;
+  border: 1.5px solid var(--el-border-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -517,18 +517,18 @@ onUnmounted(() => {
 .card-action {
   font-size: 15px;
   font-weight: 500;
-  color: #222;
+  color: var(--el-text-color-primary);
 }
 
 .card-time {
   font-size: 13px;
-  color: #999;
+  color: var(--secondary-text-color);
   flex-shrink: 0;
 }
 
 .card-operator {
   font-size: 13px;
-  color: #999;
+  color: var(--secondary-text-color);
   margin-top: 5px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -537,7 +537,7 @@ onUnmounted(() => {
 
 .card-target {
   font-size: 14px;
-  color: #444;
+  color: var(--el-text-color-regular);
   margin-top: 5px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -548,7 +548,7 @@ onUnmounted(() => {
 
 .card-detail {
   font-size: 13px;
-  color: #999;
+  color: var(--secondary-text-color);
   margin-top: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
