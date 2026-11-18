@@ -68,6 +68,18 @@
 |--------------------------|--------------------------|
 | ![](/doc/demo/demo2.jpg) | ![](/doc/demo/demo3.jpg) |
 
+### 本 fork 新增功能展示
+
+以下截图使用演示账号拍摄，内容均为演示数据。
+
+| 收件箱（默认主题） | 主题样式（7 套品牌主题 + 深浅模式） |
+|---|---|
+| ![](/doc/screenshots/inbox.jpg) | ![](/doc/screenshots/theme-settings.jpg) |
+| **已发送** | **我的附件** |
+| ![](/doc/screenshots/sent.jpg) | ![](/doc/screenshots/attachments.jpg) |
+| **回收站** | **登录页**（默认云朵背景） |
+| ![](/doc/screenshots/trash.jpg) | ![](/doc/screenshots/login.jpg) |
+
 
 ## 推荐项目
 
