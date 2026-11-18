@@ -1614,6 +1614,10 @@ loadBackupStatus()
 function getSettings() {
   settingReady.value = false
   settingQuery().then(settingData => {
+    // 通知开关默认值兜底：设置缓存是旧版时新字段不存在，缺值按默认开处理，避免开关误显示关闭
+    settingData.forwardFailNotify ??= 1
+    settingData.backupFailNotify ??= 1
+    settingData.notifyStatus ??= 0
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
