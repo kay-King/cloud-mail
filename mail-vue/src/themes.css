@@ -30,6 +30,10 @@ html[data-brand="gmail"] {
 html.dark[data-brand="gmail"] {
   --el-color-primary: #8ab4f8;
   --el-color-primary-dark-2: #aecbfa;
+  --el-color-primary-light-3: #adcafa;
+  --el-color-primary-light-5: #c4d9fb;
+  --el-color-primary-light-7: #dce8fd;
+  --el-color-primary-light-8: #e7f0fd;
   --el-color-primary-light-9: #1e2a38;
   --email-scroll-content-color: rgba(255, 255, 255, 0.55);
   --aside-backgound: #202124;
@@ -68,6 +72,10 @@ html[data-brand="outlook"] {
 html.dark[data-brand="outlook"] {
   --el-color-primary: #479ef5;
   --el-color-primary-dark-2: #6cb0f7;
+  --el-color-primary-light-3: #7ebbf8;
+  --el-color-primary-light-5: #a3cefa;
+  --el-color-primary-light-7: #c8e2fc;
+  --el-color-primary-light-8: #daebfd;
   --el-color-primary-light-9: #16283a;
   --email-scroll-content-color: rgba(255, 255, 255, 0.55);
   --aside-backgound: #1f1f1f;
@@ -106,6 +114,10 @@ html[data-brand="qq"] {
 html.dark[data-brand="qq"] {
   --el-color-primary: #53a8ff;
   --el-color-primary-dark-2: #7dbdff;
+  --el-color-primary-light-3: #86c2ff;
+  --el-color-primary-light-5: #a9d3ff;
+  --el-color-primary-light-7: #cbe5ff;
+  --el-color-primary-light-8: #dcedff;
   --el-color-primary-light-9: #1a2b3d;
   --email-scroll-content-color: rgba(255, 255, 255, 0.55);
   --aside-backgound: #1a1a1a;
@@ -144,6 +156,10 @@ html[data-brand="apple"] {
 html.dark[data-brand="apple"] {
   --el-color-primary: #0a84ff;
   --el-color-primary-dark-2: #409cff;
+  --el-color-primary-light-3: #53a9ff;
+  --el-color-primary-light-5: #84c1ff;
+  --el-color-primary-light-7: #b5daff;
+  --el-color-primary-light-8: #cee6ff;
   --el-color-primary-light-9: #16283f;
   --email-scroll-content-color: rgba(255, 255, 255, 0.55);
   --aside-backgound: #1c1c1e;
@@ -182,6 +198,10 @@ html[data-brand="163"] {
 html.dark[data-brand="163"] {
   --el-color-primary: #f07070;
   --el-color-primary-dark-2: #f59a9a;
+  --el-color-primary-light-3: #f49b9b;
+  --el-color-primary-light-5: #f7b7b7;
+  --el-color-primary-light-7: #fad4d4;
+  --el-color-primary-light-8: #fce2e2;
   --el-color-primary-light-9: #2e1a1a;
   --email-scroll-content-color: rgba(255, 255, 255, 0.55);
   --aside-backgound: #1a1a1a;
@@ -220,6 +240,10 @@ html[data-brand="yahoo"] {
 html.dark[data-brand="yahoo"] {
   --el-color-primary: #b07ff0;
   --el-color-primary-dark-2: #c49ef5;
+  --el-color-primary-light-3: #c8a5f4;
+  --el-color-primary-light-5: #d7bff7;
+  --el-color-primary-light-7: #e7d8fa;
+  --el-color-primary-light-8: #efe5fc;
   --el-color-primary-light-9: #241535;
   --email-scroll-content-color: rgba(255, 255, 255, 0.55);
   --aside-backgound: #17121f;
