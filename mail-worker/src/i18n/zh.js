@@ -5,6 +5,7 @@ const zh = {
 	emptyEmail: '邮箱不能为空',
 	emptyAccountId: 'accountId不能为空',
 	notEmail: '非法邮箱',
+	forwardRuleTooLong: '转发规则太长了，每项最多 500 字',
 	notExistDomain: '不存在的邮箱域名',
 	isDelAccount: '该邮箱已被注销',
 	isRegAccount: '该邮箱已被注册',

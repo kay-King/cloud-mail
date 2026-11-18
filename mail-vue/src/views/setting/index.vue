@@ -80,6 +80,11 @@
         <el-input v-model="forwardTarget" :placeholder="$t('forwardTargetPlaceholder')" :disabled="forwardOn === 1" style="width: 260px"/>
         <el-button type="primary" :loading="forwardLoading" @click="saveForward">{{$t('save')}}</el-button>
       </div>
+      <div class="forward-rule-row" v-show="forwardOn === 0">
+        <el-input v-model="forwardRuleFrom" :placeholder="$t('forwardRuleFromPlaceholder')" maxlength="500" style="width: 260px"/>
+        <el-input v-model="forwardRuleSubject" :placeholder="$t('forwardRuleSubjectPlaceholder')" maxlength="500" style="width: 260px"/>
+      </div>
+      <div class="forward-rule-tip" v-show="forwardOn === 0">{{$t('forwardRuleDesc')}}</div>
     </div>
     <div class="del-email" v-perm="'my:delete'">
       <div class="title">{{$t('deleteUser')}}</div>
@@ -162,12 +167,16 @@ const langSelect = ref(settingStore.lang)
 // 邮件转发：针对当前邮箱
 const forwardOn = ref(1)
 const forwardTarget = ref('')
+const forwardRuleFrom = ref('')
+const forwardRuleSubject = ref('')
 const forwardLoading = ref(false)
 
 function loadForward() {
   const acc = accountStore.currentAccount
   forwardOn.value = acc?.forwardStatus ?? 1
   forwardTarget.value = acc?.forwardEmail || ''
+  forwardRuleFrom.value = acc?.forwardRuleFrom || ''
+  forwardRuleSubject.value = acc?.forwardRuleSubject || ''
 }
 loadForward()
 watch(() => accountStore.currentAccountId, loadForward)
@@ -184,10 +193,14 @@ function saveForward() {
     return
   }
   forwardLoading.value = true
-  accountSetForward(accountId, target, forwardOn.value).then((data) => {
+  const ruleFrom = forwardRuleFrom.value.trim()
+  const ruleSubject = forwardRuleSubject.value.trim()
+  accountSetForward(accountId, target, forwardOn.value, ruleFrom, ruleSubject).then((data) => {
     if (accountStore.currentAccount) {
       accountStore.currentAccount.forwardEmail = forwardOn.value === 0 ? target : ''
       accountStore.currentAccount.forwardStatus = forwardOn.value
+      accountStore.currentAccount.forwardRuleFrom = ruleFrom
+      accountStore.currentAccount.forwardRuleSubject = ruleSubject
     }
     // 开启转发时按自动添加的结果提示验证步骤；关闭时只提示已保存
     const status = data?.verifyStatus
@@ -455,6 +468,18 @@ function submitPwd() {
     gap: 12px;
     align-items: center;
     flex-wrap: wrap;
+  }
+
+  .forward-rule-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .forward-rule-tip {
+    font-size: 12px;
+    color: var(--regular-text-color);
   }
 }
 </style>

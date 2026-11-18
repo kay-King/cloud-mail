@@ -224,7 +224,7 @@ const accountService = {
 	},
 
 	async setForward(c, params, userId) {
-		const { accountId, forwardEmail, forwardStatus } = params;
+		const { accountId, forwardEmail, forwardStatus, forwardRuleFrom, forwardRuleSubject } = params;
 		const accountRow = await this.selectById(c, accountId);
 		if (!accountRow || accountRow.userId !== userId) {
 			throw new BizError(t('noUserAccount'));
@@ -239,7 +239,13 @@ const accountService = {
 		} else {
 			target = '';
 		}
-		await orm(c).update(account).set({ forwardEmail: target, forwardStatus: status })
+		// 转发规则：发件人/主题关键词，空 = 不限制；开关关掉时规则保留，下次打开不用重填
+		const ruleFrom = (forwardRuleFrom || '').trim();
+		const ruleSubject = (forwardRuleSubject || '').trim();
+		if (ruleFrom.length > 500 || ruleSubject.length > 500) {
+			throw new BizError(t('forwardRuleTooLong'));
+		}
+		await orm(c).update(account).set({ forwardEmail: target, forwardStatus: status, forwardRuleFrom: ruleFrom, forwardRuleSubject: ruleSubject })
 			.where(and(eq(account.userId, userId), eq(account.accountId, accountId))).run();
 		// 保存时就自动把目标地址加进 Cloudflare（CF 会自动发验证邮件），不用等到转发失败才加；
 		// 加不上也不影响保存，失败时由转发失败提醒兜底重试

@@ -11,6 +11,8 @@ export const account = sqliteTable('account', {
 	allReceive: integer('all_receive').default(0).notNull(),
 	forwardEmail: text('forward_email').default('').notNull(),
 	forwardStatus: integer('forward_status').default(1).notNull(),
+	forwardRuleFrom: text('forward_rule_from').default('').notNull(),
+	forwardRuleSubject: text('forward_rule_subject').default('').notNull(),
 	sort: integer('sort').default(0).notNull(),
 	isDel: integer('is_del').default(0).notNull(),
 });

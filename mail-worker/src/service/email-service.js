@@ -25,6 +25,7 @@ import { att } from '../entity/att';
 import telegramService from './telegram-service';
 import webhookService from './webhook-service';
 import forwardMime from '../utils/forward-mime';
+import { matchesForwardRule } from '../utils/forward-rule';
 import verifyUtils from '../utils/verify-utils';
 
 const emailService = {
@@ -1492,6 +1493,10 @@ const emailService = {
 		for (const row of emailRowList) {
 			const acc = accountById.get(row.accountId);
 			if (!acc || acc.forwardStatus !== settingConst.forwardStatus.OPEN || !acc.forwardEmail) {
+				continue;
+			}
+			// 不符合该账号转发规则的邮件不转发，只留收件箱
+			if (!matchesForwardRule(acc, { from: row.sendEmail, subject: row.subject })) {
 				continue;
 			}
 			for (const target of acc.forwardEmail.split(',').map(s => s.trim()).filter(Boolean)) {

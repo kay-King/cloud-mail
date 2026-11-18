@@ -12,6 +12,7 @@ import userService from '../service/user-service';
 import telegramService from '../service/telegram-service';
 import aiService from '../service/ai-service';
 import webhookService from '../service/webhook-service';
+import { matchesForwardRule } from '../utils/forward-rule';
 
 export async function email(message, env, ctx) {
 
@@ -170,8 +171,9 @@ export async function email(message, env, ctx) {
 			await telegramService.sendEmailToBot({ env }, emailRow)
 		}
 
-		//按收件账号转发到其他邮箱
-		if (account && account.forwardStatus === settingConst.forwardStatus.OPEN && account.forwardEmail) {
+		//按收件账号转发到其他邮箱（须符合该账号的转发规则，否则只留收件箱）
+		if (account && account.forwardStatus === settingConst.forwardStatus.OPEN && account.forwardEmail
+			&& matchesForwardRule(account, { from: emailRow.sendEmail, subject: emailRow.subject })) {
 
 			const emails = account.forwardEmail.split(',').map(e => e.trim()).filter(Boolean);
 

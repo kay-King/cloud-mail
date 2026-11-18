@@ -41,8 +41,20 @@ const dbInit = {
 		await this.v3_10DB(c);
 		await this.v3_11DB(c);
 		await this.v3_12DB(c);
+		await this.v3_13DB(c);
 		await settingService.refresh(c);
 		return c.text('success');
+	},
+
+	async v3_13DB(c) {
+		try {
+			await c.env.db.batch([
+				c.env.db.prepare(`ALTER TABLE account ADD COLUMN forward_rule_from TEXT NOT NULL DEFAULT '';`),
+				c.env.db.prepare(`ALTER TABLE account ADD COLUMN forward_rule_subject TEXT NOT NULL DEFAULT '';`)
+			]);
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
 	},
 
 	async v3_12DB(c) {

@@ -5,6 +5,7 @@ const en = {
 	emptyEmail: 'Email cannot be empty',
 	emptyAccountId: 'accountId cannot be empty',
 	notEmail: 'Invalid email',
+	forwardRuleTooLong: 'Forward rule too long, max 500 characters each',
 	notExistDomain: 'Email domain does not exist',
 	isDelAccount: 'This Email has been deleted',
 	isRegAccount: 'This Email is already registered',
