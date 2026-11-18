@@ -381,6 +381,7 @@ const zh = {
     notifyEmailDefault: '默认管理员邮箱',
     notifyEmailDesc: '系统通知（转发失败提醒、管理员删除通知）从这个邮箱发出；须是已添加的邮箱地址，留空则用管理员邮箱。更换后只影响之后的新通知，已发送的通知不受影响。',
     notifyEmailPlaceholder: '留空用管理员邮箱',
+    notifyStatusTip: '关闭后转发失败、备份失败、管理员删除三类系统通知都不再发送',
     webhookDesc: '收到邮件后向指定地址 POST JSON',
     webhookUrl: '请求地址',
     webhookIpNotSupported: '不能使用 IP 地址，请填写域名',

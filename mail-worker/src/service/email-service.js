@@ -1359,6 +1359,9 @@ const emailService = {
 	// 发送时实时查设置，换邮箱只影响之后的新通知，已发送的通知不受影响
 	async getNotifySender(c) {
 		const setting = await settingService.query(c).catch(() => null);
+		// 系统通知总开关（默认开）：关了之后转发失败、备份失败、管理员删除三类提醒都不发；
+		// 三类提醒都走这里取发件人，返回 null 即全部停发
+		if (setting?.notifyStatus === settingConst.notifyStatus.CLOSE) return null;
 		const notifyEmail = setting?.notifyEmail?.trim();
 		if (notifyEmail) {
 			const notify = await orm(c).select().from(account).where(eq(account.email, notifyEmail)).get();

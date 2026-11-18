@@ -293,7 +293,7 @@
               <div class="setting-item">
                 <div><span>{{ $t('notifyEmail') }}</span></div>
                 <div class="forward">
-                  <span>{{ setting.notifyEmail || $t('notifyEmailDefault') }}</span>
+                  <span>{{ setting.notifyStatus === 1 ? $t('disabled') : $t('enabled') }}</span>
                   <el-button class="opt-button" size="small" type="primary" @click="openNotifySetting">
                     <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
                   </el-button>
@@ -823,9 +823,12 @@
         </template>
         <div class="forward-set-body">
           <el-input :placeholder="$t('notifyEmailPlaceholder')" v-model="notifyEmailInput" @keyup.enter="notifySave"></el-input>
+          <div class="forward-tip">{{ $t('notifyStatusTip') }}</div>
         </div>
         <template #footer>
           <div class="dialog-footer">
+            <el-switch v-model="notifyStatusInput" :active-value="0" :inactive-value="1" :active-text="$t('enable')"
+                       :inactive-text="$t('disable')"/>
             <el-button :loading="settingLoading" type="primary" @click="notifySave">
               {{ $t('save') }}
             </el-button>
@@ -1383,6 +1386,7 @@ const turnstileShow = ref(false)
 const tgSettingShow = ref(false)
 const notifySettingShow = ref(false)
 const notifyEmailInput = ref('')
+const notifyStatusInput = ref(0)
 const noticePopupShow = ref(false)
 const webhookShow = ref(false)
 const globalForwardShow = ref(false)
@@ -1768,6 +1772,7 @@ function openTgSetting() {
 
 function openNotifySetting() {
   notifyEmailInput.value = setting.value.notifyEmail || ''
+  notifyStatusInput.value = setting.value.notifyStatus ?? 0
   notifySettingShow.value = true
 }
 
@@ -1777,7 +1782,7 @@ function notifySave() {
     ElMessage({message: t('forwardEmailInvalid'), type: 'error', plain: true});
     return
   }
-  editSetting({notifyEmail: email})
+  editSetting({notifyEmail: email, notifyStatus: notifyStatusInput.value})
 }
 
 function openNoticePopupSetting() {

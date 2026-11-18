@@ -381,6 +381,7 @@ const en = {
     notifyEmailDefault: 'Default admin mailbox',
     notifyEmailDesc: 'System notifications (forward failure alerts, admin delete notices) are sent from this mailbox; it must be an added mailbox address. Leave it empty to use the admin mailbox. Changing it only affects future notifications; already sent ones are not affected.',
     notifyEmailPlaceholder: 'Leave empty to use the admin mailbox',
+    notifyStatusTip: 'When off, forward failure, backup failure and admin delete notifications are no longer sent.',
     webhookDesc: 'POST received emails as JSON to this URL',
     webhookUrl: 'Request URL',
     webhookIpNotSupported: 'IP addresses are not supported. Use a domain name.',

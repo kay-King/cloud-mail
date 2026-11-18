@@ -38,6 +38,7 @@ const SETTING_LABELS = {
 	attStorageType: '附件存储',
 	adminDelNotify: '管理员删除通知',
 	notifyEmail: '系统通知邮箱',
+	notifyStatus: '系统通知开关',
 	autoBackup: '定时备份',
 	backupType: '备份服务商',
 	backupBucket: '备份桶名',

@@ -42,8 +42,17 @@ const dbInit = {
 		await this.v3_11DB(c);
 		await this.v3_12DB(c);
 		await this.v3_13DB(c);
+		await this.v3_14DB(c);
 		await settingService.refresh(c);
 		return c.text('success');
+	},
+
+	async v3_14DB(c) {
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN notify_status INTEGER NOT NULL DEFAULT 0;`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
 	},
 
 	async v3_13DB(c) {
