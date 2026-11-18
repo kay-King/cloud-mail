@@ -2473,7 +2473,7 @@ function change(e) {
 }
 
 function changeField(key, value) {
-  if (!settingReady.value) return
+  if (!settingReady.value || settingLoading.value) return
   setting.value[key] = value
   editSetting({[key]: value}, false)
 }
