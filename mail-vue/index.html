@@ -135,6 +135,35 @@
   </div>
 </div>
 <div id="app"></div>
+<script>
+  // 启动自救：如果主文件 25 秒内没开始执行（通常是离线缓存给了旧页面、旧文件已不存在，
+  // 服务器对不存在的文件返回首页 HTML，浏览器因类型不对拒绝执行，卡在信封启动屏），
+  // 注销离线缓存、清空全部缓存再刷新，拿新版。5 分钟内最多自救两次，防循环刷新。
+  (function () {
+    var KEY = 'cloudmail-boot-reload';
+    setTimeout(function () {
+      if (window.__APP_BOOTED__) return;
+      var record = {count: 0, first: 0};
+      try { record = JSON.parse(sessionStorage.getItem(KEY) || '{"count":0,"first":0}'); } catch (e) {}
+      if (Date.now() - record.first > 300000) record = {count: 0, first: Date.now()};
+      if (record.count >= 2) return;
+      record.count++;
+      try { sessionStorage.setItem(KEY, JSON.stringify(record)); } catch (e) {}
+      var jobs = [];
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+        jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+          return Promise.all(rs.map(function (r) { return r.unregister(); }));
+        }).catch(function () {}));
+      }
+      if (window.caches && caches.keys) {
+        jobs.push(caches.keys().then(function (keys) {
+          return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+        }).catch(function () {}));
+      }
+      Promise.all(jobs).then(function () { location.reload(); });
+    }, 25000);
+  })();
+</script>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>

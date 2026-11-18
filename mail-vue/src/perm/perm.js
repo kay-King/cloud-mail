@@ -3,7 +3,8 @@ import {useUserStore} from "@/store/user.js";
 export default {
     mounted(el, binding) {
         const userStore = useUserStore();
-        const permKeys = userStore.user.permKeys;
+        // 用户信息没加载到时 permKeys 为 undefined，按无权限处理（移除元素），不要抛错残留
+        const permKeys = userStore.user.permKeys || [];
         const value = binding.value;
 
         if (permKeys.includes('*')) {
@@ -21,12 +22,13 @@ export default {
 }
 
 export function hasPerm(permKey) {
-    const {permKeys} = useUserStore().user;
+    const permKeys = useUserStore().user.permKeys || [];
     return permKeys.includes('*') || permKeys.includes(permKey);
 }
 
 
 export function permsToRouter(permKeys) {
+    permKeys = permKeys || [];
     const routerList = []
     Object.keys(routers).forEach(perm => {
         if (permKeys.includes(perm) || permKeys.includes('*')) {
@@ -127,6 +129,16 @@ const routers = {
         meta: {
             title: 'analytics',
             name: 'analysis',
+            menu: true
+        }
+    }],
+    'audit:query': [{
+        path: '/audit-log',
+        name: 'audit',
+        component: () => import('@/views/audit/index.vue'),
+        meta: {
+            title: 'auditLog',
+            name: 'audit',
             menu: true
         }
     }]

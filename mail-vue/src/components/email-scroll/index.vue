@@ -11,21 +11,21 @@
       <div class="header-left" :style="'padding-left:' + actionLeft">
 
         <el-tooltip effect="dark" :content="$t('refresh')">
-          <Icon class="icon reload" icon="ion:reload" width="18" height="18" @click="refresh"/>
+          <Icon class="icon reload" icon="ion:reload" width="20" height="20" @click="refresh"/>
         </el-tooltip>
         <slot name="first"></slot>
         <el-tooltip effect="dark" :content="props.type === 'trash' ? $t('deleteForeverSelected') : $t('deleteSelected')">
-          <Icon v-perm="'email:delete'" class="icon delete" icon="uiw:delete" width="16" height="16"
+          <Icon v-perm="'email:delete'" class="icon delete" icon="uiw:delete" width="18" height="18"
                 v-if="getSelectedMailsIds().length > 0"
                 @click="handleDelete"/>
         </el-tooltip>
         <el-tooltip effect="dark" :content="$t('exportSelected')">
-          <Icon class="icon" icon="mdi:download" width="18" height="18"
+          <Icon class="icon" icon="system-uicons:push-down" width="22" height="22"
                 v-if="getSelectedMailsIds().length > 0 && props.type !== 'draft'"
                 @click="handleExport"/>
         </el-tooltip>
         <el-tooltip effect="dark" :content="$t('markAsRead')">
-          <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-read-20-regular" width="21" height="21"
+          <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-read-20-regular" width="20" height="20"
                 v-if="getSelectedMailsIds().length > 0 && showUnread"
                 @click="handleRead"/>
         </el-tooltip>
@@ -88,7 +88,6 @@
                       <div class="unread" v-if="isMobile && (item.unread === EmailUnreadEnum.UNREAD && showUnread) "/>
                       <slot name="name" :email="item"><span v-html="item.nameHtml"></span></slot>
                     </span>
-                    <span v-if="props.type === 'all-email'" class="type-tag" :class="item.type === 1 ? 'send' : 'receive'">{{ item.type === 1 ? $t('sent') : $t('received') }}</span>
                     <span>
                       <Icon v-if="item.isStar" icon="fluent-color:star-16" width="18" height="18"/>
                     </span>
@@ -253,7 +252,7 @@
           <el-dropdown-item v-if="props.type !== 'draft'" @click="rightExport(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="mdi:download" width="19" height="19" />
+                <Icon icon="system-uicons:push-down" width="19" height="19" />
                 <span>{{t('exportMail')}}</span>
               </div>
             </template>
@@ -1315,26 +1314,6 @@ function renderHighlight(value) {
             width: 130px;
           }
         }
-
-        .type-tag {
-          align-self: center;
-          font-size: 11px;
-          font-weight: 400;
-          line-height: 16px;
-          padding: 1px 6px;
-          border-radius: 4px;
-          white-space: nowrap;
-
-          &.send {
-            color: #409eff;
-            background-color: #ecf5ff;
-          }
-
-          &.receive {
-            color: #67c23a;
-            background-color: #f0f9eb;
-          }
-        }
       }
 
       .phone-time {
@@ -1498,7 +1477,7 @@ function renderHighlight(value) {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 15px;
-  padding: 3px 15px;
+  padding: 8px 15px;
   box-shadow: var(--header-actions-border);
 
   .header-left {

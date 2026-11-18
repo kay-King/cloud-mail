@@ -14,6 +14,9 @@ export function attStar(attIds, isStar) {
 
 export function attDelete(attIds, opts = {}) {
     let url = '/att/delete?attIds=' + attIds.join(',')
+    if (opts.allCopies) {
+        url += '&allCopies=1'
+    }
     if (opts.notify) {
         url += '&notify=1&reason=' + encodeURIComponent(opts.reason || '')
     }

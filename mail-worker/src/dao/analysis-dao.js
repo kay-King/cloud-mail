@@ -1,6 +1,6 @@
 const analysisDao = {
 	async numberCount(c) {
-		const { results } = await c.env.db.prepare(`
+		const res = await c.env.db.prepare(`
             SELECT
 				COALESCE(e.receiveTotal, 0) AS receiveTotal,
 				COALESCE(e.sendTotal, 0) AS sendTotal,
@@ -53,7 +53,15 @@ const analysisDao = {
                 )
             ) s
         `).all();
-		return results[0];
+		const row = res.results[0];
+		// D1 数据库总大小（邮件 + 元数据 + 索引）：D1 返回的 meta.size_after；
+		// 取不到时退回邮件正文大小求和（PRAGMA page_count 在 D1 上无权限）
+		let dbSizeBytes = res.meta && typeof res.meta.size_after === 'number' ? res.meta.size_after : 0;
+		if (!dbSizeBytes) {
+			const fb = await c.env.db.prepare(`SELECT COALESCE(SUM(LENGTH(CAST(content AS BLOB)) + LENGTH(CAST(text AS BLOB)) + LENGTH(CAST(subject AS BLOB))), 0) AS bytes FROM email`).all();
+			dbSizeBytes = fb.results?.[0]?.bytes || 0;
+		}
+		return {...row, dbSizeBytes};
 	},
 
 	async userDayCount(c, diffHours) {

@@ -1,11 +1,24 @@
 import app from '../hono/hono';
 import userService from '../service/user-service';
+import auditService from '../service/audit-service';
 import result from '../model/result';
 import userContext from '../security/user-context';
 import accountService from '../service/account-service';
+import { userConst } from '../const/entity-const';
 
 app.delete('/user/delete', async (c) => {
-	await userService.physicsDelete(c, c.req.query());
+	const query = c.req.query();
+	const userIds = (query.userIds || '').split(',').map(Number).filter(n => !isNaN(n));
+	const targets = [];
+	for (const id of userIds) {
+		const row = await userService.selectById(c, id);
+		if (row) targets.push(row.email);
+	}
+	await userService.physicsDelete(c, query);
+	if (targets.length > 0) {
+		const targetDesc = targets.slice(0, 3).join('、') + (targets.length > 3 ? `等 ${targets.length} 位` : '');
+		await auditService.logFor(c, { action: 'delete_user', targetType: 'user', targetDesc });
+	}
 	return c.json(result.ok());
 });
 
@@ -15,7 +28,11 @@ app.put('/user/setPwd', async (c) => {
 });
 
 app.put('/user/setStatus', async (c) => {
-	await userService.setStatus(c, await c.req.json());
+	const body = await c.req.json();
+	const target = await userService.selectById(c, body.userId);
+	await userService.setStatus(c, body);
+	const action = Number(body.status) === userConst.status.BAN ? 'disable_user' : 'enable_user';
+	await auditService.logFor(c, { action, targetType: 'user', targetDesc: target?.email || `用户 ${body.userId}` });
 	return c.json(result.ok());
 });
 

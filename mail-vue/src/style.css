@@ -218,3 +218,6 @@ html[data-theme-to="light"]::view-transition-old(root) {
     from { clip-path: circle(var(--vt-end-radius, 0px) at var(--vt-x) var(--vt-y)); }
     to   { clip-path: circle(0px at var(--vt-x) var(--vt-y)); }
 }
+
+/* 登录背景壁纸库已移到组件 mail-vue/src/components/bg-preset/index.vue
+   （DOM 元素 + 容器单位，登录页全屏与设置弹窗缩略图共用同一套渲染）。 */

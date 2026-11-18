@@ -4,7 +4,10 @@ import i18n from "@/i18n/index.js";
 import {useSettingStore} from "@/store/setting.js";
 
 let http = axios.create({
-    baseURL: import.meta.env.VITE_BASE_URL
+    baseURL: import.meta.env.VITE_BASE_URL,
+    // 全局 30 秒超时：请求挂起不再无限等下去（拦截器里已有 ECONNABORTED 提示文案）；
+    // 上传/导出类长请求在各自调用处单独放宽
+    timeout: 60 * 1000
 });
 
 http.interceptors.request.use(config => {

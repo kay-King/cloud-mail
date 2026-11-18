@@ -1,0 +1,203 @@
+import orm from '../entity/orm';
+import { auditLog } from '../entity/audit-log';
+import { and, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm';
+import userContext from '../security/user-context';
+import userService from './user-service';
+import settingService from './setting-service';
+
+// 设置列名（camelCase）→ 中文标签；只列名，不记值，密钥类只显示名称
+const SETTING_LABELS = {
+	title: '网站标题',
+	register: '开放注册',
+	regKey: '邀请码注册',
+	registerVerify: '注册验证',
+	regVerifyCount: '注册验证次数',
+	receive: '收信',
+	addEmail: '添加邮箱',
+	addEmailVerify: '添加邮箱验证',
+	addVerifyCount: '添加邮箱验证次数',
+	manyEmail: '多邮箱',
+	autoRefresh: '自动刷新',
+	send: '发信',
+	notice: '系统公告',
+	noticeTitle: '公告标题',
+	noticeContent: '公告内容',
+	tgBotStatus: 'TG 推送',
+	tgBotToken: 'TG 机器人 Token',
+	tgChatId: 'TG 聊天 ID',
+	tgMsgFrom: 'TG 推送发件人',
+	tgMsgTo: 'TG 推送收件人',
+	tgMsgText: 'TG 推送正文',
+	webhookStatus: 'Webhook 推送',
+	webhookUrl: 'Webhook 地址',
+	webhookRetry: 'Webhook 重试',
+	syncDelete: '同步删除',
+	autoCleanDays: '自动清理天数',
+	autoCleanExclude: '自动清理排除',
+	attEncrypt: '附件加密',
+	attStorageType: '附件存储',
+	adminDelNotify: '管理员删除通知',
+	notifyEmail: '系统通知邮箱',
+	autoBackup: '定时备份',
+	backupType: '备份服务商',
+	backupBucket: '备份桶名',
+	backupRegion: '备份区域',
+	backupEndpoint: '备份地址',
+	backupForcePathStyle: '备份路径风格',
+	bucket: '附件桶名',
+	region: '附件区域',
+	endpoint: '附件地址',
+	forcePathStyle: '附件路径风格',
+	r2Domain: 'R2 域名',
+	loginOpacity: '登录透明度',
+	customDomain: '自定义域名',
+	background: '登录背景',
+	forwardEmail: '转发邮箱',
+	forwardStatus: '转发开关',
+	ruleType: '转发规则类型',
+	ruleEmail: '转发规则邮箱',
+	blackSubject: '主题黑名单',
+	blackContent: '正文黑名单',
+	blackFrom: '发件人黑名单',
+	aiCode: 'AI 识别',
+	emailPrefixFilter: '邮箱前缀过滤',
+	minEmailPrefix: '邮箱前缀最短长度',
+	loginDomain: '登录域名',
+	noRecipient: '无收件人',
+	resendTokens: 'Resend 密钥',
+	sendkitTokens: 'Sendkit 密钥',
+	brevoTokens: 'Brevo 密钥',
+	siteKey: '验证 Site Key',
+	secretKey: '验证 Secret Key',
+	s3AccessKey: '附件 S3 AccessKey',
+	s3SecretKey: '附件 S3 SecretKey',
+	r2AccountId: '附件 R2 账号',
+	r2Bucket: '附件 R2 桶名',
+	r2AccessKey: '附件 R2 AccessKey',
+	r2SecretKey: '附件 R2 SecretKey',
+	webdavUrl: '附件 WebDAV 地址',
+	webdavUsername: '附件 WebDAV 用户名',
+	webdavPassword: '附件 WebDAV 密码',
+	backupS3AccessKey: '备份 S3 AccessKey',
+	backupS3SecretKey: '备份 S3 SecretKey',
+	backupR2AccountId: '备份 R2 账号',
+	backupR2Bucket: '备份 R2 桶名',
+	backupR2AccessKey: '备份 R2 AccessKey',
+	backupR2SecretKey: '备份 R2 SecretKey',
+	backupWebdavUrl: '备份 WebDAV 地址',
+	backupWebdavUsername: '备份 WebDAV 用户名',
+	backupWebdavPassword: '备份 WebDAV 密码',
+	linuxdoSwitch: 'Linux DO 登录',
+	githubSwitch: 'GitHub 登录',
+	googleSwitch: 'Google 登录',
+};
+
+function normalizeValue(v) {
+	if (v === undefined || v === null) return '';
+	if (Array.isArray(v)) return v.join(',');
+	if (typeof v === 'object') return JSON.stringify(v);
+	return String(v);
+}
+
+const auditService = {
+
+	// 记一条操作记录；内部吞掉一切异常，记日志绝不能拖垮主操作
+	async log(c, { userId, userEmail, action, targetType = '', targetDesc = '', detail = '' }) {
+		try {
+			if (!userId || !action) return;
+			await orm(c).insert(auditLog).values({
+				userId,
+				userEmail: userEmail || '',
+				action,
+				targetType,
+				targetDesc: String(targetDesc || '').slice(0, 500),
+				detail: String(detail || '').slice(0, 2000),
+				createTime: Date.now()
+			}).run();
+		} catch (e) {
+			console.error('audit log failed', e);
+		}
+	},
+
+	// handler 层专用：自动从当前登录用户取操作人信息
+	async logFor(c, { action, targetType = '', targetDesc = '', detail = '' }) {
+		try {
+			const userId = userContext.getUserId(c);
+			const userRow = await userService.selectById(c, userId);
+			await this.log(c, { userId, userEmail: userRow?.email || '', action, targetType, targetDesc, detail });
+		} catch (e) {
+			console.error('audit log failed', e);
+		}
+	},
+
+	// 对比设置保存前后的值，返回变化的列中文标签（只列名，不含值）
+	diffSettingLabels(before, params) {
+		const labels = [];
+		if (!before || !params) return labels;
+		for (const key of Object.keys(params)) {
+			if (!(key in before)) continue;
+			if (normalizeValue(before[key]) !== normalizeValue(params[key])) {
+				labels.push(SETTING_LABELS[key] || key);
+			}
+		}
+		return labels;
+	},
+
+	async list(c, params) {
+		let { num, size, userEmail, action, startTime, endTime } = params;
+		size = Math.min(Math.max(Number(size) || 20, 1), 100);
+		num = Math.max(Number(num) || 1, 1);
+		const conditions = [];
+		if (userEmail) {
+			conditions.push(sql`instr(lower(${auditLog.userEmail}), lower(${String(userEmail)})) > 0`);
+		}
+		if (action) {
+			conditions.push(eq(auditLog.action, action));
+		}
+		const start = Number(startTime);
+		if (!isNaN(start) && start > 0) {
+			conditions.push(gte(auditLog.createTime, start));
+		}
+		const end = Number(endTime);
+		if (!isNaN(end) && end > 0) {
+			conditions.push(lte(auditLog.createTime, end));
+		}
+		const where = conditions.length > 0 ? and(...conditions) : undefined;
+		const totalRow = await orm(c).select({ total: sql`count(*)` }).from(auditLog).where(where).get();
+		const list = await orm(c).select().from(auditLog).where(where)
+			.orderBy(desc(auditLog.createTime), desc(auditLog.logId))
+			.limit(size).offset((num - 1) * size).all();
+		return { list, total: totalRow?.total || 0 };
+	},
+
+	// 按 id 删除指定记录（删操作记录本身不记日志）
+	async deleteByIds(c, ids) {
+		const list = (Array.isArray(ids) ? ids : [ids]).map(Number).filter(n => Number.isInteger(n) && n > 0);
+		if (list.length === 0) return { deleted: 0 };
+		const res = await orm(c).delete(auditLog).where(inArray(auditLog.logId, list)).run();
+		return { deleted: res?.changes || 0 };
+	},
+
+	// 清空全部记录
+	async clearAll(c) {
+		const res = await orm(c).delete(auditLog).run();
+		return { deleted: res?.changes || 0 };
+	},
+
+	// 定时清理：删除超过保留天数的操作记录；0 = 不自动清理（照邮件自动清理的做法）
+	async cleanOld(c) {
+		try {
+			const settingRow = await settingService.query(c);
+			const days = Number(settingRow?.auditCleanDays);
+			if (!days || days <= 0) return { deleted: 0 };
+			const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+			const res = await orm(c).delete(auditLog).where(lt(auditLog.createTime, cutoff)).run();
+			return { deleted: res?.changes || 0 };
+		} catch (e) {
+			console.error('audit clean failed', e);
+			return { deleted: 0 };
+		}
+	},
+};
+
+export default auditService;

@@ -3,6 +3,7 @@ import result from '../model/result';
 import attCrypto from '../service/att-crypto';
 import attService from '../service/att-service';
 import adminNotifyService from '../service/admin-notify-service';
+import auditService from '../service/audit-service';
 import userContext from '../security/user-context';
 import userService from '../service/user-service';
 import BizError from '../error/biz-error';
@@ -42,10 +43,10 @@ app.get('/att/list', async (c) => {
 	return c.json(result.ok(data));
 });
 
-// 管理员全部附件：全站所有用户的附件，多一列所属邮箱
+// 管理员全部附件：全站所有用户的附件，多一列所属邮箱；按存储文件去重
 app.get('/att/all', async (c) => {
 	await requireAdmin(c);
-	const data = await attService.listAllAdmin(c, c.req.query());
+	const data = await attService.listAllAdmin(c, c.req.query(), userContext.getUserId(c));
 	return c.json(result.ok(data));
 });
 
@@ -55,16 +56,23 @@ app.put('/att/star', async (c) => {
 	return c.json(result.ok());
 });
 
-// 单独删除附件：只删选中的行，邮件还在；管理员可删全站的
+// 单独删除附件：只删选中的行，邮件还在；管理员可删全站的。
+// allCopies=1（仅管理员在全部附件里用）：按存储文件删，同一文件的全部引用行一起删。
 app.delete('/att/delete', async (c) => {
 	const userId = userContext.getUserId(c);
 	const isAdmin = await checkAdmin(c);
 	const query = c.req.query();
 	const notify = query.notify === '1';
 	const reason = (query.reason || '').slice(0, 200);
-	const { deleted, rows } = await attService.deleteByIds(c, (query.attIds || '').split(','), userId, isAdmin);
+	const { deleted, rows } = await attService.deleteByIds(c, (query.attIds || '').split(','), userId, isAdmin, query.allCopies === '1');
 	if (notify && rows.length > 0 && await adminNotifyService.isEnabled(c)) {
 		await adminNotifyService.notifyAttDeleted(c, rows, reason);
+	}
+	// 仅管理员在全部附件里删时记操作记录，个人删自己的不记
+	if (isAdmin && rows.length > 0) {
+		const names = [...new Set(rows.map(r => r.filename))];
+		const targetDesc = names.slice(0, 3).join('、') + (names.length > 3 ? `等 ${names.length} 个` : '');
+		await auditService.logFor(c, { action: 'delete_attachment', targetType: 'attachment', targetDesc, detail: reason });
 	}
 	return c.json(result.ok({ deleted }));
 });

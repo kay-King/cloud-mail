@@ -171,7 +171,8 @@ const settingService = {
 		const { background } = await this.query(c);
 		if (!background) return
 
-		if (background.startsWith('http')) {
+		// 外链与壁纸库（preset:<id>）没有存对象，直接清设置即可
+		if (background.startsWith('http') || background.startsWith('preset:')) {
 			await orm(c).update(setting).set({ background: '' }).run();
 			await this.refresh(c)
 			return;
@@ -190,7 +191,8 @@ const settingService = {
 
 		await this.deleteBackground(c);
 
-		if (background && !background.startsWith('http')) {
+		// 外链与壁纸库（preset:<id>）直接存值；其余当作 base64 图片上传存对象
+		if (background && !background.startsWith('http') && !background.startsWith('preset:')) {
 
 			const file = fileUtils.base64ToFile(background)
 
@@ -210,7 +212,6 @@ const settingService = {
 		await this.refresh(c);
 		return background;
 	},
-
 
 	async setBlacklist(c, params) {
 		const { blackSubject, blackContent, blackFrom  } = params

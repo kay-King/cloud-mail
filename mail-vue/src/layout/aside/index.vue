@@ -45,7 +45,7 @@
           <Icon icon="fluent:settings-48-regular" width="20" height="20" />
           <span class="menu-name" style="margin-left: 16px">{{$t('settings')}}</span>
         </el-menu-item>
-        <div class="manage-title" v-perm="['all-email:query','user:query','role:query','setting:query','analysis:query','reg-key:query']">
+        <div class="manage-title" v-perm="['all-email:query','user:query','role:query','setting:query','analysis:query','reg-key:query','audit:query']">
           <div>{{$t('manage')}}</div>
         </div>
         <el-menu-item @click="router.push({name: 'analysis'})" index="analysis" v-perm="'analysis:query'"
@@ -67,6 +67,11 @@
                       :class="route.meta.name === 'all-attachments' ? 'choose-item' : ''">
           <Icon icon="fluent:attach-20-regular" width="20" height="20" />
           <span class="menu-name" style="margin-left: 16px">{{$t('allAttachments')}}</span>
+        </el-menu-item>
+        <el-menu-item @click="router.push({name: 'audit'})" index="audit" v-perm="'audit:query'"
+                      :class="route.meta.name === 'audit' ? 'choose-item' : ''">
+          <Icon icon="fluent:history-20-regular" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 16px">{{$t('auditLog')}}</span>
         </el-menu-item>
         <el-menu-item @click="router.push({name: 'role'})" index="setting" v-perm="'role:query'"
                       :class="route.meta.name === 'role' ? 'choose-item' : ''">

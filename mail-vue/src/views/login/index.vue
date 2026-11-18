@@ -3,7 +3,8 @@
     <div class="oauth-loading" :class="oauthLoading ? 'loading-show' : 'loading-hide'">
       <loading/>
     </div>
-    <div id="background-wrap" v-if="!settingStore.settings.background">
+    <BgPreset v-if="presetId" :id="presetId" class="login-bg-preset"/>
+    <div v-else-if="!settingStore.settings.background" id="background-wrap">
       <div class="x1 cloud"></div>
       <div class="x2 cloud"></div>
       <div class="x3 cloud"></div>
@@ -163,6 +164,8 @@ import {login} from "@/request/login.js";
 import {register} from "@/request/login.js";
 import {websiteConfig} from "@/request/setting.js";
 import {isEmail} from "@/utils/verify-utils.js";
+import {getPresetId} from "@/utils/bg-presets.js";
+import BgPreset from "@/components/bg-preset/index.vue";
 import {useSettingStore} from "@/store/setting.js";
 import {useAccountStore} from "@/store/account.js";
 import {useUserStore} from "@/store/user.js";
@@ -293,7 +296,13 @@ const loginOpacity = computed(() => {
 
 const hideLoginDomain = computed(() => settingStore.settings.loginDomain === 1)
 
+const presetId = computed(() => getPresetId(settingStore.settings.background))
+
 const background = computed(() => {
+
+  // 壁纸库走 class 渲染（渐变 + 动画都在 CSS 里），不在这里拼图片地址；
+  // 哪怕是已不存在的壁纸 id，也只显示默认底色，不拼坏链接
+  if (settingStore.settings.background?.startsWith('preset:')) return ''
 
   return settingStore.settings.background ? {
     'background-image': `url(${cvtR2Url(settingStore.settings.background)})`,
@@ -868,6 +877,12 @@ function submitRegister() {
 
 #background-wrap {
   height: 100%;
+  z-index: 0;
+}
+
+.login-bg-preset {
+  height: 100%;
+  width: 100%;
   z-index: 0;
 }
 

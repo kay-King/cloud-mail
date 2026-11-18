@@ -101,6 +101,26 @@
           </div>
           <el-progress v-if="storageLimitBytes" :percentage="storagePercent" :stroke-width="6" style="margin-top: 12px;"/>
         </div>
+        <div class="number-item">
+          <div class="top">
+            <div class="left">
+              <div>{{ $t('mailboxCapacity') }}</div>
+              <div>
+                <el-statistic :formatter="value => formatBytes(Math.round(value))" :value="mailboxData"/>
+              </div>
+            </div>
+            <div class="right">
+              <div class="count-icon">
+                <Icon icon="iconoir:database" width="25" height="25"></Icon>
+              </div>
+            </div>
+          </div>
+          <div class="delete-ratio">
+            <div>{{ receiveTotal + sendTotal }} {{ $t('emails') }} · D1</div>
+            <div v-if="mailboxLimitBytes">{{ $t('storageLimit') }} {{ formatBytes(mailboxLimitBytes) }}</div>
+          </div>
+          <el-progress v-if="mailboxLimitBytes" :percentage="mailboxPercent" :stroke-width="6" style="margin-top: 12px;"/>
+        </div>
       </div>
       <div class="picture">
         <div class="picture-item">
@@ -168,6 +188,8 @@ const attTotalSize = ref(0)
 const attTotalCount = ref(0)
 const storageType = ref('')
 const storageLimitBytes = ref(null)
+const mailboxBytes = ref(0)
+const mailboxLimitBytes = ref(null)
 const analysisLoading = ref(true)
 
 const numberCount = reactive({
@@ -205,6 +227,15 @@ const attStorageData = useTransition(attTotalSize, {
 const storagePercent = computed(() => {
   if (!storageLimitBytes.value) return 0
   return Math.min(100, Math.round(attTotalSize.value / storageLimitBytes.value * 100))
+})
+
+const mailboxData = useTransition(mailboxBytes, {
+  duration: 1500,
+})
+
+const mailboxPercent = computed(() => {
+  if (!mailboxLimitBytes.value) return 0
+  return Math.min(100, Math.round(mailboxBytes.value / mailboxLimitBytes.value * 100))
 })
 
 const senderData = ref(null)
@@ -253,6 +284,8 @@ onMounted(() => {
     attTotalCount.value = data.numberCount.attTotalCount || 0
     storageType.value = data.storage?.type || ''
     storageLimitBytes.value = data.storage?.limitBytes || null
+    mailboxBytes.value = data.numberCount.dbSizeBytes || 0
+    mailboxLimitBytes.value = data.mailbox?.limitBytes || null
     numberCount.normalReceiveTotal = data.numberCount.normalReceiveTotal
     numberCount.normalSendTotal = data.numberCount.normalSendTotal
     numberCount.normalAccountTotal = data.numberCount.normalAccountTotal

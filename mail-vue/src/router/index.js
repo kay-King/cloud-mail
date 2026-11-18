@@ -206,4 +206,42 @@ function removeLoading() {
     doc.remove()
 }
 
+// 页面文件加载失败：九成是刚部署过新版，手机里还是旧页面在要旧文件
+// （旧文件部署后就不存在了，点多少次菜单都一样失败）。
+// 静默自动恢复：注销离线缓存（防止它继续给旧页面），再刷新拿新版。
+// 60 秒内最多自动恢复两次（离线缓存有时要两次刷新才肯放手），防循环刷新。
+// 不弹任何提示（用户要求去掉提示）。
+const CHUNK_RELOAD_KEY = 'cloudmail-chunk-reload'
+
+function isChunkLoadError(error) {
+    const msg = String(error && error.message ? error.message : error)
+    return /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk|ChunkLoadError|Failed to load module script/i.test(msg)
+}
+
+router.onError((error) => {
+    NProgress.done()
+    console.error('路由加载失败', error)
+    if (!isChunkLoadError(error)) return
+    let record = {count: 0, first: 0}
+    try {
+        record = JSON.parse(sessionStorage.getItem(CHUNK_RELOAD_KEY) || '{"count":0,"first":0}')
+    } catch (e) {
+    }
+    if (Date.now() - record.first > 60000) {
+        record = {count: 0, first: Date.now()}
+    }
+    if (record.count >= 2) return
+    record.count++
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, JSON.stringify(record))
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+        navigator.serviceWorker.getRegistrations()
+            .then(rs => Promise.all(rs.map(r => r.unregister())))
+            .catch(() => {
+            })
+            .finally(() => location.reload())
+    } else {
+        location.reload()
+    }
+})
+
 export default router

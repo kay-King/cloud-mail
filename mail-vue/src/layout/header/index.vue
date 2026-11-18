@@ -40,6 +40,9 @@
       @search="returnToList('all-email')"
       @reset="returnToList('all-email')"
     />
+    <audit-search
+      v-else-if="showAuditSearch"
+    />
     <div class="toolbar">
       <el-dropdown
         ref="userDropdownRef"
@@ -115,6 +118,7 @@ import {useI18n} from "vue-i18n";
 import {setExtend} from "@/utils/day.js"
 import emailSearch from '@/components/email-search/index.vue'
 import allEmailSearch from '@/components/all-email-search/index.vue'
+import auditSearch from '@/components/audit-search/index.vue'
 import {useEmailStore} from '@/store/email.js'
 import {useSendStore} from '@/store/send.js'
 
@@ -150,6 +154,9 @@ const showSentSearch = computed(() =>
 )
 const showAllMailSearch = computed(() =>
   route.meta.name === 'all-email' || isMailboxDetail('all-mail')
+)
+const showAuditSearch = computed(() =>
+  route.meta.name === 'audit'
 )
 
 function isMailboxDetail(mailbox) {

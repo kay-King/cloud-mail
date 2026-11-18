@@ -36,15 +36,15 @@ export const useEmailStore = defineStore('email', {
             }
         },
         fetchList(request) {
-            return request(0).then(data => {
-                request(1).then(fullData => {
-                    const list = Array.isArray(fullData) ? fullData : fullData?.list
-                    this.applyFullList(list)
-                }).catch(e => {
-                    console.error(e)
-                })
-                return data
+            // 预览与完整列表并行拉取：以前是串行（等预览回来才发完整请求），慢网上等于两倍延迟；
+            // 两者互不依赖，并行后列表照样先出，详情预取也更快到；完整请求失败只记日志，不影响列表显示
+            request(1).then(fullData => {
+                const list = Array.isArray(fullData) ? fullData : fullData?.list
+                this.applyFullList(list)
+            }).catch(e => {
+                console.error(e)
             })
+            return request(0)
         },
         applyFullList(list) {
             if (!list?.length) return

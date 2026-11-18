@@ -2,6 +2,9 @@
 // 定时备份（每小时触发、每天最多一次）加密后存到备份服务商，保留最近 7 份；
 // 手动导出直接下载明文 JSON（配了服务商也同步存一份加密副本）。
 // 注意：备份含 KV 里的附件加密钥匙与用户密码哈希，本地文件请妥善保管，勿外传。
+// 目的地是 KV 时例外：存的副本只留 D1 + 加密钥匙（KV 里唯一不可再生的东西），
+// 其余 KV 内容（设置缓存、登录 token、节流标记）都是可重建或临时的，
+// 不存回同一个 KV 里；手动下载的文件永远是全量（下载到手就是异地备份）。
 import settingService from './setting-service';
 import backupStorageService from './backup-storage-service';
 import emailService from './email-service';
@@ -16,6 +19,9 @@ const MIN_INTERVAL_MS = 20 * 60 * 60 * 1000;
 // 备份失败提醒节流：24 小时内只提醒一次，避免备份持续故障时刷屏
 const FAIL_NOTIFY_KEY = 'backup-fail-notify-last:';
 const FAIL_NOTIFY_INTERVAL_MS = 24 * 60 * 60 * 1000;
+// KV 里唯一不可再生的东西：附件加密钥匙（只在 KV 里有，D1 里没有）。
+// 目的地是 KV 时，存的副本只保留这两条钥匙，其余 KV 内容一律不存。
+const KV_KEY_PREFIXES = ['att-current-key:', 'att-key-history:'];
 
 function escapeHtml(s) {
 	return String(s ?? '')
@@ -95,8 +101,16 @@ const backupService = {
 
 	async buildBackup(c) {
 		const [d1, kv] = await Promise.all([this.dumpDatabase(c), this.dumpKv(c)]);
-		const backup = { version: 1, exportedAt: new Date().toISOString(), d1, kv };
-		return new TextEncoder().encode(JSON.stringify(backup));
+		return { version: 1, exportedAt: new Date().toISOString(), d1, kv };
+	},
+
+	// 目的地是 KV 时的精简版：D1 全留，KV 只留加密钥匙
+	slimBackupForKv(backup) {
+		const kv = {};
+		for (const [k, v] of Object.entries(backup.kv || {})) {
+			if (KV_KEY_PREFIXES.some(p => k.startsWith(p))) kv[k] = v;
+		}
+		return { ...backup, kv };
 	},
 
 	backupFilename(date) {
@@ -129,14 +143,21 @@ const backupService = {
 				return { status: 'skipped', lastRun: Number(lastRun) };
 			}
 		}
-		const plain = await this.buildBackup(c);
+		const backup = await this.buildBackup(c);
+		// 下载用的永远是全量；往服务商存的副本按目的地决定（KV 只存 D1 + 钥匙）
+		const plain = new TextEncoder().encode(JSON.stringify(backup));
 		const now = new Date();
 		const key = this.backupFilename(now);
 		let uploaded = false;
 		let uploadError = null;
 		if (configured) {
 			try {
-				const encrypted = await attCrypto.encrypt(c, key, plain);
+				let uploadData = plain;
+				const type = await backupStorageService.effectiveType(c);
+				if (type === 'kv') {
+					uploadData = new TextEncoder().encode(JSON.stringify(this.slimBackupForKv(backup)));
+				}
+				const encrypted = await attCrypto.encrypt(c, key, uploadData);
 				await backupStorageService.putObj(c, key, encrypted);
 				const list = await this.listBackups(c);
 				list.unshift({ key, time: now.getTime(), size: plain.length });

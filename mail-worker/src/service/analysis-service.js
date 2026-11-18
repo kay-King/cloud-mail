@@ -108,6 +108,10 @@ const analysisService = {
 				type: storageType,
 				limitBytes: storageLimitBytes
 			},
+			// 邮箱容量：D1 数据库总大小，免费版单库上限 500MB
+			mailbox: {
+				limitBytes: 500 * 1024 * 1024
+			},
 			userDayCount,
 			receiveRatio: {
 				nameRatio

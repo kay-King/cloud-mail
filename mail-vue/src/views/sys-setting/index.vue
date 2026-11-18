@@ -109,7 +109,9 @@
               <div class="setting-item personalized">
                 <div><span>{{ $t('loginBackground') }}</span></div>
                 <div>
-                  <el-image
+                  <div v-if="currentPresetId" class="background"><BgPreset :id="currentPresetId"/></div>
+                  <div v-else-if="!setting.background" class="background bg-preset-default"></div>
+                  <el-image v-else
                       class="background"
                       :src="cvtR2Url(setting.background)"
                       :preview-src-list="[cvtR2Url(setting.background)]"
@@ -235,6 +237,21 @@
                 <div class="forward">
                   <span>{{ setting.autoCleanDays > 0 ? $t('autoCleanRetain', { days: setting.autoCleanDays }) : $t('disabled') }}</span>
                   <el-button class="opt-button" style="margin-top: 0" @click="openAutoClean" size="small"
+                             type="primary">
+                    <Icon icon="fluent:settings-48-regular" width="16" height="16"/>
+                  </el-button>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div>
+                  <span>{{ $t('auditClean') }}</span>
+                  <el-tooltip effect="dark" :content="$t('auditCleanDesc')">
+                    <Icon class="warning" icon="fe:warning" width="18" height="18"/>
+                  </el-tooltip>
+                </div>
+                <div class="forward">
+                  <span>{{ setting.auditCleanDays > 0 ? $t('autoCleanRetain', { days: setting.auditCleanDays }) : $t('disabled') }}</span>
+                  <el-button class="opt-button" style="margin-top: 0" @click="openAuditClean" size="small"
                              type="primary">
                     <Icon icon="fluent:settings-48-regular" width="16" height="16"/>
                   </el-button>
@@ -387,6 +404,9 @@
                     <Icon icon="fluent:settings-48-regular" width="16" height="16"/>
                   </el-button>
                 </div>
+              </div>
+              <div v-if="setting.autoBackup === 1 && backupStatus.type === 'kv'" class="backup-kv-tip">
+                {{ $t('backupKvTip') }}
               </div>
               <div class="setting-item">
                 <div>
@@ -685,7 +705,7 @@
           </span>
         </template>
         <el-input :placeholder="$t('backgroundUrlDesc')" v-model="backgroundUrl" v-if="!localUpShow"
-                  class="background-url" @keyup.enter="saveBackground"/>
+                  class="background-url" @keyup.enter="saveBackground" @input="selectedPreset = null"/>
         <el-image
             v-if="localUpShow"
             :preview-src-list="[backgroundImage]"
@@ -694,6 +714,21 @@
             fit="cover"
             :src="backgroundImage"
         ></el-image>
+        <div v-if="!localUpShow" class="bg-preset-box">
+          <div class="bg-preset-head">
+            <div class="bg-preset-label">{{ $t('bgPresetLibrary') }}</div>
+            <div class="bg-preset-tip">{{ $t('bgPresetTip') }}</div>
+          </div>
+          <div class="bg-preset-grid">
+            <div class="bg-preset-item bg-preset-default" :class="{active: (selectedPreset !== null ? selectedPreset === '' : !setting.background)}" @click="selectPreset('')">
+              <span>{{ $t('bgPresetDefault') }}</span>
+            </div>
+            <div v-for="p in BG_PRESETS" :key="p.id" class="bg-preset-item" :class="[{active: (selectedPreset !== null ? selectedPreset === p.id : currentPresetId === p.id)}]" @click="selectPreset(p.id)">
+              <BgPreset :id="p.id"/>
+              <span>{{ $t(p.nameKey) }}</span>
+            </div>
+          </div>
+        </div>
         <div class="cut-button">
           <el-button type="primary" link @click="openCut" v-if="!localUpShow">
             {{ $t('localUpload') }}
@@ -1231,6 +1266,14 @@ Authorization: &lt;secret&gt;</pre>
         </el-form>
         <el-button type="primary" style="width: 100%;" :loading="settingLoading" @click="saveAutoClean">{{ $t('save') }}</el-button>
       </el-dialog>
+      <el-dialog v-model="auditCleanShow" :title="t('auditClean')" class="forward-dialog" @closed="resetAuditClean">
+        <el-form>
+          <el-form-item :label="t('autoCleanDays')" label-position="top">
+            <el-input-number v-model="auditCleanDays" :min="0" :max="3650" style="width: 100%"/>
+          </el-form-item>
+        </el-form>
+        <el-button type="primary" style="width: 100%;" :loading="settingLoading" @click="saveAuditClean">{{ $t('save') }}</el-button>
+      </el-dialog>
       <el-dialog v-model="aiCodeFilterShow" class="forward-dialog" @closed="resetAiCodeFilter">
         <template #header>
           <div class="forward-head">
@@ -1265,8 +1308,10 @@ import {storeToRefs} from "pinia";
 import {debounce} from 'lodash-es'
 import {isDomain, isEmail, isIpUrl} from "@/utils/verify-utils.js";
 import loading from "@/components/loading/index.vue";
+import BgPreset from "@/components/bg-preset/index.vue";
 import {getTextWidth} from "@/utils/text.js";
-import {fileToBase64} from "@/utils/file-utils.js"
+import {fileToBase64, compressImage, formatBytes} from "@/utils/file-utils.js"
+import {BG_PRESETS, BG_PRESET_PREFIX, getPresetId} from "@/utils/bg-presets.js";
 import {useI18n} from 'vue-i18n';
 import axios from "axios";
 
@@ -1290,6 +1335,7 @@ const sendkitTokenFormShow = ref(false)
 const brevoTokenFormShow = ref(false)
 const blackFormShow = ref(false)
 const autoCleanShow = ref(false)
+const auditCleanShow = ref(false)
 const aiCodeFilterShow = ref(false)
 const turnstileShow = ref(false)
 const tgSettingShow = ref(false)
@@ -1313,6 +1359,7 @@ const loginOpacity = ref(0)
 const minEmailPrefix = ref(0)
 const emailPrefixFilter = ref([])
 const autoCleanDays = ref(0)
+const auditCleanDays = ref(0)
 const autoCleanExclude = ref([])
 const backgroundUrl = ref('')
 let backgroundFile = {}
@@ -1413,11 +1460,7 @@ const backupWebdav = reactive({
 
 const backupProviderLabel = computed(() => {
   const type = backupStatus.type || 's3'
-  if (type === 's3') {
-    return setting.value.backupBucket
-      ? `${t('backupProviderS3')}（${setting.value.backupBucket}）`
-      : t('backupProviderS3')
-  }
+  if (type === 's3') return t('backupProviderS3')
   if (type === 'r2') return t('backupProviderR2')
   if (type === 'webdav') return t('backupProviderWebdav')
   return t('backupProviderKv')
@@ -1793,6 +1836,11 @@ function openAutoClean() {
   autoCleanShow.value = true
 }
 
+function openAuditClean() {
+  auditCleanDays.value = setting.value.auditCleanDays ?? 0
+  auditCleanShow.value = true
+}
+
 function addChatTag(val) {
 
   const chatIds = Array.from(new Set(
@@ -1924,6 +1972,10 @@ function resetAutoClean() {
       : []
 }
 
+function resetAuditClean() {
+  auditCleanDays.value = setting.value.auditCleanDays ?? 0
+}
+
 function resetAiCodeFilter() {
   aiCodeFilter.value = setting.value.aiCodeFilter ? setting.value.aiCodeFilter.split(',') : []
 }
@@ -1939,6 +1991,12 @@ function saveAutoClean() {
   editSetting({
     autoCleanDays: autoCleanDays.value,
     autoCleanExclude: autoCleanExclude.value.join(',')
+  }, true)
+}
+
+function saveAuditClean() {
+  editSetting({
+    auditCleanDays: auditCleanDays.value
   }, true)
 }
 
@@ -2063,10 +2121,38 @@ async function saveBackground() {
 
   if (settingLoading.value) return
 
+  // 壁纸库：本次选了壁纸，先处理壁纸选择（与当前相同则只是关闭，不动背景）
+  if (selectedPreset.value !== null) {
+    if (selectedPreset.value !== currentChoice.value) {
+      savePresetChoice()
+    } else {
+      showSetBackground.value = false
+    }
+    return
+  }
+
   let image = ''
+  let compressedInfo = null
 
   if (localUpShow.value) {
-    image = await fileToBase64(backgroundFile, true);
+    // 本地上传的背景图先在浏览器里压缩再上传：超过 512KB 的图缩到 2560px 内、转 JPEG，
+    // 质量 0.92（清晰度优先，肉眼看不出区别）；动图跳过压缩保动画；压缩失败退回原图，不阻塞保存
+    let fileToUpload = backgroundFile
+    try {
+      const compressed = await compressImage(backgroundFile, {
+        quality: 0.92,
+        maxWidth: 2560,
+        maxHeight: 2560,
+        convertSize: 512 * 1024
+      })
+      if (compressed !== backgroundFile && compressed.size < backgroundFile.size) {
+        compressedInfo = {before: formatBytes(backgroundFile.size), after: formatBytes(compressed.size)}
+        fileToUpload = compressed
+      }
+    } catch (e) {
+      console.error(e)
+    }
+    image = await fileToBase64(fileToUpload, true);
   } else {
     if (backgroundUrl.value && !backgroundUrl.value.startsWith('http')) {
       ElMessage({
@@ -2084,7 +2170,7 @@ async function saveBackground() {
     setting.value.background = key
     showSetBackground.value = false
     ElMessage({
-      message: t('saveSuccessMsg'),
+      message: compressedInfo ? t('backgroundCompressed', compressedInfo) : t('saveSuccessMsg'),
       type: "success",
       plain: true
     })
@@ -2096,8 +2182,50 @@ async function saveBackground() {
 
 }
 
+// 壁纸库本次弹窗里的选择：null = 还没选（显示当前生效的）；'' = 默认云朵；否则为壁纸 id
+// 点小图只选中，不保存；点保存才生效（用户要求：不要点一下就自动保存）
+const selectedPreset = ref(null)
+
 function openSetBackground() {
+  selectedPreset.value = null
   showSetBackground.value = true
+}
+
+// 当前生效的壁纸 id；空 = 图片背景或默认云朵
+const currentPresetId = computed(() => getPresetId(setting.value.background))
+
+// 当前生效的选择（含自定义图片，用 '__image__' 区分默认云朵，供保存时比对）
+const currentChoice = computed(() => {
+  const bg = setting.value.background
+  if (!bg) return ''
+  return getPresetId(bg) || '__image__'
+})
+
+// 壁纸库：点小图只选中（同时清空链接与本地上传，免得保存时分不清要哪个）
+function selectPreset(id) {
+  selectedPreset.value = id
+  backgroundUrl.value = ''
+  localUpShow.value = false
+  backgroundImage.value = ''
+}
+
+// 保存选中的壁纸（存为 preset:<id>）；选默认云朵则清除背景
+function savePresetChoice() {
+  if (settingLoading.value) return
+  settingLoading.value = true
+  const id = selectedPreset.value
+  const req = id ? setBackground(BG_PRESET_PREFIX + id) : deleteBackground()
+  req.then(() => {
+    setting.value.background = id ? BG_PRESET_PREFIX + id : ''
+    showSetBackground.value = false
+    ElMessage({
+      message: t('saveSuccessMsg'),
+      type: "success",
+      plain: true
+    })
+  }).finally(() => {
+    settingLoading.value = false
+  })
 }
 
 function openCut() {
@@ -2109,6 +2237,7 @@ function openCut() {
     backgroundFile = e.target.files[0]
     backgroundImage.value = URL.createObjectURL(e.target.files[0])
     localUpShow.value = true
+    selectedPreset.value = null
   }
 }
 
@@ -2434,6 +2563,7 @@ function editSetting(settingForm, refreshStatus = true) {
     emailPrefixShow.value = false
     aiCodeFilterShow.value = false
     autoCleanShow.value = false
+    auditCleanShow.value = false
     oauthSettingShow.value = false
   }).catch((e) => {
     loginOpacity.value = setting.value.loginOpacity
@@ -2511,6 +2641,7 @@ function editSetting(settingForm, refreshStatus = true) {
   height: 140px;
   border-radius: 4px;
   border: 1px solid var(--light-border);
+  overflow: hidden;
   @media (max-width: 500px) {
     width: 160px;
     height: 90px;
@@ -2550,6 +2681,13 @@ function editSetting(settingForm, refreshStatus = true) {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.backup-kv-tip {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.6;
+  margin-top: -6px;
 }
 
 .setting-item {
@@ -2699,6 +2837,66 @@ function editSetting(settingForm, refreshStatus = true) {
 :deep(.cut-dialog.el-dialog) {
   width: fit-content !important;
   height: fit-content !important;
+}
+
+.bg-preset-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 420px;
+  max-width: calc(100vw - 60px);
+}
+
+.bg-preset-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bg-preset-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.bg-preset-tip {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.bg-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.bg-preset-item {
+  height: 64px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.bg-preset-item span {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  z-index: 1;
+  font-size: 12px;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.bg-preset-item.active {
+  border-color: var(--el-color-primary);
+}
+
+.bg-preset-default {
+  background: linear-gradient(to bottom, #2980b9, #6dd5fa, #fff);
+  position: relative;
+  overflow: hidden;
 }
 
 

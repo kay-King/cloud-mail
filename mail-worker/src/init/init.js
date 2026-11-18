@@ -39,8 +39,41 @@ const dbInit = {
 		await this.v3_8DB(c);
 		await this.v3_9DB(c);
 		await this.v3_10DB(c);
+		await this.v3_11DB(c);
+		await this.v3_12DB(c);
 		await settingService.refresh(c);
 		return c.text('success');
+	},
+
+	async v3_12DB(c) {
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN audit_clean_days INTEGER NOT NULL DEFAULT 0;`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+	},
+
+	async v3_11DB(c) {
+		try {
+			await c.env.db.prepare(`CREATE TABLE IF NOT EXISTS audit_log (
+				log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER NOT NULL,
+				user_email TEXT NOT NULL DEFAULT '',
+				action TEXT NOT NULL,
+				target_type TEXT NOT NULL DEFAULT '',
+				target_desc TEXT NOT NULL DEFAULT '',
+				detail TEXT NOT NULL DEFAULT '',
+				create_time INTEGER NOT NULL
+			);`).run();
+			await c.env.db.prepare(`INSERT INTO perm (perm_id, name, perm_key, pid, type, sort)
+				SELECT 37, '操作记录', NULL, 0, 1, 7
+				WHERE NOT EXISTS (SELECT 1 FROM perm WHERE perm_id = 37)`).run();
+			await c.env.db.prepare(`INSERT INTO perm (perm_id, name, perm_key, pid, type, sort)
+				SELECT 38, '记录查看', 'audit:query', 37, 2, 0
+				WHERE NOT EXISTS (SELECT 1 FROM perm WHERE perm_key = 'audit:query')`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
 	},
 
 	async v3_10DB(c) {

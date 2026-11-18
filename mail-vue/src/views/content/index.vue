@@ -25,7 +25,7 @@
         <Icon class="icon" v-if="emailStore.contentData.showReply" v-perm="'email:send'"  @click="openForward" icon="iconoir:arrow-up-right" width="20" height="20" />
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('exportMail')">
-        <Icon class="icon" @click="handleExport" icon="mdi:download" width="19" height="19" />
+        <Icon class="icon" @click="handleExport" icon="system-uicons:push-down" width="22" height="22" />
       </el-tooltip>
     </div>
     <div></div>
@@ -72,16 +72,16 @@
             <div class="att-box">
 
               <div class="att-item" v-for="att in email.attList" :key="att.attId">
-                <div class="att-icon" @click="showImage(att.key)">
+                <div class="att-icon" @click="previewerRef.open(email.attList, att)">
                   <Icon v-bind="getIconByName(att.filename)" />
                 </div>
-                <div class="att-name" @click="showImage(att.key)">
+                <div class="att-name" @click="previewerRef.open(email.attList, att)">
                   {{ att.filename }}
                 </div>
                 <div class="att-size">{{ formatBytes(att.size) }}</div>
                 <div class="opt-icon att-icon">
                   <el-tooltip effect="dark" :content="$t('view')">
-                    <Icon v-if="isImage(att.filename)" icon="hugeicons:view" width="22" height="22" @click="showImage(att.key)"/>
+                    <Icon v-if="isImage(att.filename)" icon="hugeicons:view" width="22" height="22" @click="showImage(att)"/>
                   </el-tooltip>
                   <el-tooltip effect="dark" :content="$t('download')">
                     <a :href="cvtR2Url(att.key)" download>
@@ -103,6 +103,7 @@
     />
     <delete-notify-dialog v-model="notifyDialog.visible" :message="notifyDialog.message"
                           @confirm="onNotifyDialogConfirm"/>
+    <att-previewer ref="previewerRef"/>
   </div>
 </template>
 <script setup>
@@ -121,6 +122,7 @@ import {starAdd, starCancel} from "@/request/star.js";
 import {getExtName, formatBytes} from "@/utils/file-utils.js";
 import {cvtR2Url,toOssDomain} from "@/utils/convert.js";
 import {getIconByName} from "@/utils/icon-utils.js";
+import attPreviewer from "@/components/att-previewer/index.vue";
 import {useSettingStore} from "@/store/setting.js";
 import {allEmailDelete} from "@/request/all-email.js";
 import {useUiStore} from "@/store/ui.js";
@@ -158,6 +160,7 @@ let senderResizeObserver = null
 
 const showPreview = ref(false)
 const srcList = reactive([])
+const previewerRef = ref(null)
 
 
 const email = computed(() => emailStore.contentData.email || {
@@ -290,16 +293,17 @@ function formatImage(content) {
   return  content.replace(/{{domain}}/g, toOssDomain(domain) + '/');
 }
 
-function showImage(key) {
-  if (!isImage(key)) return;
-  const url = cvtR2Url(key)
+function showImage(att) {
+  // 注意按文件名判图片：附件 key 是纯内容哈希、没有扩展名，按 key 判永远是假
+  if (!isImage(att.filename)) return;
+  const url = cvtR2Url(att.key)
   srcList.length = 0
   srcList.push(url)
   showPreview.value = true
 }
 
 function isImage(filename) {
-  return ['png', 'jpg', 'jpeg', 'bmp', 'gif','jfif'].includes(getExtName(filename))
+  return ['png', 'jpg', 'jpeg', 'bmp', 'gif', 'jfif', 'webp', 'avif', 'svg', 'ico'].includes(getExtName(filename))
 }
 
 function formateReceive(recipient) {

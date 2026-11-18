@@ -7,6 +7,7 @@ import r2Service from './service/r2-service';
 import oauthService from './service/oauth-service';
 import analysisService from './service/analysis-service';
 import backupService from './service/backup-service';
+import auditService from './service/audit-service';
 export default {
 	 async fetch(req, env, ctx) {
 
@@ -42,6 +43,7 @@ export default {
 		await userService.resetDaySendCount({ env })
 		await emailService.completeReceiveAll({ env })
 		await emailService.autoClean({ env })
+		await auditService.cleanOld({ env })
 		await analysisService.refreshEchartsCache({ env })
 		await oauthService.clearNoBindOathUser({ env })
 		try {

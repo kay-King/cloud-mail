@@ -37,15 +37,37 @@ export function base64Size(base64String) {
     return (base64Length * 3) / 4 - padding;
 }
 
-export function compressImage(file, config = {}) {
-    return new Promise((resolve, reject) => {
-
-        if (file.size < (config.convertSize || 1024 * 1024)) {
-            resolve(file)
+// 动图检测：GIF 一律视为动图；WebP 搜 ANMF 块、PNG 搜 acTL 块（文件头 1MB 内）
+async function isAnimatedImage(file) {
+    if (file.type === 'image/gif') return true
+    if (file.type !== 'image/webp' && file.type !== 'image/png') return false
+    try {
+        const buf = new Uint8Array(await file.slice(0, 1024 * 1024).arrayBuffer())
+        const marker = file.type === 'image/webp' ? 'ANMF' : 'acTL'
+        for (let i = 0; i + 4 <= buf.length; i++) {
+            if (buf[i] === marker.charCodeAt(0) && buf[i + 1] === marker.charCodeAt(1)
+                && buf[i + 2] === marker.charCodeAt(2) && buf[i + 3] === marker.charCodeAt(3)) return true
         }
+    } catch (e) {
+        // 读失败就按静态图处理
+    }
+    return false
+}
 
+export async function compressImage(file, config = {}) {
+
+    // 动图不压缩：转 JPEG 会丢掉动画，只剩第一帧
+    if (await isAnimatedImage(file)) return file
+
+    if (file.size < (config.convertSize || 1024 * 1024)) {
+        return file
+    }
+
+    return new Promise((resolve, reject) => {
         new Compressor(file, {
             quality: config.quality || 0.8,
+            maxWidth: config.maxWidth,
+            maxHeight: config.maxHeight,
             mimeType: 'image/jpeg',
             success(result) {
                 resolve(result);

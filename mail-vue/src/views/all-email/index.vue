@@ -20,7 +20,7 @@
     >
       <template #first>
         <el-tooltip effect="dark" :content="t('clearEmail')">
-          <Icon class="icon" icon="fluent:broom-sparkle-16-regular" width="22" height="22" @click="openBathDelete"/>
+          <Icon class="icon" icon="fluent:broom-sparkle-16-regular" width="20" height="20" @click="openBathDelete"/>
         </el-tooltip>
       </template>
     </emailScroll>

@@ -34,12 +34,13 @@ export function emailSend(form,progress) {
         onUploadProgress: (e) => {
             progress(e)
         },
-        noMsg: true
+        noMsg: true,
+        timeout: 120 * 1000
     })
 }
 
 export function emailExport(emailIds) {
-    return http.get('/email/export?emailIds=' + emailIds, {responseType: 'blob', raw: true})
+    return http.get('/email/export?emailIds=' + emailIds, {responseType: 'blob', raw: true, timeout: 120 * 1000})
 }
 
 export function emailImport(accountId, files) {

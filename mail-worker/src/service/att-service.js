@@ -346,8 +346,11 @@ const attService = {
 		return { list, total: totalRow ? Number(totalRow.total) : 0 };
 	},
 
-	// 管理员全部附件：不按用户隔离，多返回所属邮箱（附件所属账号地址）
-	async listAllAdmin(c, params) {
+	// 管理员全部附件：全站所有用户的附件，多一列所属邮箱。
+	// 按实际存储去重：同一存储文件（相同 key）在收发双方各有一行，只显示一次，
+	// 代表行取 attId 最大的一行（最新一次出现）；总数按不同 key 计数。
+	// hasOtherOwner：同一文件是否还有别的用户的引用行（管理员删除时决定是否弹通知框）。
+	async listAllAdmin(c, params, userId) {
 
 		let { num, size, keyword, category } = params;
 
@@ -375,7 +378,7 @@ const attService = {
 		const where = and(...conditions);
 
 		const list = await orm(c).select({
-			attId: att.attId,
+			attId: sql`MAX(${att.attId})`,
 			key: att.key,
 			filename: att.filename,
 			mimeType: att.mimeType,
@@ -388,14 +391,16 @@ const attService = {
 			senderName: email.name,
 			emailType: email.type,
 			ownerEmail: account.email,
+			hasOtherOwner: sql`EXISTS(SELECT 1 FROM attachments AS a2 WHERE a2.key = ${att.key} AND a2.user_id <> ${userId})`,
 		}).from(att)
 			.innerJoin(email, eq(att.emailId, email.emailId))
 			.leftJoin(account, eq(att.accountId, account.accountId))
 			.where(where)
-			.orderBy(desc(att.createTime), desc(att.attId))
+			.groupBy(att.key)
+			.orderBy(desc(sql`MAX(${att.attId})`))
 			.limit(size).offset((num - 1) * size).all();
 
-		const totalRow = await orm(c).select({ total: sql`COUNT(*)` })
+		const totalRow = await orm(c).select({ total: sql`COUNT(DISTINCT ${att.key})` })
 			.from(att)
 			.innerJoin(email, eq(att.emailId, email.emailId))
 			.where(where).get();
@@ -404,10 +409,22 @@ const attService = {
 	},
 
 // 单独删除附件：只删 ATT 行（内嵌图不删）；文件对象等最后一个引用删掉时才删
-	async deleteByIds(c, attIds, userId, isAdmin) {
+// deleteAllCopies（仅管理员在全部附件里用）：按存储文件删，同一 key 的全部引用行一起删
+	async deleteByIds(c, attIds, userId, isAdmin, deleteAllCopies = false) {
 
-		const ids = attIds.map(Number).filter(n => !isNaN(n));
+		let ids = attIds.map(Number).filter(n => !isNaN(n));
 		if (ids.length === 0) return 0;
+
+		if (isAdmin && deleteAllCopies) {
+			const keyRows = await orm(c).select({ key: att.key }).from(att)
+				.where(inArray(att.attId, ids)).groupBy(att.key).all();
+			const keys = keyRows.map(r => r.key);
+			if (keys.length > 0) {
+				const allRows = await orm(c).select({ attId: att.attId }).from(att)
+					.where(inArray(att.key, keys)).all();
+				ids = allRows.map(r => r.attId);
+			}
+		}
 
 		const conds = [inArray(att.attId, ids), eq(att.type, attConst.type.ATT)];
 		if (!isAdmin) conds.push(eq(att.userId, userId));
@@ -458,6 +475,8 @@ const attService = {
 // 附件分类：按文件扩展名划分
 const CATEGORY_EXTS = {
 	image: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico', 'heic', 'heif', 'tif', 'tiff', 'avif'],
+	// 手机端分类标签把图片与视频合并为一个「图片视频」tab
+	media: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico', 'heic', 'heif', 'tif', 'tiff', 'avif', 'mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v', '3gp'],
 	doc: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'md', 'rtf', 'csv', 'pages', 'numbers', 'key', 'odt', 'ods', 'odp'],
 	audio: ['mp3', 'wav', 'flac', 'aac', 'ogg', 'oga', 'm4a', 'wma', 'opus'],
 	video: ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v', '3gp'],

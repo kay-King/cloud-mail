@@ -37,7 +37,7 @@ export function backupStatus() {
 }
 
 export function backupExport() {
-    return http.post('/backup/export', {}, {responseType: 'blob', raw: true})
+    return http.post('/backup/export', {}, {responseType: 'blob', raw: true, timeout: 120 * 1000})
 }
 
 export function backupRestore(formData) {
