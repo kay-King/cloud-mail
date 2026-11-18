@@ -37,6 +37,8 @@ const SETTING_LABELS = {
 	attEncrypt: '附件加密',
 	attStorageType: '附件存储',
 	adminDelNotify: '管理员删除通知',
+	forwardFailNotify: '转发失败提醒',
+	backupFailNotify: '备份失败提醒',
 	notifyEmail: '系统通知邮箱',
 	notifyStatus: '系统通知开关',
 	autoBackup: '定时备份',

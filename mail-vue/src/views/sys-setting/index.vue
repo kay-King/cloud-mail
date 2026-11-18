@@ -368,10 +368,34 @@
             </div>
           </div>
 
-          <!-- Admin Deletion Notice Card -->
+          <!-- System Notification Switches Card -->
           <div class="settings-card">
-            <div class="card-title">{{ $t('adminDelNotify') }}</div>
+            <div class="card-title">{{ $t('systemNotify') }}</div>
             <div class="card-content">
+              <div class="setting-item">
+                <div>
+                  <span>{{ $t('forwardFailNotify') }}</span>
+                  <el-tooltip effect="dark" :content="$t('forwardFailNotifyDesc')">
+                    <Icon class="warning" icon="fe:warning" width="18" height="18"/>
+                  </el-tooltip>
+                </div>
+                <div>
+                  <el-switch @change="change" :active-value="1" :inactive-value="0"
+                             v-model="setting.forwardFailNotify"/>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div>
+                  <span>{{ $t('backupFailNotify') }}</span>
+                  <el-tooltip effect="dark" :content="$t('backupFailNotifyDesc')">
+                    <Icon class="warning" icon="fe:warning" width="18" height="18"/>
+                  </el-tooltip>
+                </div>
+                <div>
+                  <el-switch @change="change" :active-value="1" :inactive-value="0"
+                             v-model="setting.backupFailNotify"/>
+                </div>
+              </div>
               <div class="setting-item">
                 <div>
                   <span>{{ $t('adminDelNotify') }}</span>

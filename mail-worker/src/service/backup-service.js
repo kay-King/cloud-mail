@@ -203,6 +203,7 @@ const backupService = {
 	// 提醒本身绝不能抛错影响备份流程，全程 try/catch，只记日志。
 	async notifyBackupFailed(c, error, { manual = false } = {}) {
 		try {
+			if (!await emailService.isBackupFailNotifyEnabled(c)) return;
 			const sender = await emailService.getNotifySender(c);
 			if (!sender) return;
 			const kv = c.env?.kv;

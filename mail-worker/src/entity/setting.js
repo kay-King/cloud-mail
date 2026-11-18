@@ -81,6 +81,8 @@ export const setting = sqliteTable('setting', {
 	webhookSecret: text('webhook_secret').default('').notNull(),
 	attEncrypt: integer('att_encrypt').default(1).notNull(),
 	adminDelNotify: integer('admin_del_notify').default(1).notNull(),
+	forwardFailNotify: integer('forward_fail_notify').default(1).notNull(),
+	backupFailNotify: integer('backup_fail_notify').default(1).notNull(),
 	notifyEmail: text('notify_email').default('').notNull(),
 	notifyStatus: integer('notify_status').default(0).notNull(),
 	autoBackup: integer('auto_backup').default(1).notNull(),

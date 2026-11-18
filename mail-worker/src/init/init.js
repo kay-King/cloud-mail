@@ -43,8 +43,32 @@ const dbInit = {
 		await this.v3_12DB(c);
 		await this.v3_13DB(c);
 		await this.v3_14DB(c);
+		await this.v3_15DB(c);
 		await settingService.refresh(c);
 		return c.text('success');
+	},
+
+	async v3_15DB(c) {
+		// D1 单表最多 100 列，setting 表已满：先删两个死列再加新列。
+		// login_bg_css（自定义 CSS 功能已移除）、send_provider（原项目遗留，收信服务商下拉是纯前端状态），前后端均无引用。
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN login_bg_css;`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN send_provider;`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		try {
+			await c.env.db.batch([
+				c.env.db.prepare(`ALTER TABLE setting ADD COLUMN forward_fail_notify INTEGER NOT NULL DEFAULT 1;`),
+				c.env.db.prepare(`ALTER TABLE setting ADD COLUMN backup_fail_notify INTEGER NOT NULL DEFAULT 1;`)
+			]);
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
 	},
 
 	async v3_14DB(c) {

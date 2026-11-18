@@ -1371,8 +1371,21 @@ const emailService = {
 		return await orm(c).select().from(account).where(eq(account.email, c.env.admin)).get();
 	},
 
+	// 转发失败提醒开关（默认开，1=开、0=关，与管理员删除通知开关同约定）：只停这一类，总开关另在 getNotifySender 里管
+	async isForwardFailNotifyEnabled(c) {
+		const setting = await settingService.query(c).catch(() => null);
+		return setting?.forwardFailNotify !== 0;
+	},
+
+	// 备份失败提醒开关（默认开，1=开、0=关）：只停这一类，总开关另在 getNotifySender 里管
+	async isBackupFailNotifyEnabled(c) {
+		const setting = await settingService.query(c).catch(() => null);
+		return setting?.backupFailNotify !== 0;
+	},
+
 	async notifyForwardFailed(c, { address, rows, error, accountId }) {
 		try {
+			if (!await this.isForwardFailNotifyEnabled(c)) return;
 			const sender = await this.getNotifySender(c);
 			if (!sender) return;
 			// 通知发给该邮箱的拥有者；没带账号时退回管理员
