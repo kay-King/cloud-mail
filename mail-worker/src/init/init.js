@@ -1,6 +1,7 @@
 import settingService from '../service/setting-service';
 import emailUtils from '../utils/email-utils';
 import {emailConst} from "../const/entity-const";
+import userService from '../service/user-service';
 
 const dbInit = {
 	async init(c) {
@@ -44,6 +45,7 @@ const dbInit = {
 		await this.v3_13DB(c);
 		await this.v3_14DB(c);
 		await this.v3_15DB(c);
+		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
 	},
