@@ -282,6 +282,15 @@
                 </div>
               </div>
               <div class="setting-item">
+                <div><span>{{ $t('globalForward') }}</span></div>
+                <div class="forward">
+                  <span>{{ setting.forwardStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
+                  <el-button class="opt-button" size="small" type="primary" @click="openGlobalForward">
+                    <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
+                  </el-button>
+                </div>
+              </div>
+              <div class="setting-item">
                 <div><span>{{ $t('notifyEmail') }}</span></div>
                 <div class="forward">
                   <span>{{ setting.notifyEmail || $t('notifyEmailDefault') }}</span>
@@ -865,6 +874,39 @@ Authorization: &lt;secret&gt;</pre>
           </div>
         </template>
       </el-dialog>
+      <el-dialog
+          v-model="globalForwardShow"
+          class="forward-dialog"
+      >
+        <template #header>
+          <div class="forward-head">
+            <span class="forward-set-title">{{ $t('globalForward') }}</span>
+            <el-tooltip effect="dark" :content="$t('globalForwardDesc')">
+              <Icon class="warning" icon="fe:warning" width="18" height="18"/>
+            </el-tooltip>
+          </div>
+        </template>
+        <div class="forward-set-body">
+          <el-input :placeholder="$t('globalForwardTarget')" v-model="globalForwardEmail"
+                    @keyup.enter="globalForwardSave"></el-input>
+          <el-radio-group v-model="globalRuleType" class="forward-rule-row">
+            <el-radio-button :value="0">{{ $t('forwardAll') }}</el-radio-button>
+            <el-radio-button :value="1">{{ $t('rules') }}</el-radio-button>
+          </el-radio-group>
+          <el-input v-if="globalRuleType === 1" :placeholder="$t('globalForwardRulePlaceholder')"
+                    v-model="globalRuleEmail" @keyup.enter="globalForwardSave"></el-input>
+          <div class="forward-tip">{{ $t('globalForwardTip') }}</div>
+        </div>
+        <template #footer>
+          <div class="dialog-footer">
+            <el-switch v-model="globalForwardStatus" :active-value="0" :inactive-value="1" :active-text="$t('enable')"
+                       :inactive-text="$t('disable')"/>
+            <el-button :loading="settingLoading" type="primary" @click="globalForwardSave">
+              {{ $t('save') }}
+            </el-button>
+          </div>
+        </template>
+      </el-dialog>
       <el-dialog class="resend-table" v-model="showResendList" :title="$t('resendTokenList')">
         <el-table :data="resendList">
           <el-table-column :min-width="emailColumnWidth" property="key" :label="$t('domain')"
@@ -1296,7 +1338,7 @@ Authorization: &lt;secret&gt;</pre>
 
 <script setup>
 import {computed, defineOptions, nextTick, reactive, ref} from "vue";
-import {attKeyStatus, attRotateKey, deleteBackground, setBackground, setBlackList, settingQuery, settingSet, backupStatus as backupStatusReq, backupExport, backupRestore} from "@/request/setting.js";
+import {attKeyStatus, attRotateKey, deleteBackground, setBackground, setBlackList, settingQuery, settingSet, settingSetGlobalForward, backupStatus as backupStatusReq, backupExport, backupRestore} from "@/request/setting.js";
 import {downloadExport} from "@/request/email.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useUiStore} from "@/store/ui.js";
@@ -1343,6 +1385,11 @@ const notifySettingShow = ref(false)
 const notifyEmailInput = ref('')
 const noticePopupShow = ref(false)
 const webhookShow = ref(false)
+const globalForwardShow = ref(false)
+const globalForwardEmail = ref('')
+const globalForwardStatus = ref(1)
+const globalRuleType = ref(0)
+const globalRuleEmail = ref('')
 const emailPrefixShow = ref(false)
 const showResendList = ref(false)
 const showSendkitList = ref(false)
@@ -1944,6 +1991,54 @@ function webhookSave() {
     webhookSecret: webhookSecret.value.trim()
   }
   editSetting(form)
+}
+
+function openGlobalForward() {
+  globalForwardEmail.value = setting.value.forwardEmail || ''
+  globalForwardStatus.value = setting.value.forwardStatus ?? 1
+  globalRuleType.value = setting.value.ruleType ?? 0
+  globalRuleEmail.value = setting.value.ruleEmail || ''
+  globalForwardShow.value = true
+}
+
+function globalForwardSave() {
+  const targets = globalForwardEmail.value.split(',').map(s => s.trim()).filter(Boolean)
+  if (globalForwardStatus.value === 0 && (targets.length === 0 || targets.some(e => !isEmail(e)))) {
+    ElMessage({message: t('forwardEmailInvalid'), type: 'error', plain: true})
+    return
+  }
+  const rules = globalRuleEmail.value.split(',').map(s => s.trim()).filter(Boolean)
+  if (globalRuleType.value === 1 && (rules.length === 0 || rules.some(e => !isEmail(e)))) {
+    ElMessage({message: t('forwardEmailInvalid'), type: 'error', plain: true})
+    return
+  }
+  if (settingLoading.value) return
+  settingLoading.value = true
+  settingSetGlobalForward({
+    forwardEmail: targets.join(','),
+    forwardStatus: globalForwardStatus.value,
+    ruleType: globalRuleType.value,
+    ruleEmail: rules.join(',')
+  }).then((data) => {
+    const status = data?.verifyStatus
+    const msgKey = {
+      added: 'forwardVerifyAdded',
+      exists: 'forwardVerifyExists',
+      verified: 'forwardVerifyVerified',
+      failed: 'forwardVerifyFailed',
+      'no-token': 'forwardVerifyManual',
+    }[status] || 'saveSuccessMsg'
+    ElMessage({
+      message: t(msgKey),
+      type: ['exists', 'failed', 'no-token'].includes(status) ? 'warning' : 'success',
+      plain: true,
+      duration: 5000,
+    })
+    globalForwardShow.value = false
+    getSettings()
+  }).finally(() => {
+    settingLoading.value = false
+  })
 }
 
 
@@ -2976,6 +3071,13 @@ function editSetting(settingForm, refreshStatus = true) {
 
   > *:nth-child(-n+2) {
     margin-bottom: 15px;
+  }
+
+  .forward-tip {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.6;
   }
 
   .tg-msg-label {

@@ -4,6 +4,10 @@ export function settingSet(setting) {
     return http.put('/setting/set', setting)
 }
 
+export function settingSetGlobalForward(params) {
+    return http.put('/setting/setGlobalForward', params)
+}
+
 export function settingQuery() {
     return http.get('/setting/query')
 }

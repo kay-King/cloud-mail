@@ -28,6 +28,8 @@ export async function email(message, env, ctx) {
 			webhookSecret,
 			ruleEmail,
 			ruleType,
+			forwardEmail,
+			forwardStatus,
 			r2Domain,
 			noRecipient,
 			blackSubject,
@@ -163,7 +165,7 @@ export async function email(message, env, ctx) {
 		emailRow = await emailService.completeReceive({ env }, account ? emailConst.status.RECEIVE : emailConst.status.NOONE, emailRow.emailId);
 
 
-		// 转发规则只影响 TG 与 Webhook 推送；邮件转发已改成按收件账号各自配置，不受规则限制
+		// 转发规则（按收件地址筛）影响全局转发、TG 与 Webhook 推送；按账号转发用各自的发件人/主题规则，不受此规则限制
 		const ruleMatched = ruleType !== settingConst.ruleType.RULE || ruleEmail.split(',').includes(message.to);
 
 		//转发到TG
@@ -172,8 +174,10 @@ export async function email(message, env, ctx) {
 		}
 
 		//按收件账号转发到其他邮箱（须符合该账号的转发规则，否则只留收件箱）
-		if (account && account.forwardStatus === settingConst.forwardStatus.OPEN && account.forwardEmail
-			&& matchesForwardRule(account, { from: emailRow.sendEmail, subject: emailRow.subject })) {
+		const accountForwarded = !!(account && account.forwardStatus === settingConst.forwardStatus.OPEN && account.forwardEmail
+			&& matchesForwardRule(account, { from: emailRow.sendEmail, subject: emailRow.subject }));
+
+		if (accountForwarded) {
 
 			const emails = account.forwardEmail.split(',').map(e => e.trim()).filter(Boolean);
 
@@ -184,6 +188,25 @@ export async function email(message, env, ctx) {
 				} catch (e) {
 					console.error(`转发邮箱 ${email} 失败：`, e);
 					await emailService.notifyForwardFailed({ env }, { address: email, rows: [emailRow], error: e, accountId: account.accountId });
+				}
+
+			}));
+
+		}
+
+		//全局转发（系统设置，兜底层）：只接手按账号转发没处理的邮件——无账号（未注册地址），
+		//或有账号但账号转发关着/不符合账号规则；须符合全局规则（全部，或收件地址在规则列表里）
+		if (!accountForwarded && forwardStatus === settingConst.forwardStatus.OPEN && forwardEmail && ruleMatched) {
+
+			const emails = forwardEmail.split(',').map(e => e.trim()).filter(Boolean);
+
+			await Promise.all(emails.map(async email => {
+
+				try {
+					await message.forward(email);
+				} catch (e) {
+					console.error(`全局转发邮箱 ${email} 失败：`, e);
+					await emailService.notifyForwardFailed({ env }, { address: email, rows: [emailRow], error: e, accountId: account?.accountId });
 				}
 
 			}));
