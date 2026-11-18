@@ -85,6 +85,9 @@
         <el-input v-model="forwardRuleSubject" :placeholder="$t('forwardRuleSubjectPlaceholder')" maxlength="500" style="width: 260px"/>
       </div>
       <div class="forward-rule-tip" v-show="forwardOn === 0">{{$t('forwardRuleDesc')}}</div>
+      <div v-show="forwardOn === 0">
+        <el-checkbox v-model="forwardApplyAll">{{$t('forwardApplyAll')}}</el-checkbox>
+      </div>
     </div>
     <div class="del-email" v-perm="'my:delete'">
       <div class="title">{{$t('deleteUser')}}</div>
@@ -169,6 +172,7 @@ const forwardOn = ref(1)
 const forwardTarget = ref('')
 const forwardRuleFrom = ref('')
 const forwardRuleSubject = ref('')
+const forwardApplyAll = ref(false)
 const forwardLoading = ref(false)
 
 function loadForward() {
@@ -177,6 +181,7 @@ function loadForward() {
   forwardTarget.value = acc?.forwardEmail || ''
   forwardRuleFrom.value = acc?.forwardRuleFrom || ''
   forwardRuleSubject.value = acc?.forwardRuleSubject || ''
+  forwardApplyAll.value = false
 }
 loadForward()
 watch(() => accountStore.currentAccountId, loadForward)
@@ -195,7 +200,8 @@ function saveForward() {
   forwardLoading.value = true
   const ruleFrom = forwardRuleFrom.value.trim()
   const ruleSubject = forwardRuleSubject.value.trim()
-  accountSetForward(accountId, target, forwardOn.value, ruleFrom, ruleSubject).then((data) => {
+  const applyAll = forwardApplyAll.value
+  accountSetForward(accountId, target, forwardOn.value, ruleFrom, ruleSubject, applyAll).then((data) => {
     if (accountStore.currentAccount) {
       accountStore.currentAccount.forwardEmail = forwardOn.value === 0 ? target : ''
       accountStore.currentAccount.forwardStatus = forwardOn.value
@@ -211,14 +217,20 @@ function saveForward() {
       failed: 'forwardVerifyFailed',
       'no-token': 'forwardVerifyManual',
     }[status] || 'saveSuccessMsg'
+    let message = t(msgKey)
+    const appliedCount = data?.appliedCount || 1
+    if (appliedCount > 1) {
+      message += t('forwardAppliedAll', { count: appliedCount - 1 })
+    }
     ElMessage({
-      message: t(msgKey),
+      message,
       type: ['exists', 'failed', 'no-token'].includes(status) ? 'warning' : 'success',
       plain: true,
       duration: 5000,
     });
   }).finally(() => {
     forwardLoading.value = false
+    forwardApplyAll.value = false
   })
 }
 

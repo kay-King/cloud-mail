@@ -53,6 +53,8 @@ const en = {
     forwardRuleFromPlaceholder: 'Sender keywords, e.g. github.com, comma-separated',
     forwardRuleSubjectPlaceholder: 'Subject keywords, e.g. invoice, comma-separated',
     forwardRuleDesc: 'Leave both empty to forward all; fill one to filter by it; fill both to require both',
+    forwardApplyAll: 'Also apply to my other mailboxes',
+    forwardAppliedAll: ' Applied to {count} other mailboxes as well.',
     forwardEmailInvalid: 'Please enter a valid email address',
     forwardVerifyAdded: 'Saved. A verification email has been sent to the destination mailbox; click the link to enable forwarding.',
     forwardVerifyExists: 'Saved. This address was added before; please find the verification email in the destination mailbox and click the link.',

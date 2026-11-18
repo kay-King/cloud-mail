@@ -224,7 +224,7 @@ const accountService = {
 	},
 
 	async setForward(c, params, userId) {
-		const { accountId, forwardEmail, forwardStatus, forwardRuleFrom, forwardRuleSubject } = params;
+		const { accountId, forwardEmail, forwardStatus, forwardRuleFrom, forwardRuleSubject, applyToAll } = params;
 		const accountRow = await this.selectById(c, accountId);
 		if (!accountRow || accountRow.userId !== userId) {
 			throw new BizError(t('noUserAccount'));
@@ -245,17 +245,29 @@ const accountService = {
 		if (ruleFrom.length > 500 || ruleSubject.length > 500) {
 			throw new BizError(t('forwardRuleTooLong'));
 		}
-		await orm(c).update(account).set({ forwardEmail: target, forwardStatus: status, forwardRuleFrom: ruleFrom, forwardRuleSubject: ruleSubject })
+		const forwardValues = { forwardEmail: target, forwardStatus: status, forwardRuleFrom: ruleFrom, forwardRuleSubject: ruleSubject };
+		await orm(c).update(account).set(forwardValues)
 			.where(and(eq(account.userId, userId), eq(account.accountId, accountId))).run();
+		// 批量应用：只在开启转发时，把同一套转发设置同步到该用户名下其他未删除的邮箱
+		let appliedCount = 1;
+		if (applyToAll && status === settingConst.forwardStatus.OPEN) {
+			const others = await orm(c).select({ accountId: account.accountId }).from(account)
+				.where(and(eq(account.userId, userId), ne(account.accountId, accountId), eq(account.isDel, isDel.NORMAL))).all();
+			if (others.length > 0) {
+				await orm(c).update(account).set(forwardValues)
+					.where(and(eq(account.userId, userId), ne(account.accountId, accountId), eq(account.isDel, isDel.NORMAL))).run();
+				appliedCount += others.length;
+			}
+		}
 		// 保存时就自动把目标地址加进 Cloudflare（CF 会自动发验证邮件），不用等到转发失败才加；
 		// 加不上也不影响保存，失败时由转发失败提醒兜底重试
 		if (status !== settingConst.forwardStatus.OPEN) {
-			return { verifyStatus: 'off' };
+			return { verifyStatus: 'off', appliedCount };
 		}
 		if (!c.env.cf_routing_token || !c.env.cf_account_id) {
-			return { verifyStatus: 'no-token' };
+			return { verifyStatus: 'no-token', appliedCount };
 		}
-		return { verifyStatus: await emailService.ensureDestinationVerified(c, target) };
+		return { verifyStatus: await emailService.ensureDestinationVerified(c, target), appliedCount };
 	},
 
 	async setName(c, params, userId) {
