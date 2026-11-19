@@ -28,6 +28,7 @@ const settingService = {
 		settingRow.verifyConfig = JSON.parse(settingRow.verifyConfig || '{}');
 		settingRow.webhookConfig = JSON.parse(settingRow.webhookConfig || '{}');
 		settingRow.blacklistConfig = JSON.parse(settingRow.blacklistConfig || '{}');
+		settingRow.autoCleanConfig = JSON.parse(settingRow.autoCleanConfig || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -228,6 +229,22 @@ const settingService = {
 			blackSubject: pick('blackSubject', ''),
 			blackContent: pick('blackContent', ''),
 			blackFrom: pick('blackFrom', '')
+		};
+	},
+
+	// 自动清理配置读值（auto_clean_config 打包后）：新格式是 setting.autoCleanConfig 对象里的字段；
+	// 旧缓存里是平铺字段，两边都兜底；都没有时按默认（天数默认 0=不清理，排除列表默认空）。
+	autoCleanConfig(setting) {
+		const a = setting?.autoCleanConfig;
+		const pick = (key, def) => {
+			if (a && typeof a === 'object' && a[key] !== undefined && a[key] !== null) return a[key];
+			if (setting && setting[key] !== undefined && setting[key] !== null) return setting[key];
+			return def;
+		};
+		return {
+			autoCleanDays: pick('autoCleanDays', 0),
+			autoCleanExclude: pick('autoCleanExclude', ''),
+			auditCleanDays: pick('auditCleanDays', 0)
 		};
 	},
 
@@ -436,6 +453,14 @@ const settingService = {
 				blacklistConfig[k] = v;
 			}
 		}
+		let autoCleanConfig = { ...(settingData.autoCleanConfig || {}) };
+		if (params.autoCleanConfig && typeof params.autoCleanConfig === 'object') {
+			for (const [k, v] of Object.entries(params.autoCleanConfig)) {
+				// 带 ****** 的是前端回显的脱敏值，不是真实密钥，跳过不覆盖
+				if (typeof v === 'string' && v.includes('******')) continue;
+				autoCleanConfig[k] = v;
+			}
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
@@ -450,6 +475,7 @@ const settingService = {
 		params.verifyConfig = JSON.stringify(verifyConfig);
 		params.webhookConfig = JSON.stringify(webhookConfig);
 		params.blacklistConfig = JSON.stringify(blacklistConfig);
+		params.autoCleanConfig = JSON.stringify(autoCleanConfig);
 
 		// 旧版平铺列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
@@ -524,6 +550,9 @@ const settingService = {
 		delete params.blackSubject;
 		delete params.blackContent;
 		delete params.blackFrom;
+		delete params.autoCleanDays;
+		delete params.autoCleanExclude;
+		delete params.auditCleanDays;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);

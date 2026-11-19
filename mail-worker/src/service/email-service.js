@@ -1860,7 +1860,7 @@ const emailService = {
 	},
 
 	async autoClean(c) {
-		const { autoCleanDays, autoCleanExclude } = await settingService.query(c);
+		const { autoCleanDays, autoCleanExclude } = settingService.autoCleanConfig(await settingService.query(c));
 		const days = Number(autoCleanDays);
 
 		if (!days || days <= 0) {

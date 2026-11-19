@@ -37,9 +37,8 @@ export const setting = sqliteTable('setting', {
 	aiCodeFilter: text('ai_code_filter').default('').notNull(),
 	// 第三方登录 9 项打包进一个 JSON 列，9 列变 1 列腾 8 个空位（功能未配置但 oauth-service 代码活着，只能打包不能删）
 	oauthConfig: text('oauth_config').default('{}').notNull(),
-	autoCleanDays: integer('auto_clean_days').default(0).notNull(),
-	autoCleanExclude: text('auto_clean_exclude').default('').notNull(),
-	auditCleanDays: integer('audit_clean_days').default(0).notNull(),
+	// 自动清理 3 项打包进一个 JSON 列，3 列变 1 列腾 2 个空位
+	autoCleanConfig: text('auto_clean_config').default('{}').notNull(),
 	// Webhook 4 项打包进一个 JSON 列，4 列变 1 列腾 3 个空位
 	webhookConfig: text('webhook_config').default('{}').notNull(),
 	attEncrypt: integer('att_encrypt').default(1).notNull(),

@@ -20,8 +20,7 @@ const SETTING_LABELS = {
 	tgConfig: 'TG 机器人',
 	webhookConfig: 'Webhook 推送',
 	syncDelete: '同步删除',
-	autoCleanDays: '自动清理天数',
-	autoCleanExclude: '自动清理排除',
+	autoCleanConfig: '自动清理',
 	attEncrypt: '附件加密',
 	attStorage: '附件存储',
 	notifyFlags: '通知开关',
@@ -152,7 +151,7 @@ const auditService = {
 	async cleanOld(c) {
 		try {
 			const settingRow = await settingService.query(c);
-			const days = Number(settingRow?.auditCleanDays);
+			const days = Number(settingService.autoCleanConfig(settingRow).auditCleanDays);
 			if (!days || days <= 0) return { deleted: 0 };
 			const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
 			const res = await orm(c).delete(auditLog).where(lt(auditLog.createTime, cutoff)).run();

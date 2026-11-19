@@ -235,7 +235,7 @@
                   </el-tooltip>
                 </div>
                 <div class="forward">
-                  <span>{{ setting.autoCleanDays > 0 ? $t('autoCleanRetain', { days: setting.autoCleanDays }) : $t('disabled') }}</span>
+                  <span>{{ (setting.autoCleanConfig?.autoCleanDays ?? setting.autoCleanDays) > 0 ? $t('autoCleanRetain', { days: setting.autoCleanConfig?.autoCleanDays ?? setting.autoCleanDays }) : $t('disabled') }}</span>
                   <el-button class="opt-button" style="margin-top: 0" @click="openAutoClean" size="small"
                              type="primary">
                     <Icon icon="fluent:settings-48-regular" width="16" height="16"/>
@@ -250,7 +250,7 @@
                   </el-tooltip>
                 </div>
                 <div class="forward">
-                  <span>{{ setting.auditCleanDays > 0 ? $t('autoCleanRetain', { days: setting.auditCleanDays }) : $t('disabled') }}</span>
+                  <span>{{ (setting.autoCleanConfig?.auditCleanDays ?? setting.auditCleanDays) > 0 ? $t('autoCleanRetain', { days: setting.autoCleanConfig?.auditCleanDays ?? setting.auditCleanDays }) : $t('disabled') }}</span>
                   <el-button class="opt-button" style="margin-top: 0" @click="openAuditClean" size="small"
                              type="primary">
                     <Icon icon="fluent:settings-48-regular" width="16" height="16"/>
@@ -1723,6 +1723,12 @@ function getSettings() {
       blackContent: bl.blackContent ?? settingData.blackContent ?? '',
       blackFrom: bl.blackFrom ?? settingData.blackFrom ?? ''
     }
+    const ac = settingData.autoCleanConfig || {}
+    settingData.autoCleanConfig = {
+      autoCleanDays: ac.autoCleanDays ?? settingData.autoCleanDays ?? 0,
+      autoCleanExclude: ac.autoCleanExclude ?? settingData.autoCleanExclude ?? '',
+      auditCleanDays: ac.auditCleanDays ?? settingData.auditCleanDays ?? 0
+    }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
@@ -2019,15 +2025,18 @@ function openEmailPrefix() {
 }
 
 function openAutoClean() {
-  autoCleanDays.value = setting.value.autoCleanDays ?? 0
-  autoCleanExclude.value = setting.value.autoCleanExclude
-      ? setting.value.autoCleanExclude.split(',').filter(Boolean)
+  const a = setting.value.autoCleanConfig || {}
+  autoCleanDays.value = a.autoCleanDays ?? setting.value.autoCleanDays ?? 0
+  const exclude = a.autoCleanExclude ?? setting.value.autoCleanExclude
+  autoCleanExclude.value = exclude
+      ? exclude.split(',').filter(Boolean)
       : []
   autoCleanShow.value = true
 }
 
 function openAuditClean() {
-  auditCleanDays.value = setting.value.auditCleanDays ?? 0
+  const a = setting.value.autoCleanConfig || {}
+  auditCleanDays.value = a.auditCleanDays ?? setting.value.auditCleanDays ?? 0
   auditCleanShow.value = true
 }
 
@@ -2234,14 +2243,18 @@ function saveEmailPrefix() {
 
 function saveAutoClean() {
   editSetting({
-    autoCleanDays: autoCleanDays.value,
-    autoCleanExclude: autoCleanExclude.value.join(',')
+    autoCleanConfig: {
+      autoCleanDays: autoCleanDays.value,
+      autoCleanExclude: autoCleanExclude.value.join(',')
+    }
   }, true)
 }
 
 function saveAuditClean() {
   editSetting({
-    auditCleanDays: auditCleanDays.value
+    autoCleanConfig: {
+      auditCleanDays: auditCleanDays.value
+    }
   }, true)
 }
 

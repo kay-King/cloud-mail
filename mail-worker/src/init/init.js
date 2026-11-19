@@ -55,6 +55,7 @@ const dbInit = {
 		await this.v3_23DB(c);
 		await this.v3_24DB(c);
 		await this.v3_25DB(c);
+		await this.v3_26DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -490,6 +491,43 @@ const dbInit = {
 		if (config) {
 			try {
 				await c.env.db.prepare(`UPDATE setting SET blacklist_config = ?`).bind(JSON.stringify(config)).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+	},
+
+	async v3_26DB(c) {
+		// 自动清理 3 项打包进 auto_clean_config JSON 列（3 列变 1 列，腾 2 个空位）。
+		// 顺序：先读出现有值 → 删 3 个旧列 → 加 auto_clean_config 列 → 把值写回去。各步独立 try/catch，重复跑也不怕。
+		let config = null;
+		try {
+			const row = await c.env.db.prepare(`SELECT auto_clean_days, auto_clean_exclude, audit_clean_days FROM setting`).first();
+			if (row) {
+				config = {
+					autoCleanDays: row.auto_clean_days ?? 0,
+					autoCleanExclude: row.auto_clean_exclude ?? '',
+					auditCleanDays: row.audit_clean_days ?? 0
+				};
+			}
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		for (const col of ['auto_clean_days', 'auto_clean_exclude', 'audit_clean_days']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN ${col};`).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN auto_clean_config TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		if (config) {
+			try {
+				await c.env.db.prepare(`UPDATE setting SET auto_clean_config = ?`).bind(JSON.stringify(config)).run();
 			} catch (e) {
 				console.warn(`跳过字段：${e.message}`);
 			}
