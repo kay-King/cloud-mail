@@ -80,13 +80,10 @@
         <el-input v-model="forwardTarget" :placeholder="$t('forwardTargetPlaceholder')" :disabled="forwardOn === 1" style="width: 260px"/>
         <el-button type="primary" :loading="forwardLoading" @click="saveForward">{{$t('save')}}</el-button>
       </div>
-      <div class="forward-rule-row" v-show="forwardOn === 0">
-        <el-input v-model="forwardRuleFrom" :placeholder="$t('forwardRuleFromPlaceholder')" maxlength="500" style="width: 260px"/>
-        <el-input v-model="forwardRuleSubject" :placeholder="$t('forwardRuleSubjectPlaceholder')" maxlength="500" style="width: 260px"/>
-      </div>
-      <div class="forward-rule-tip" v-show="forwardOn === 0">{{$t('forwardRuleDesc')}}</div>
-      <div v-show="forwardOn === 0">
-        <el-checkbox v-model="forwardApplyAll">{{$t('forwardApplyAll')}}</el-checkbox>
+      <div class="forward-rule-summary" v-show="forwardOn === 0">
+        <span class="forward-rule-label">{{ $t('forwardRuleTitle') }}</span>
+        <span class="forward-rule-summary-text" :title="forwardRuleSummary">{{ forwardRuleSummary }}</span>
+        <el-button @click="openForwardRule">{{ $t('forwardRuleSettings') }}</el-button>
       </div>
     </div>
     <div class="del-email" v-perm="'my:delete'">
@@ -105,12 +102,24 @@
         <el-button type="primary" :loading="setPwdLoading" @click="submitPwd">{{$t('save')}}</el-button>
       </div>
     </el-dialog>
+    <el-dialog v-model="forwardRuleShow" class="forward-rule-dialog" :title="$t('forwardRuleTitle')">
+      <div class="forward-rule-body">
+        <el-input v-model="ruleDraftFrom" :placeholder="$t('forwardRuleFromPlaceholder')" maxlength="500" @keyup.enter="saveForwardRule"/>
+        <el-input v-model="ruleDraftSubject" :placeholder="$t('forwardRuleSubjectPlaceholder')" maxlength="500" @keyup.enter="saveForwardRule"/>
+        <div class="forward-rule-tip">{{$t('forwardRuleDesc')}}</div>
+        <el-checkbox v-model="ruleDraftApplyAll">{{$t('forwardApplyAll')}}</el-checkbox>
+      </div>
+      <template #footer>
+        <el-button @click="forwardRuleShow = false">{{$t('cancel')}}</el-button>
+        <el-button type="primary" :loading="forwardLoading" @click="saveForwardRule">{{$t('save')}}</el-button>
+      </template>
+    </el-dialog>
   </div>
     </el-scrollbar>
   </div>
 </template>
 <script setup>
-import {reactive, ref, defineOptions, watch} from 'vue'
+import {reactive, ref, computed, defineOptions, watch} from 'vue'
 import {resetPassword, userDelete} from "@/request/my.js";
 import {useUserStore} from "@/store/user.js";
 import router from "@/router/index.js";
@@ -175,6 +184,37 @@ const forwardRuleSubject = ref('')
 const forwardApplyAll = ref(false)
 const forwardLoading = ref(false)
 
+// 转发规则弹窗：弹窗里改草稿，点保存才写回并提交；取消则丢弃
+const forwardRuleShow = ref(false)
+const ruleDraftFrom = ref('')
+const ruleDraftSubject = ref('')
+const ruleDraftApplyAll = ref(false)
+const forwardRuleSummary = computed(() => {
+  const parts = []
+  const from = forwardRuleFrom.value.trim()
+  const subject = forwardRuleSubject.value.trim()
+  if (from) parts.push(t('forwardRuleFromSummary', {keywords: from}))
+  if (subject) parts.push(t('forwardRuleSubjectSummary', {keywords: subject}))
+  return parts.length ? parts.join('；') : t('forwardAll')
+})
+
+function openForwardRule() {
+  ruleDraftFrom.value = forwardRuleFrom.value
+  ruleDraftSubject.value = forwardRuleSubject.value
+  ruleDraftApplyAll.value = forwardApplyAll.value
+  forwardRuleShow.value = true
+}
+
+function saveForwardRule() {
+  forwardRuleFrom.value = ruleDraftFrom.value.trim()
+  forwardRuleSubject.value = ruleDraftSubject.value.trim()
+  forwardApplyAll.value = ruleDraftApplyAll.value
+  saveForward().then((ok) => {
+    if (ok) forwardRuleShow.value = false
+  }).catch(() => {
+  })
+}
+
 function loadForward() {
   const acc = accountStore.currentAccount
   forwardOn.value = acc?.forwardStatus ?? 1
@@ -190,18 +230,18 @@ function saveForward() {
   const accountId = accountStore.currentAccountId
   if (!accountId) {
     ElMessage({message: t('selectAccountFirst'), type: 'warning', plain: true});
-    return
+    return Promise.resolve(false)
   }
   const target = forwardTarget.value.trim()
   if (forwardOn.value === 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target)) {
     ElMessage({message: t('forwardEmailInvalid'), type: 'error', plain: true});
-    return
+    return Promise.resolve(false)
   }
   forwardLoading.value = true
   const ruleFrom = forwardRuleFrom.value.trim()
   const ruleSubject = forwardRuleSubject.value.trim()
   const applyAll = forwardApplyAll.value
-  accountSetForward(accountId, target, forwardOn.value, ruleFrom, ruleSubject, applyAll).then((data) => {
+  return accountSetForward(accountId, target, forwardOn.value, ruleFrom, ruleSubject, applyAll).then((data) => {
     if (accountStore.currentAccount) {
       accountStore.currentAccount.forwardEmail = forwardOn.value === 0 ? target : ''
       accountStore.currentAccount.forwardStatus = forwardOn.value
@@ -228,6 +268,7 @@ function saveForward() {
       plain: true,
       duration: 5000,
     });
+    return true
   }).finally(() => {
     forwardLoading.value = false
     forwardApplyAll.value = false
@@ -482,16 +523,46 @@ function submitPwd() {
     flex-wrap: wrap;
   }
 
-  .forward-rule-row {
+  .forward-rule-summary {
     display: flex;
     gap: 12px;
     align-items: center;
-    flex-wrap: wrap;
+  }
+
+  .forward-rule-label {
+    flex-shrink: 0;
+    color: var(--regular-text-color);
+  }
+
+  .forward-rule-summary-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// 转发规则弹窗：内容被传送到 body 下，样式须挂在弹窗根类上，不能放在 .box 里
+.forward-rule-dialog {
+  .forward-rule-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .forward-rule-tip {
     font-size: 12px;
     color: var(--regular-text-color);
+  }
+}
+
+:deep(.forward-rule-dialog.el-dialog) {
+  width: 500px !important;
+  @media (max-width: 540px) {
+    width: calc(100% - 40px) !important;
+    margin-right: 20px !important;
+    margin-left: 20px !important;
   }
 }
 </style>
