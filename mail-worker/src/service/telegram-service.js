@@ -47,7 +47,7 @@ const telegramService = {
 
 	async sendEmailToBot(c, email) {
 
-		const { tgBotToken, tgChatId, customDomain, tgMsgTo, tgMsgFrom, tgMsgText } = await settingService.query(c);
+		const { tgBotToken, tgChatId, customDomain, tgMsgTo, tgMsgFrom, tgMsgText } = settingService.tgConfig(await settingService.query(c));
 
 		const tgChatIds = tgChatId.split(',');
 

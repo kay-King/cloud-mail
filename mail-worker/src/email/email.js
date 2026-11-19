@@ -20,10 +20,9 @@ export async function email(message, env, ctx) {
 	try {
 
 		const setting = await settingService.query({ env });
+		const { tgChatId, tgBotStatus } = settingService.tgConfig(setting);
 		const {
 			receive,
-			tgChatId,
-			tgBotStatus,
 			webhookStatus,
 			webhookUrl,
 			webhookRetry,

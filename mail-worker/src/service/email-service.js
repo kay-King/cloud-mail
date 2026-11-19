@@ -1480,7 +1480,8 @@ const emailService = {
 	async forwardOnSiteEmail(c, emailRowList, { sendParams }) {
 
 		const setting = await settingService.query(c);
-		const { tgBotStatus, tgChatId, webhookStatus, webhookUrl, webhookRetry, webhookSecret } = setting;
+		const { tgBotStatus, tgChatId } = settingService.tgConfig(setting);
+		const { webhookStatus, webhookUrl, webhookRetry, webhookSecret } = setting;
 		const { ruleEmail, ruleType } = settingService.globalForward(setting);
 
 		// 转发规则只影响 TG 与 Webhook 推送

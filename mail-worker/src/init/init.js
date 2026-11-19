@@ -51,6 +51,7 @@ const dbInit = {
 		await this.v3_19DB(c);
 		await this.v3_20DB(c);
 		await this.v3_21DB(c);
+		await this.v3_22DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -332,6 +333,47 @@ const dbInit = {
 		if (config) {
 			try {
 				await c.env.db.prepare(`UPDATE setting SET notice_config = ?`).bind(JSON.stringify(config)).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+	},
+
+	async v3_22DB(c) {
+		// TG 机器人 7 项打包进 tg_config JSON 列（7 列变 1 列，腾 6 个空位；customDomain 是 TG 小程序网址，随 TG 一起打包）。
+		// 顺序：先读出现有值 → 删 7 个旧列 → 加 tg_config 列 → 把值写回去。各步独立 try/catch，重复跑也不怕。
+		let config = null;
+		try {
+			const row = await c.env.db.prepare(`SELECT tg_bot_token, tg_chat_id, tg_bot_status, custom_domain, tg_msg_from, tg_msg_to, tg_msg_text FROM setting`).first();
+			if (row) {
+				config = {
+					tgBotToken: row.tg_bot_token ?? '',
+					tgChatId: row.tg_chat_id ?? '',
+					tgBotStatus: row.tg_bot_status ?? 1,
+					customDomain: row.custom_domain ?? '',
+					tgMsgFrom: row.tg_msg_from ?? 'only-name',
+					tgMsgTo: row.tg_msg_to ?? 'show',
+					tgMsgText: row.tg_msg_text ?? 'hide'
+				};
+			}
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		for (const col of ['tg_bot_token', 'tg_chat_id', 'tg_bot_status', 'custom_domain', 'tg_msg_from', 'tg_msg_to', 'tg_msg_text']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN ${col};`).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN tg_config TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		if (config) {
+			try {
+				await c.env.db.prepare(`UPDATE setting SET tg_config = ?`).bind(JSON.stringify(config)).run();
 			} catch (e) {
 				console.warn(`跳过字段：${e.message}`);
 			}

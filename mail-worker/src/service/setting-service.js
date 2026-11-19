@@ -24,6 +24,7 @@ const settingService = {
 		settingRow.attStorage = JSON.parse(settingRow.attStorage || '{}');
 		settingRow.oauthConfig = JSON.parse(settingRow.oauthConfig || '{}');
 		settingRow.noticeConfig = JSON.parse(settingRow.noticeConfig || '{}');
+		settingRow.tgConfig = JSON.parse(settingRow.tgConfig || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -157,6 +158,26 @@ const settingService = {
 		};
 	},
 
+	// TG 机器人配置读值（tg_config 打包后）：新格式是 setting.tgConfig 对象里的字段；
+	// 旧缓存里是平铺字段，两边都兜底；都没有时按默认（开关默认 1=关，消息格式按原项目默认）。
+	tgConfig(setting) {
+		const t = setting?.tgConfig;
+		const pick = (key, def) => {
+			if (t && typeof t === 'object' && t[key] !== undefined && t[key] !== null) return t[key];
+			if (setting && setting[key] !== undefined && setting[key] !== null) return setting[key];
+			return def;
+		};
+		return {
+			tgBotToken: pick('tgBotToken', ''),
+			tgChatId: pick('tgChatId', ''),
+			tgBotStatus: pick('tgBotStatus', 1),
+			customDomain: pick('customDomain', ''),
+			tgMsgFrom: pick('tgMsgFrom', 'only-name'),
+			tgMsgTo: pick('tgMsgTo', 'show'),
+			tgMsgText: pick('tgMsgText', 'hide')
+		};
+	},
+
 	async query(c) {
 
 		if (c.get?.('setting')) {
@@ -236,7 +257,9 @@ const settingService = {
 			if (_bc[k]) _bc[k] = `${String(_bc[k]).slice(0, 12)}******`;
 			if (settingRow[k]) settingRow[k] = `${String(settingRow[k]).slice(0, 12)}******`;
 		}
-		settingRow.tgBotToken = settingRow.tgBotToken ? `${settingRow.tgBotToken.slice(0, 20)}******` : null;
+		// TG 机器人 Token 脱敏：新格式在 tgConfig 对象里，旧缓存是平铺字段，两边都脱敏
+		if (settingRow.tgConfig?.tgBotToken) settingRow.tgConfig.tgBotToken = `${String(settingRow.tgConfig.tgBotToken).slice(0, 20)}******`;
+		if (settingRow.tgBotToken) settingRow.tgBotToken = `${String(settingRow.tgBotToken).slice(0, 20)}******`;
 		settingRow.hasR2 = !!c.env.r2
 		settingRow.hasCfEmail = !!c.env.email
 
@@ -327,6 +350,14 @@ const settingService = {
 				noticeConfig[k] = v;
 			}
 		}
+		let tgConfig = { ...(settingData.tgConfig || {}) };
+		if (params.tgConfig && typeof params.tgConfig === 'object') {
+			for (const [k, v] of Object.entries(params.tgConfig)) {
+				// 带 ****** 的是前端回显的脱敏值，不是真实密钥，跳过不覆盖
+				if (typeof v === 'string' && v.includes('******')) continue;
+				tgConfig[k] = v;
+			}
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
@@ -337,6 +368,7 @@ const settingService = {
 		params.attStorage = JSON.stringify(attStorage);
 		params.oauthConfig = JSON.stringify(oauthConfig);
 		params.noticeConfig = JSON.stringify(noticeConfig);
+		params.tgConfig = JSON.stringify(tgConfig);
 
 		// 旧版平铺列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
@@ -393,6 +425,13 @@ const settingService = {
 		delete params.noticeOffset;
 		delete params.noticeWidth;
 		delete params.notice;
+		delete params.tgBotToken;
+		delete params.tgChatId;
+		delete params.tgBotStatus;
+		delete params.customDomain;
+		delete params.tgMsgFrom;
+		delete params.tgMsgTo;
+		delete params.tgMsgText;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);

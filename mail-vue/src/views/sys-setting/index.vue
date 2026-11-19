@@ -266,7 +266,7 @@
               <div class="setting-item">
                 <div><span>{{ $t('tgBot') }}</span></div>
                 <div class="forward">
-                  <span>{{ setting.tgBotStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
+                  <span>{{ (setting.tgConfig?.tgBotStatus ?? setting.tgBotStatus) === 0 ? $t('enabled') : $t('disabled') }}</span>
                   <el-button class="opt-button" size="small" type="primary" @click="openTgSetting">
                     <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
                   </el-button>
@@ -785,7 +785,7 @@
           </div>
         </template>
         <div class="forward-set-body">
-          <el-input :placeholder="setting.tgBotToken || $t('tgBotToken')" v-model="tgBotToken" @keyup.enter="tgBotSave"></el-input>
+          <el-input :placeholder="setting.tgConfig?.tgBotToken || $t('tgBotToken')" v-model="tgBotToken" @keyup.enter="tgBotSave"></el-input>
           <el-input-tag tag-type="warning" :placeholder="$t('toBotTokenDesc')" v-model="tgChatId"
                         @add-tag="addChatTag"></el-input-tag>
           <el-input tag-type="warning" :placeholder="$t('customDomainDesc')" v-model="customDomain" @keyup.enter="tgBotSave"></el-input>
@@ -1693,6 +1693,16 @@ function getSettings() {
       noticeWidth: nc.noticeWidth ?? settingData.noticeWidth ?? 400,
       notice: nc.notice ?? settingData.notice ?? 0
     }
+    const tc = settingData.tgConfig || {}
+    settingData.tgConfig = {
+      tgBotToken: tc.tgBotToken ?? settingData.tgBotToken ?? '',
+      tgChatId: tc.tgChatId ?? settingData.tgChatId ?? '',
+      tgBotStatus: tc.tgBotStatus ?? settingData.tgBotStatus ?? 1,
+      customDomain: tc.customDomain ?? settingData.customDomain ?? '',
+      tgMsgFrom: tc.tgMsgFrom ?? settingData.tgMsgFrom ?? 'only-name',
+      tgMsgTo: tc.tgMsgTo ?? settingData.tgMsgTo ?? 'show',
+      tgMsgText: tc.tgMsgText ?? settingData.tgMsgText ?? 'hide'
+    }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
@@ -1860,15 +1870,17 @@ function closedSetBackground() {
 }
 
 function openTgSetting() {
-  tgBotStatus.value = setting.value.tgBotStatus
+  const t = setting.value.tgConfig || {}
+  tgBotStatus.value = t.tgBotStatus ?? setting.value.tgBotStatus
   tgBotToken.value = ''
-  customDomain.value = setting.value.customDomain
-  tgMsgFrom.value = setting.value.tgMsgFrom
-  tgMsgText.value = setting.value.tgMsgText
-  tgMsgTo.value = setting.value.tgMsgTo
+  customDomain.value = t.customDomain ?? setting.value.customDomain
+  tgMsgFrom.value = t.tgMsgFrom ?? setting.value.tgMsgFrom
+  tgMsgText.value = t.tgMsgText ?? setting.value.tgMsgText
+  tgMsgTo.value = t.tgMsgTo ?? setting.value.tgMsgTo
   tgChatId.value = []
-  if (setting.value.tgChatId) {
-    const list = setting.value.tgChatId.split(',')
+  const chatId = t.tgChatId ?? setting.value.tgChatId
+  if (chatId) {
+    const list = chatId.split(',')
     tgChatId.value.push(...list)
   }
   tgSettingShow.value = true
@@ -2068,7 +2080,7 @@ function saveS3() {
 }
 
 function tgBotSave() {
-  const form = {
+  const tc = {
     customDomain: customDomain.value,
     tgBotStatus: tgBotStatus.value,
     tgChatId: tgChatId.value + '',
@@ -2076,8 +2088,8 @@ function tgBotSave() {
     tgMsgText: tgMsgText.value,
     tgMsgTo: tgMsgTo.value
   }
-  if (tgBotToken.value) form.tgBotToken = tgBotToken.value
-  editSetting(form)
+  if (tgBotToken.value) tc.tgBotToken = tgBotToken.value
+  editSetting({tgConfig: tc})
 }
 
 function webhookSave() {
@@ -2550,7 +2562,12 @@ function change(e) {
     delete bc.backupWebdavPassword
     settingForm.backupConfig = bc
   }
-  delete settingForm.tgBotToken
+  // TG Token 在 tgConfig 对象里，整包发过去会带上脱敏值，先从副本里去掉（后端合并时保留现值）
+  if (settingForm.tgConfig) {
+    const tc = {...settingForm.tgConfig}
+    delete tc.tgBotToken
+    settingForm.tgConfig = tc
+  }
   delete settingForm.resendTokens
   delete settingForm.sendkitTokens
   delete settingForm.brevoTokens

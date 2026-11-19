@@ -16,9 +16,8 @@ export const setting = sqliteTable('setting', {
 	siteKey: text('site_key'),
 	regKey: integer('reg_key').default(1).notNull(),
 	background: text('background'),
-	tgBotToken: text('tg_bot_token').default('').notNull(),
-	tgChatId: text('tg_chat_id').default('').notNull(),
-	tgBotStatus: integer('tg_bot_status').default(1).notNull(),
+	// TG 机器人 7 项打包进一个 JSON 列，7 列变 1 列腾 6 个空位（customDomain 是 TG 小程序网址，随 TG 一起打包）
+	tgConfig: text('tg_config').default('{}').notNull(),
 	// 全局转发 4 项打包进一个 JSON 列（forwardEmail/forwardStatus/ruleEmail/ruleType），4 列变 1 列腾 3 个空位；规则与 TG/Webhook 推送共用
 	globalForward: text('global_forward').default('{}').notNull(),
 	loginOpacity: integer('login_opacity').default(0.88),
@@ -29,12 +28,8 @@ export const setting = sqliteTable('setting', {
 	noticeConfig: text('notice_config').default('{}').notNull(),
 	noRecipient: integer('no_recipient').default(1).notNull(),
 	loginDomain: integer('login_domain').default(0).notNull(),
-	// 附件存储 14 项打包进一个 JSON 列，14 列变 1 列腾 13 个空位（customDomain 是 TG 网页应用用的，归 TG 组）
+	// 附件存储 14 项打包进一个 JSON 列，14 列变 1 列腾 13 个空位
 	attStorage: text('att_storage').default('{}').notNull(),
-	customDomain: text('custom_domain').default('').notNull(),
-	tgMsgFrom: text('tg_msg_from').default('only-name').notNull(),
-	tgMsgTo: text('tg_msg_to').default('show').notNull(),
-	tgMsgText: text('tg_msg_text').default('hide').notNull(),
 	minEmailPrefix: integer('min_email_prefix').default(0).notNull(),
 	emailPrefixFilter: text('email_prefix_filter').default('').notNull(),
 	blackSubject: text('black_subject').default('').notNull(),
