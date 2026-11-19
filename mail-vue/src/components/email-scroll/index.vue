@@ -842,13 +842,19 @@ function handleDelete() {
 }
 
 function deleteEmail(emailIds) {
+  let removed = 0
   emailIds.forEach(emailId => {
     emailList.forEach((item, index) => {
       if (emailId === item.emailId) {
         emailList.splice(index, 1);
+        removed++
       }
     })
   })
+  // 删完总数马上跟着变（只按实际从列表里移除的行数减）
+  if (removed > 0) {
+    total.value = Math.max(0, total.value - removed)
+  }
   if (emailList.length < queryParam.size && !noLoading.value) {
     getEmailList()
   }
