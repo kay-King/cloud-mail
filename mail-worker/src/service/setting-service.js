@@ -26,6 +26,7 @@ const settingService = {
 		settingRow.noticeConfig = JSON.parse(settingRow.noticeConfig || '{}');
 		settingRow.tgConfig = JSON.parse(settingRow.tgConfig || '{}');
 		settingRow.verifyConfig = JSON.parse(settingRow.verifyConfig || '{}');
+		settingRow.webhookConfig = JSON.parse(settingRow.webhookConfig || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -196,6 +197,23 @@ const settingService = {
 		};
 	},
 
+	// Webhook 配置读值（webhook_config 打包后）：新格式是 setting.webhookConfig 对象里的字段；
+	// 旧缓存里是平铺字段，两边都兜底；都没有时按默认（开关默认 1=关，重试默认 0）。
+	webhookConfig(setting) {
+		const w = setting?.webhookConfig;
+		const pick = (key, def) => {
+			if (w && typeof w === 'object' && w[key] !== undefined && w[key] !== null) return w[key];
+			if (setting && setting[key] !== undefined && setting[key] !== null) return setting[key];
+			return def;
+		};
+		return {
+			webhookUrl: pick('webhookUrl', ''),
+			webhookStatus: pick('webhookStatus', 1),
+			webhookRetry: pick('webhookRetry', 0),
+			webhookSecret: pick('webhookSecret', '')
+		};
+	},
+
 	async query(c) {
 
 		if (c.get?.('setting')) {
@@ -324,8 +342,9 @@ const settingService = {
 			params.aiCodeFilter = params.aiCodeFilter + '';
 		}
 
-		if (params.webhookUrl !== undefined) {
-			params.webhookUrl = domainUtils.toOssDomain(params.webhookUrl) || '';
+		// Webhook 地址进了 webhookConfig 对象，域名规范化随之挪到对象里的字段上
+		if (params.webhookConfig?.webhookUrl !== undefined) {
+			params.webhookConfig.webhookUrl = domainUtils.toOssDomain(params.webhookConfig.webhookUrl) || '';
 		}
 
 		let notifyFlags = { ...(settingData.notifyFlags || {}) };
@@ -384,6 +403,14 @@ const settingService = {
 				verifyConfig[k] = v;
 			}
 		}
+		let webhookConfig = { ...(settingData.webhookConfig || {}) };
+		if (params.webhookConfig && typeof params.webhookConfig === 'object') {
+			for (const [k, v] of Object.entries(params.webhookConfig)) {
+				// 带 ****** 的是前端回显的脱敏值，不是真实密钥，跳过不覆盖
+				if (typeof v === 'string' && v.includes('******')) continue;
+				webhookConfig[k] = v;
+			}
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
@@ -396,6 +423,7 @@ const settingService = {
 		params.noticeConfig = JSON.stringify(noticeConfig);
 		params.tgConfig = JSON.stringify(tgConfig);
 		params.verifyConfig = JSON.stringify(verifyConfig);
+		params.webhookConfig = JSON.stringify(webhookConfig);
 
 		// 旧版平铺列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
@@ -463,6 +491,10 @@ const settingService = {
 		delete params.registerVerify;
 		delete params.regVerifyCount;
 		delete params.addVerifyCount;
+		delete params.webhookUrl;
+		delete params.webhookStatus;
+		delete params.webhookRetry;
+		delete params.webhookSecret;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);

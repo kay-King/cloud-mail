@@ -275,7 +275,7 @@
               <div class="setting-item">
                 <div><span>{{ $t('webhook') }}</span></div>
                 <div class="forward">
-                  <span>{{ setting.webhookStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
+                  <span>{{ (setting.webhookConfig?.webhookStatus ?? setting.webhookStatus) === 0 ? $t('enabled') : $t('disabled') }}</span>
                   <el-button class="opt-button" size="small" type="primary" @click="openWebhookSetting">
                     <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
                   </el-button>
@@ -1710,6 +1710,13 @@ function getSettings() {
       regVerifyCount: vc.regVerifyCount ?? settingData.regVerifyCount ?? 1,
       addVerifyCount: vc.addVerifyCount ?? settingData.addVerifyCount ?? 1
     }
+    const wc = settingData.webhookConfig || {}
+    settingData.webhookConfig = {
+      webhookUrl: wc.webhookUrl ?? settingData.webhookUrl ?? '',
+      webhookStatus: wc.webhookStatus ?? settingData.webhookStatus ?? 1,
+      webhookRetry: wc.webhookRetry ?? settingData.webhookRetry ?? 0,
+      webhookSecret: wc.webhookSecret ?? settingData.webhookSecret ?? ''
+    }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
@@ -1993,10 +2000,11 @@ function previewNoticePopup() {
 }
 
 function openWebhookSetting() {
-  webhookStatus.value = setting.value.webhookStatus
-  webhookUrl.value = setting.value.webhookUrl || ''
-  webhookRetry.value = setting.value.webhookRetry ?? 0
-  webhookSecret.value = setting.value.webhookSecret || ''
+  const w = setting.value.webhookConfig || {}
+  webhookStatus.value = w.webhookStatus ?? setting.value.webhookStatus
+  webhookUrl.value = (w.webhookUrl ?? setting.value.webhookUrl) || ''
+  webhookRetry.value = w.webhookRetry ?? setting.value.webhookRetry ?? 0
+  webhookSecret.value = (w.webhookSecret ?? setting.value.webhookSecret) || ''
   webhookShow.value = true
 }
 
@@ -2114,10 +2122,12 @@ function webhookSave() {
     return
   }
   const form = {
-    webhookStatus: webhookStatus.value,
-    webhookUrl: url,
-    webhookRetry: retry,
-    webhookSecret: webhookSecret.value.trim()
+    webhookConfig: {
+      webhookStatus: webhookStatus.value,
+      webhookUrl: url,
+      webhookRetry: retry,
+      webhookSecret: webhookSecret.value.trim()
+    }
   }
   editSetting(form)
 }

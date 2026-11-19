@@ -53,6 +53,7 @@ const dbInit = {
 		await this.v3_21DB(c);
 		await this.v3_22DB(c);
 		await this.v3_23DB(c);
+		await this.v3_24DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -413,6 +414,44 @@ const dbInit = {
 		if (config) {
 			try {
 				await c.env.db.prepare(`UPDATE setting SET verify_config = ?`).bind(JSON.stringify(config)).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+	},
+
+	async v3_24DB(c) {
+		// Webhook 4 项打包进 webhook_config JSON 列（4 列变 1 列，腾 3 个空位）。
+		// 顺序：先读出现有值 → 删 4 个旧列 → 加 webhook_config 列 → 把值写回去。各步独立 try/catch，重复跑也不怕。
+		let config = null;
+		try {
+			const row = await c.env.db.prepare(`SELECT webhook_url, webhook_status, webhook_retry, webhook_secret FROM setting`).first();
+			if (row) {
+				config = {
+					webhookUrl: row.webhook_url ?? '',
+					webhookStatus: row.webhook_status ?? 1,
+					webhookRetry: row.webhook_retry ?? 0,
+					webhookSecret: row.webhook_secret ?? ''
+				};
+			}
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		for (const col of ['webhook_url', 'webhook_status', 'webhook_retry', 'webhook_secret']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN ${col};`).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN webhook_config TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		if (config) {
+			try {
+				await c.env.db.prepare(`UPDATE setting SET webhook_config = ?`).bind(JSON.stringify(config)).run();
 			} catch (e) {
 				console.warn(`跳过字段：${e.message}`);
 			}

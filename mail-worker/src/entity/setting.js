@@ -41,10 +41,8 @@ export const setting = sqliteTable('setting', {
 	autoCleanDays: integer('auto_clean_days').default(0).notNull(),
 	autoCleanExclude: text('auto_clean_exclude').default('').notNull(),
 	auditCleanDays: integer('audit_clean_days').default(0).notNull(),
-	webhookUrl: text('webhook_url').default('').notNull(),
-	webhookStatus: integer('webhook_status').default(1).notNull(),
-	webhookRetry: integer('webhook_retry').default(0).notNull(),
-	webhookSecret: text('webhook_secret').default('').notNull(),
+	// Webhook 4 项打包进一个 JSON 列，4 列变 1 列腾 3 个空位
+	webhookConfig: text('webhook_config').default('{}').notNull(),
 	attEncrypt: integer('att_encrypt').default(1).notNull(),
 	// 通知 4 开关打包进一个 JSON 列（notifyStatus/adminDelNotify/forwardFailNotify/backupFailNotify），4 列变 1 列腾 3 个空位
 	notifyFlags: text('notify_flags').default('{}').notNull(),
