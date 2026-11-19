@@ -82,7 +82,7 @@
       </div>
       <div class="forward-rule-summary" v-show="forwardOn === 0">
         <span class="forward-rule-label">{{ $t('forwardRuleTitle') }}</span>
-        <span class="forward-rule-summary-text" :title="forwardRuleSummary">{{ forwardRuleSummary }}</span>
+        <span class="forward-rule-summary-text">{{ forwardRuleSummary }}</span>
         <el-button @click="openForwardRule">{{ $t('forwardRuleSettings') }}</el-button>
       </div>
     </div>
@@ -190,12 +190,8 @@ const ruleDraftFrom = ref('')
 const ruleDraftSubject = ref('')
 const ruleDraftApplyAll = ref(false)
 const forwardRuleSummary = computed(() => {
-  const parts = []
-  const from = forwardRuleFrom.value.trim()
-  const subject = forwardRuleSubject.value.trim()
-  if (from) parts.push(t('forwardRuleFromSummary', {keywords: from}))
-  if (subject) parts.push(t('forwardRuleSubjectSummary', {keywords: subject}))
-  return parts.length ? parts.join('；') : t('forwardAll')
+  const hasRule = forwardRuleFrom.value.trim() || forwardRuleSubject.value.trim()
+  return hasRule ? t('forwardRuleFiltered') : t('forwardAll')
 })
 
 function openForwardRule() {
