@@ -662,7 +662,7 @@ const en = {
     clientSecret: 'Client Secret',
     notOwner: 'Base email does not belong to you',
     interfaceDisplay: 'Interface & Display',
-    sidebarTip: 'Drag rows to reorder. Switches control whether an item shows in the sidebar (hiding never disables the feature). Starred and Spam can also show only when they have unread mail.',
+    sidebarTip: 'Drag to reorder. Switches toggle visibility; hidden items still work.',
     saveFailed: 'Save failed, please try again',
     sidebarShow: 'Show',
     sidebarShowIfUnread: 'Show if unread',

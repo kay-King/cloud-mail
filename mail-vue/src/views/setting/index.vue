@@ -77,7 +77,7 @@
       </div>
       <div class="forward-row">
         <el-switch v-model="forwardOn" :active-value="0" :inactive-value="1"/>
-        <el-input v-model="forwardTarget" :placeholder="$t('forwardTargetPlaceholder')" :disabled="forwardOn === 1" style="width: 260px"/>
+        <el-input v-model="forwardTarget" :placeholder="$t('forwardTargetPlaceholder')" :disabled="forwardOn === 1"/>
         <el-button type="primary" :loading="forwardLoading" @click="saveForward">{{$t('save')}}</el-button>
       </div>
       <div class="forward-rule-summary" v-show="forwardOn === 0">
@@ -750,11 +750,22 @@ function submitPwd() {
     gap: 20px;
   }
 
+  // 手机端不换行：开关和按钮不压缩，输入框弹性伸缩（桌面端仍最多 260px）
   .forward-row {
     display: flex;
     gap: 12px;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+
+    > * {
+      flex-shrink: 0;
+    }
+
+    .el-input {
+      flex: 1;
+      min-width: 0;
+      max-width: 260px;
+    }
   }
 
   .forward-rule-summary {
@@ -823,7 +834,8 @@ function submitPwd() {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 11px 12px;
+    // 行高收紧：9 个条目太长是用户原话，行内边距能省就省
+    padding: 6px 12px;
     font-size: 14px;
     border-bottom: 1px solid var(--el-border-color-lighter);
   }
@@ -878,6 +890,11 @@ function submitPwd() {
 
 :deep(.sidebar-dialog.el-dialog) {
   width: 500px !important;
+  // 弹窗上下留白收紧，配合紧凑行高把总高度降下来
+  .el-dialog__body {
+    padding-top: 12px;
+    padding-bottom: 16px;
+  }
   @media (max-width: 540px) {
     width: calc(100% - 40px) !important;
     margin-right: 20px !important;

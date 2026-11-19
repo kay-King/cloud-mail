@@ -662,7 +662,7 @@ const zh = {
     clientSecret: '客户端密钥',
     notOwner: '基础邮箱不属于您',
     interfaceDisplay: '界面与显示',
-    sidebarTip: '拖动行可以排序，开关控制是否在侧边栏显示（只是不显示，功能不受影响）；星标和垃圾邮件可以选「有未读时显示」。',
+    sidebarTip: '拖动排序；开关控制显示，隐藏不影响功能。',
     saveFailed: '保存失败，请重试',
     sidebarShow: '显示',
     sidebarShowIfUnread: '有未读时显示',
