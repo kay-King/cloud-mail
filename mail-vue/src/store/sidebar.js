@@ -42,22 +42,32 @@ export const useSidebarStore = defineStore('sidebar', {
   },
   actions: {
     async load(force = false) {
-      if ((this.loaded || this.loading) && !force) {
+      if (this.loaded && !force) {
         return
       }
-      this.loading = true
-      try {
-        const data = await getSidebarConfig()
-        const { hidden, order } = normalize(data)
-        this.hidden = hidden
-        this.order = order
-        this.loaded = true
-      } catch (e) {
-        // 加载失败就用默认（全显示、默认顺序），不要让侧边栏空白
-        console.error('load sidebar config failed', e)
-      } finally {
-        this.loading = false
+      // 侧边栏与设置页都会调 load：请求进行中时返回同一个 Promise 等它完成，
+      // 不能直接 return——否则设置页会拿着还没加载完的默认顺序去同步本地列表，
+      // 刷新后设置列表显示默认顺序、侧边栏却是已保存顺序（2026-11-19 浏览器验证发现）
+      if (this.loading && this.loadPromise) {
+        return this.loadPromise
       }
+      this.loading = true
+      this.loadPromise = (async () => {
+        try {
+          const data = await getSidebarConfig()
+          const { hidden, order } = normalize(data)
+          this.hidden = hidden
+          this.order = order
+          this.loaded = true
+        } catch (e) {
+          // 加载失败就用默认（全显示、默认顺序），不要让侧边栏空白
+          console.error('load sidebar config failed', e)
+        } finally {
+          this.loading = false
+          this.loadPromise = null
+        }
+      })()
+      return this.loadPromise
     },
     // 保存当前 hidden/order 到服务器；失败时抛错，调用方负责提示与回滚
     async save() {
