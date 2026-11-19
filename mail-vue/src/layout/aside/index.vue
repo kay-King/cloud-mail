@@ -16,7 +16,7 @@
                       :class="route.meta.name === item.key ? 'choose-item' : ''">
           <Icon :icon="item.icon" :width="item.size" :height="item.size" />
           <span class="menu-name" :style="{ marginLeft: (item.labelMargin || 16) + 'px' }">{{$t(item.label)}}</span>
-          <span v-if="unreadBadge(item.key)" class="menu-badge" :class="{ active: route.meta.name === item.key }">{{ unreadBadge(item.key) }}</span>
+          <span v-if="unreadBadge(item.key)" class="menu-badge">{{ unreadBadge(item.key) }}</span>
         </el-menu-item>
         <div class="manage-title" v-perm="['all-email:query','user:query','role:query','setting:query','analysis:query','reg-key:query','audit:query']">
           <div>{{$t('manage')}}</div>
@@ -241,7 +241,7 @@ function openCompose() {
   backdrop-filter: blur(4px);
 }
 
-/* 未读数字角标：行尾小圆角牌，平时浅灰底灰字，选中那行换品牌浅底蓝字（照 Outlook 移动版样式） */
+/* 未读数字角标：行尾小圆角牌，浅灰底灰字；选中与未选中一个样，选中态由菜单行自己的底色块表达，不跟角标变色 */
 .menu-badge {
   margin-left: auto;
   min-width: 24px;
@@ -256,11 +256,6 @@ function openCompose() {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-.menu-badge.active {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
 }
 
 @media (hover: hover) {
