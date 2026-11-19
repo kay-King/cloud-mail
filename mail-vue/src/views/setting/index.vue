@@ -877,6 +877,12 @@ function submitPwd() {
     touch-action: none;
   }
 
+  // el-switch 组件本身高 32px（比它里面的开关轨道 20px 高），会把开关行撑高，
+  // 下拉框行只有约 33px，两边行高差 12px，看着就是下拉框行窄一截；压到 20px 齐平
+  .sidebar-row :deep(.el-switch) {
+    height: 20px;
+  }
+
   .sidebar-row-name {
     flex: 1;
     min-width: 0;
