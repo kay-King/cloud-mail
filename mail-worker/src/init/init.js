@@ -49,6 +49,7 @@ const dbInit = {
 		await this.v3_17DB(c);
 		await this.v3_18DB(c);
 		await this.v3_19DB(c);
+		await this.v3_20DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -245,6 +246,49 @@ const dbInit = {
 		if (config) {
 			try {
 				await c.env.db.prepare(`UPDATE setting SET att_storage = ?`).bind(JSON.stringify(config)).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+	},
+
+	async v3_20DB(c) {
+		// 第三方登录 9 项打包进 oauth_config JSON 列（9 列变 1 列，腾 8 个空位）。
+		// 顺序：先读出现有值 → 删 9 个旧列 → 加 oauth_config 列 → 把值写回去。各步独立 try/catch，重复跑也不怕。
+		let config = null;
+		try {
+			const row = await c.env.db.prepare(`SELECT linuxdo_client_id, linuxdo_client_secret, linuxdo_switch, github_client_id, github_client_secret, github_switch, google_client_id, google_client_secret, google_switch FROM setting`).first();
+			if (row) {
+				config = {
+					linuxdoClientId: row.linuxdo_client_id ?? '',
+					linuxdoClientSecret: row.linuxdo_client_secret ?? '',
+					linuxdoSwitch: row.linuxdo_switch ?? 1,
+					githubClientId: row.github_client_id ?? '',
+					githubClientSecret: row.github_client_secret ?? '',
+					githubSwitch: row.github_switch ?? 1,
+					googleClientId: row.google_client_id ?? '',
+					googleClientSecret: row.google_client_secret ?? '',
+					googleSwitch: row.google_switch ?? 1
+				};
+			}
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		for (const col of ['linuxdo_client_id', 'linuxdo_client_secret', 'linuxdo_switch', 'github_client_id', 'github_client_secret', 'github_switch', 'google_client_id', 'google_client_secret', 'google_switch']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN ${col};`).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN oauth_config TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		if (config) {
+			try {
+				await c.env.db.prepare(`UPDATE setting SET oauth_config = ?`).bind(JSON.stringify(config)).run();
 			} catch (e) {
 				console.warn(`跳过字段：${e.message}`);
 			}

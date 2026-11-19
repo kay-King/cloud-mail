@@ -22,6 +22,7 @@ const settingService = {
 		settingRow.globalForward = JSON.parse(settingRow.globalForward || '{}');
 		settingRow.backupConfig = JSON.parse(settingRow.backupConfig || '{}');
 		settingRow.attStorage = JSON.parse(settingRow.attStorage || '{}');
+		settingRow.oauthConfig = JSON.parse(settingRow.oauthConfig || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -109,6 +110,28 @@ const settingService = {
 			webdavUrl: pick('webdavUrl', ''),
 			webdavUsername: pick('webdavUsername', ''),
 			webdavPassword: pick('webdavPassword', '')
+		};
+	},
+
+	// 第三方登录配置读值（oauth_config 打包后）：新格式是 setting.oauthConfig 对象里的字段；
+	// 旧缓存里是平铺字段，两边都兜底；都没有时按默认（开关默认 1=关）。
+	oauthConfig(setting) {
+		const o = setting?.oauthConfig;
+		const pick = (key, def) => {
+			if (o && typeof o === 'object' && o[key] !== undefined && o[key] !== null) return o[key];
+			if (setting && setting[key] !== undefined && setting[key] !== null) return setting[key];
+			return def;
+		};
+		return {
+			linuxdoClientId: pick('linuxdoClientId', ''),
+			linuxdoClientSecret: pick('linuxdoClientSecret', ''),
+			linuxdoSwitch: pick('linuxdoSwitch', 1),
+			githubClientId: pick('githubClientId', ''),
+			githubClientSecret: pick('githubClientSecret', ''),
+			githubSwitch: pick('githubSwitch', 1),
+			googleClientId: pick('googleClientId', ''),
+			googleClientSecret: pick('googleClientSecret', ''),
+			googleSwitch: pick('googleSwitch', 1)
 		};
 	},
 
@@ -266,6 +289,14 @@ const settingService = {
 				attStorage[k] = v;
 			}
 		}
+		let oauthConfig = { ...(settingData.oauthConfig || {}) };
+		if (params.oauthConfig && typeof params.oauthConfig === 'object') {
+			for (const [k, v] of Object.entries(params.oauthConfig)) {
+				// 带 ****** 的是前端回显的脱敏值，不是真实密钥，跳过不覆盖
+				if (typeof v === 'string' && v.includes('******')) continue;
+				oauthConfig[k] = v;
+			}
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
@@ -274,6 +305,7 @@ const settingService = {
 		params.globalForward = JSON.stringify(globalForward);
 		params.backupConfig = JSON.stringify(backupConfig);
 		params.attStorage = JSON.stringify(attStorage);
+		params.oauthConfig = JSON.stringify(oauthConfig);
 
 		// 旧版平铺列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
@@ -313,6 +345,15 @@ const settingService = {
 		delete params.webdavUrl;
 		delete params.webdavUsername;
 		delete params.webdavPassword;
+		delete params.linuxdoClientId;
+		delete params.linuxdoClientSecret;
+		delete params.linuxdoSwitch;
+		delete params.githubClientId;
+		delete params.githubClientSecret;
+		delete params.githubSwitch;
+		delete params.googleClientId;
+		delete params.googleClientSecret;
+		delete params.googleSwitch;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);
@@ -403,12 +444,12 @@ const settingService = {
 			noticeOffset: settingRow.noticeOffset,
 			notice: settingRow.notice,
 			loginDomain: settingRow.loginDomain,
-			linuxdoClientId: settingRow.linuxdoClientId,
-			linuxdoSwitch: settingRow.linuxdoSwitch,
-			githubClientId: settingRow.githubClientId,
-			githubSwitch: settingRow.githubSwitch,
-			googleClientId: settingRow.googleClientId,
-			googleSwitch: settingRow.googleSwitch,
+			linuxdoClientId: this.oauthConfig(settingRow).linuxdoClientId,
+			linuxdoSwitch: this.oauthConfig(settingRow).linuxdoSwitch,
+			githubClientId: this.oauthConfig(settingRow).githubClientId,
+			githubSwitch: this.oauthConfig(settingRow).githubSwitch,
+			googleClientId: this.oauthConfig(settingRow).googleClientId,
+			googleSwitch: this.oauthConfig(settingRow).googleSwitch,
 			minEmailPrefix: settingRow.minEmailPrefix,
 			projectLink: settingRow.projectLink,
 			adminDelNotify: this.notifyFlag(settingRow, 'adminDelNotify'),

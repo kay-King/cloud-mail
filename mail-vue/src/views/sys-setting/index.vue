@@ -587,7 +587,7 @@
                   <span>{{ p.label }}</span>
                 </div>
                 <div class="forward">
-                  <span>{{ setting[p.key + 'Switch'] === 0 ? $t('enabled') : $t('disabled') }}</span>
+                  <span>{{ (setting.oauthConfig?.[p.key + 'Switch'] ?? setting[p.key + 'Switch']) === 0 ? $t('enabled') : $t('disabled') }}</span>
                   <el-button class="opt-button" size="small" type="primary" @click="openOauthSetting(p)">
                     <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
                   </el-button>
@@ -1670,6 +1670,18 @@ function getSettings() {
       webdavUsername: as.webdavUsername ?? settingData.webdavUsername ?? '',
       webdavPassword: as.webdavPassword ?? settingData.webdavPassword ?? ''
     }
+    const oc = settingData.oauthConfig || {}
+    settingData.oauthConfig = {
+      linuxdoClientId: oc.linuxdoClientId ?? settingData.linuxdoClientId ?? '',
+      linuxdoClientSecret: oc.linuxdoClientSecret ?? settingData.linuxdoClientSecret ?? '',
+      linuxdoSwitch: oc.linuxdoSwitch ?? settingData.linuxdoSwitch ?? 1,
+      githubClientId: oc.githubClientId ?? settingData.githubClientId ?? '',
+      githubClientSecret: oc.githubClientSecret ?? settingData.githubClientSecret ?? '',
+      githubSwitch: oc.githubSwitch ?? settingData.githubSwitch ?? 1,
+      googleClientId: oc.googleClientId ?? settingData.googleClientId ?? '',
+      googleClientSecret: oc.googleClientSecret ?? settingData.googleClientSecret ?? '',
+      googleSwitch: oc.googleSwitch ?? settingData.googleSwitch ?? 1
+    }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
@@ -2276,20 +2288,21 @@ function delBackground() {
 }
 
 function openOauthSetting(p) {
+  const o = setting.value.oauthConfig || {}
   oauthForm.key = p.key
   oauthForm.label = p.label
-  oauthForm.clientId = setting.value[p.key + 'ClientId'] || ''
-  oauthForm.clientSecret = setting.value[p.key + 'ClientSecret'] || ''
-  oauthForm.switch = setting.value[p.key + 'Switch'] ?? 1
+  oauthForm.clientId = o[p.key + 'ClientId'] ?? setting.value[p.key + 'ClientId'] ?? ''
+  oauthForm.clientSecret = o[p.key + 'ClientSecret'] ?? setting.value[p.key + 'ClientSecret'] ?? ''
+  oauthForm.switch = o[p.key + 'Switch'] ?? setting.value[p.key + 'Switch'] ?? 1
   oauthSettingShow.value = true
 }
 
 function saveOauth() {
-  const form = {}
-  form[oauthForm.key + 'ClientId'] = oauthForm.clientId
-  form[oauthForm.key + 'ClientSecret'] = oauthForm.clientSecret
-  form[oauthForm.key + 'Switch'] = oauthForm.switch
-  editSetting(form)
+  const oc = {}
+  oc[oauthForm.key + 'ClientId'] = oauthForm.clientId
+  oc[oauthForm.key + 'ClientSecret'] = oauthForm.clientSecret
+  oc[oauthForm.key + 'Switch'] = oauthForm.switch
+  editSetting({oauthConfig: oc})
 }
 
 function saveTurnstileKey() {

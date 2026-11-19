@@ -57,9 +57,7 @@ const SETTING_LABELS = {
 	brevoTokens: 'Brevo 密钥',
 	siteKey: '验证 Site Key',
 	secretKey: '验证 Secret Key',
-	linuxdoSwitch: 'Linux DO 登录',
-	githubSwitch: 'GitHub 登录',
-	googleSwitch: 'Google 登录',
+	oauthConfig: '第三方登录',
 };
 
 function normalizeValue(v) {

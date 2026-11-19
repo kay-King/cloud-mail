@@ -40,8 +40,8 @@ const oauthService = {
 		this.assertEnabled(setting, 'linuxdoSwitch');
 
 		const reqParams = new URLSearchParams()
-		reqParams.append('client_id', setting.linuxdoClientId)
-		reqParams.append('client_secret', setting.linuxdoClientSecret)
+		reqParams.append('client_id', settingService.oauthConfig(setting).linuxdoClientId)
+		reqParams.append('client_secret', settingService.oauthConfig(setting).linuxdoClientSecret)
 		reqParams.append('code', code)
 		reqParams.append('redirect_uri', redirectUri)
 		reqParams.append('grant_type', 'authorization_code')
@@ -94,8 +94,8 @@ const oauthService = {
 				"Accept": "application/json"
 			},
 			body: JSON.stringify({
-				client_id: setting.githubClientId,
-				client_secret: setting.githubClientSecret,
+				client_id: settingService.oauthConfig(setting).githubClientId,
+				client_secret: settingService.oauthConfig(setting).githubClientSecret,
 				code: code,
 				redirect_uri: redirectUri
 			})
@@ -140,8 +140,8 @@ const oauthService = {
 		this.assertEnabled(setting, 'googleSwitch');
 
 		const reqParams = new URLSearchParams()
-		reqParams.append('client_id', setting.googleClientId)
-		reqParams.append('client_secret', setting.googleClientSecret)
+		reqParams.append('client_id', settingService.oauthConfig(setting).googleClientId)
+		reqParams.append('client_secret', settingService.oauthConfig(setting).googleClientSecret)
 		reqParams.append('code', code)
 		reqParams.append('redirect_uri', redirectUri)
 		reqParams.append('grant_type', 'authorization_code')
