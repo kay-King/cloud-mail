@@ -28,8 +28,8 @@ export const setting = sqliteTable('setting', {
 	loginDomain: integer('login_domain').default(0).notNull(),
 	// 附件存储 14 项打包进一个 JSON 列，14 列变 1 列腾 13 个空位
 	attStorage: text('att_storage').default('{}').notNull(),
-	minEmailPrefix: integer('min_email_prefix').default(0).notNull(),
-	emailPrefixFilter: text('email_prefix_filter').default('').notNull(),
+	// 邮箱前缀 2 项打包进一个 JSON 列，2 列变 1 列腾 1 个空位
+	emailPrefixConfig: text('email_prefix_config').default('{}').notNull(),
 	// 黑名单 3 项打包进一个 JSON 列，3 列变 1 列腾 2 个空位
 	blacklistConfig: text('blacklist_config').default('{}').notNull(),
 	// AI 验证码 2 项打包进一个 JSON 列，2 列变 1 列腾 1 个空位

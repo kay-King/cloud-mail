@@ -57,6 +57,7 @@ const dbInit = {
 		await this.v3_25DB(c);
 		await this.v3_26DB(c);
 		await this.v3_27DB(c);
+		await this.v3_28DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -565,6 +566,42 @@ const dbInit = {
 		if (config) {
 			try {
 				await c.env.db.prepare(`UPDATE setting SET ai_code_config = ?`).bind(JSON.stringify(config)).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+	},
+
+	async v3_28DB(c) {
+		// 邮箱前缀 2 项打包进 email_prefix_config JSON 列（2 列变 1 列，腾 1 个空位）。
+		// 顺序：先读出现有值 → 删 2 个旧列 → 加 email_prefix_config 列 → 把值写回去。各步独立 try/catch，重复跑也不怕。
+		let config = null;
+		try {
+			const row = await c.env.db.prepare(`SELECT min_email_prefix, email_prefix_filter FROM setting`).first();
+			if (row) {
+				config = {
+					minEmailPrefix: row.min_email_prefix ?? 0,
+					emailPrefixFilter: row.email_prefix_filter ?? ''
+				};
+			}
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		for (const col of ['min_email_prefix', 'email_prefix_filter']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN ${col};`).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN email_prefix_config TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		if (config) {
+			try {
+				await c.env.db.prepare(`UPDATE setting SET email_prefix_config = ?`).bind(JSON.stringify(config)).run();
 			} catch (e) {
 				console.warn(`跳过字段：${e.message}`);
 			}

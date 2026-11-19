@@ -19,7 +19,8 @@ const accountService = {
 
 		const setting = await settingService.query(c);
 		const { addEmailVerify, addVerifyCount } = settingService.verifyConfig(setting);
-		const { addEmail, manyEmail, minEmailPrefix, emailPrefixFilter } = setting;
+		const { minEmailPrefix } = settingService.emailPrefixConfig(setting);
+		const { addEmail, manyEmail, emailPrefixFilter } = setting;
 
 		let { email, token } = params;
 

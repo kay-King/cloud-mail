@@ -30,6 +30,7 @@ const settingService = {
 		settingRow.blacklistConfig = JSON.parse(settingRow.blacklistConfig || '{}');
 		settingRow.autoCleanConfig = JSON.parse(settingRow.autoCleanConfig || '{}');
 		settingRow.aiCodeConfig = JSON.parse(settingRow.aiCodeConfig || '{}');
+		settingRow.emailPrefixConfig = JSON.parse(settingRow.emailPrefixConfig || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -264,6 +265,24 @@ const settingService = {
 		};
 	},
 
+	// 邮箱前缀配置读值（email_prefix_config 打包后）：新格式是 setting.emailPrefixConfig 对象里的字段；
+	// 旧缓存里是平铺字段，两边都兜底；都没有时按默认（最短长度默认 0，过滤列表默认空字符串）。
+	// 注意：query() 返回的 emailPrefixFilter 是数组（由字符串拆分而来），helper 这里返回原始字符串。
+	emailPrefixConfig(setting) {
+		const e = setting?.emailPrefixConfig;
+		const pick = (key, def) => {
+			if (e && typeof e === 'object' && e[key] !== undefined && e[key] !== null) return e[key];
+			if (setting && setting[key] !== undefined && setting[key] !== null) return setting[key];
+			return def;
+		};
+		const filterVal = pick('emailPrefixFilter', '');
+		return {
+			minEmailPrefix: pick('minEmailPrefix', 0),
+			// query() 返回的平铺字段是数组（已拆分），这里统一拼回字符串
+			emailPrefixFilter: Array.isArray(filterVal) ? filterVal.join(',') : filterVal
+		};
+	},
+
 	async query(c) {
 
 		if (c.get?.('setting')) {
@@ -304,7 +323,10 @@ const settingService = {
 
 		setting.projectLink = projectLink;
 
-		setting.emailPrefixFilter = setting.emailPrefixFilter.split(",").filter(Boolean);
+		// query() 返回的 emailPrefixFilter 是数组（供 account/login-service 的 .some() 与前端标签输入用）；
+		// 打包后字符串在 emailPrefixConfig 对象里，旧缓存是平铺字段，两边都兜底，仍拼成数组返回
+		const filterStr = setting.emailPrefixConfig?.emailPrefixFilter ?? setting.emailPrefixFilter ?? '';
+		setting.emailPrefixFilter = String(filterStr).split(",").filter(Boolean);
 
 		c.set?.('setting', setting);
 		return setting;
@@ -384,8 +406,9 @@ const settingService = {
 			if (!brevoTokens[domain]) delete brevoTokens[domain];
 		});
 
-		if (Array.isArray(params.emailPrefixFilter)) {
-			params.emailPrefixFilter = params.emailPrefixFilter + '';
+		// emailPrefixFilter 进了 emailPrefixConfig 对象，数组转字符串的处理随之挪到对象里的字段上
+		if (Array.isArray(params.emailPrefixConfig?.emailPrefixFilter)) {
+			params.emailPrefixConfig.emailPrefixFilter = params.emailPrefixConfig.emailPrefixFilter + '';
 		}
 
 		// aiCodeFilter 进了 aiCodeConfig 对象，数组转字符串的处理随之挪到对象里的字段上
@@ -486,6 +509,14 @@ const settingService = {
 				aiCodeConfig[k] = v;
 			}
 		}
+		let emailPrefixConfig = { ...(settingData.emailPrefixConfig || {}) };
+		if (params.emailPrefixConfig && typeof params.emailPrefixConfig === 'object') {
+			for (const [k, v] of Object.entries(params.emailPrefixConfig)) {
+				// 带 ****** 的是前端回显的脱敏值，不是真实密钥，跳过不覆盖
+				if (typeof v === 'string' && v.includes('******')) continue;
+				emailPrefixConfig[k] = v;
+			}
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
@@ -502,6 +533,7 @@ const settingService = {
 		params.blacklistConfig = JSON.stringify(blacklistConfig);
 		params.autoCleanConfig = JSON.stringify(autoCleanConfig);
 		params.aiCodeConfig = JSON.stringify(aiCodeConfig);
+		params.emailPrefixConfig = JSON.stringify(emailPrefixConfig);
 
 		// 旧版平铺列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
@@ -581,6 +613,8 @@ const settingService = {
 		delete params.auditCleanDays;
 		delete params.aiCode;
 		delete params.aiCodeFilter;
+		delete params.minEmailPrefix;
+		delete params.emailPrefixFilter;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);
@@ -682,7 +716,7 @@ const settingService = {
 			githubSwitch: this.oauthConfig(settingRow).githubSwitch,
 			googleClientId: this.oauthConfig(settingRow).googleClientId,
 			googleSwitch: this.oauthConfig(settingRow).googleSwitch,
-			minEmailPrefix: settingRow.minEmailPrefix,
+			minEmailPrefix: this.emailPrefixConfig(settingRow).minEmailPrefix,
 			projectLink: settingRow.projectLink,
 			adminDelNotify: this.notifyFlag(settingRow, 'adminDelNotify'),
 			autoBackup: this.backupConfig(settingRow).autoBackup

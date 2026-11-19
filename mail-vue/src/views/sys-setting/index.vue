@@ -1734,13 +1734,22 @@ function getSettings() {
       aiCode: ai.aiCode ?? settingData.aiCode ?? 1,
       aiCodeFilter: ai.aiCodeFilter ?? settingData.aiCodeFilter ?? ''
     }
+    const ep = settingData.emailPrefixConfig || {}
+    // 接口返回的平铺 emailPrefixFilter 是数组（后端 query() 已拆分），兜底时拼回字符串
+    const flatFilter = Array.isArray(settingData.emailPrefixFilter)
+      ? settingData.emailPrefixFilter.join(',')
+      : (settingData.emailPrefixFilter ?? '')
+    settingData.emailPrefixConfig = {
+      minEmailPrefix: ep.minEmailPrefix ?? settingData.minEmailPrefix ?? 0,
+      emailPrefixFilter: ep.emailPrefixFilter ?? flatFilter
+    }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
     sendkitTokenForm.domain = setting.value.domainList[0]
     brevoTokenForm.domain = setting.value.domainList[0]
     loginOpacity.value = setting.value.loginOpacity
-    minEmailPrefix.value = setting.value.minEmailPrefix
+    minEmailPrefix.value = setting.value.emailPrefixConfig?.minEmailPrefix ?? setting.value.minEmailPrefix
     firstLoading.value = false
     pickDefaultSendProvider()
     backgroundUrl.value = setting.value.background?.startsWith('http') ? setting.value.background : ''
@@ -2210,7 +2219,8 @@ function doOpacityChange() {
 }
 
 function resetEmailPrefix() {
-  minEmailPrefix.value = setting.value.minEmailPrefix
+  minEmailPrefix.value = setting.value.emailPrefixConfig?.minEmailPrefix ?? setting.value.minEmailPrefix
+  // emailPrefixFilter 在接口返回里是数组（后端 query() 已拆分），直接用平铺字段
   emailPrefixFilter.value = setting.value.emailPrefixFilter
 }
 
@@ -2241,9 +2251,12 @@ function resetAiCodeFilter() {
 }
 
 function saveEmailPrefix() {
-  const form = {}
-  form.minEmailPrefix = minEmailPrefix.value
-  form.emailPrefixFilter = emailPrefixFilter.value
+  const form = {
+    emailPrefixConfig: {
+      minEmailPrefix: minEmailPrefix.value,
+      emailPrefixFilter: emailPrefixFilter.value
+    }
+  }
   editSetting(form, true)
 }
 
