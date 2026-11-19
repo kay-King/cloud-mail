@@ -2044,10 +2044,10 @@ function webhookSave() {
 
 function openGlobalForward() {
   const g = setting.value.globalForward || {}
-  globalForwardEmail.value = g.forwardEmail ?? setting.value.forwardEmail || ''
+  globalForwardEmail.value = (g.forwardEmail ?? setting.value.forwardEmail) || ''
   globalForwardStatus.value = g.forwardStatus ?? setting.value.forwardStatus ?? 1
   globalRuleType.value = g.ruleType ?? setting.value.ruleType ?? 0
-  globalRuleEmail.value = g.ruleEmail ?? setting.value.ruleEmail || ''
+  globalRuleEmail.value = (g.ruleEmail ?? setting.value.ruleEmail) || ''
   globalForwardShow.value = true
 }
 
