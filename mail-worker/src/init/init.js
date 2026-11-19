@@ -83,7 +83,7 @@ const dbInit = {
 			create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
 			active_time DATETIME,
 			is_del INTEGER DEFAULT 0 NOT NULL
-		  , send_count INTEGER NOT NULL DEFAULT 0, sort INTEGER NOT NULL DEFAULT 0, os TEXT, device TEXT, create_ip TEXT, active_ip TEXT, browser TEXT, reg_key_id INTEGER NOT NULL DEFAULT 0, spam_blocklist TEXT NOT NULL DEFAULT '{}')
+		  , send_count INTEGER NOT NULL DEFAULT 0, sort INTEGER NOT NULL DEFAULT 0, os TEXT, device TEXT, create_ip TEXT, active_ip TEXT, browser TEXT, reg_key_id INTEGER NOT NULL DEFAULT 0, spam_blocklist TEXT NOT NULL DEFAULT '{}', sidebar_config TEXT NOT NULL DEFAULT '{}')
 		`).run();
 		await c.env.db.prepare(`
 		  CREATE TABLE IF NOT EXISTS account (

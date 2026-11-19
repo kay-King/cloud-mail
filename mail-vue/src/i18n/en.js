@@ -660,6 +660,10 @@ const en = {
     clientId: 'Client ID',
     clientSecret: 'Client Secret',
     notOwner: 'Base email does not belong to you',
+    interfaceDisplay: 'Interface & Display',
+    sidebarTip: 'Drag items to reorder the sidebar. Turning a switch off hides that item from the sidebar only; the feature still works.',
+    mustShow: 'Always shown',
+    saveFailed: 'Save failed, please try again',
 }
 
 export default en

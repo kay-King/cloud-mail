@@ -18,6 +18,7 @@ const user = sqliteTable('user', {
 	sendCount: text('send_count').default(0),
 	regKeyId: integer('reg_key_id').default(0).notNull(),
 	spamBlocklist: text('spam_blocklist').default('{}').notNull(),
+	sidebarConfig: text('sidebar_config').default('{}').notNull(),
 	isDel: integer('is_del').default(0).notNull()
 });
 export default user

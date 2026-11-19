@@ -96,6 +96,20 @@
         <el-button @click="openBlackList">{{ $t('blackListSettings') }}</el-button>
       </div>
     </div>
+    <div class="preference-item">
+      <div class="title">{{$t('interfaceDisplay')}}</div>
+      <div style="color: var(--regular-text-color);">
+        {{$t('sidebarTip')}}
+      </div>
+      <div ref="sidebarListRef" class="sidebar-list">
+        <div v-for="key in sidebarOrder" :key="key" class="sidebar-row">
+          <Icon icon="mdi:drag-vertical" width="20" height="20" class="sidebar-drag-handle" />
+          <span class="sidebar-row-name">{{ sidebarItemLabel(key) }}</span>
+          <span v-if="!isSidebarHideable(key)" class="sidebar-must-show">{{ $t('mustShow') }}</span>
+          <el-switch v-else :model-value="!sidebarStore.hidden.includes(key)" @change="onSidebarToggle(key, $event)" />
+        </div>
+      </div>
+    </div>
     <div class="del-email" v-perm="'my:delete'">
       <div class="title">{{$t('deleteUser')}}</div>
       <div style="color: var(--regular-text-color);">
@@ -146,7 +160,7 @@
   </div>
 </template>
 <script setup>
-import {reactive, ref, computed, defineOptions, watch, onMounted} from 'vue'
+import {reactive, ref, computed, defineOptions, watch, onMounted, onBeforeUnmount, nextTick} from 'vue'
 import {resetPassword, userDelete, getSpamBlocklist, setSpamBlocklist} from "@/request/my.js";
 import {useUserStore} from "@/store/user.js";
 import router from "@/router/index.js";
@@ -158,6 +172,9 @@ import {useUiStore} from "@/store/ui.js";
 import ThemeSelector from "@/components/theme-selector/index.vue";
 import {emailImport} from "@/request/email.js";
 import {useEmailStore} from "@/store/email.js";
+import {Icon} from "@iconify/vue";
+import Sortable from "@/assets/sortable.esm.js";
+import {useSidebarStore, SIDEBAR_DEFAULT_ORDER, SIDEBAR_HIDEABLE} from "@/store/sidebar.js";
 
 const { t } = useI18n()
 const accountStore = useAccountStore()
@@ -259,6 +276,71 @@ function savePersonalBlackList() {
     blackListLoading.value = false
   })
 }
+
+// 界面与显示：侧边栏个人区 9 个条目，拖动排序 + 开关显隐，改完立即保存（侧边栏实时跟着变）
+// 列表用本地副本：拖动时先改本地，拖完再写回 store 并保存，避免 Sortable 的 DOM 移动与 Vue 渲染打架
+const sidebarStore = useSidebarStore()
+const sidebarListRef = ref(null)
+const sidebarOrder = ref([...SIDEBAR_DEFAULT_ORDER])
+let sidebarSortable = null
+const sidebarItemLabels = {
+  email: 'inbox', send: 'sent', draft: 'drafts', star: 'starred', spam: 'spam',
+  trash: 'trash', attachments: 'myAttachments', contacts: 'contacts', setting: 'settings'
+}
+function sidebarItemLabel(key) {
+  return t(sidebarItemLabels[key] || key)
+}
+function isSidebarHideable(key) {
+  return SIDEBAR_HIDEABLE.includes(key)
+}
+// 保存失败：提示并从服务器重载，把本地与侧边栏都恢复成服务器的样子
+function revertSidebarConfig() {
+  ElMessage({ message: t('saveFailed'), type: 'error', plain: true })
+  sidebarStore.load(true).then(() => {
+    sidebarOrder.value = [...sidebarStore.order]
+  })
+}
+function onSidebarToggle(key, show) {
+  sidebarStore.setHidden(key, !show)
+  sidebarStore.save().catch(revertSidebarConfig)
+}
+function onSidebarDragEnd(evt) {
+  const { oldIndex, newIndex } = evt
+  if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) {
+    return
+  }
+  const order = [...sidebarOrder.value]
+  const [moved] = order.splice(oldIndex, 1)
+  order.splice(newIndex, 0, moved)
+  sidebarOrder.value = order
+  sidebarStore.order = order
+  sidebarStore.save().catch(revertSidebarConfig)
+}
+
+onMounted(() => {
+  sidebarStore.load().then(() => {
+    sidebarOrder.value = [...sidebarStore.order]
+    return nextTick()
+  }).then(() => {
+    if (!sidebarListRef.value) {
+      return
+    }
+    // 拖动只从把手开始（手机上点别处仍可滚动列表）；触摸延迟 120ms，避免一碰就拖
+    sidebarSortable = new Sortable(sidebarListRef.value, {
+      handle: '.sidebar-drag-handle',
+      animation: 150,
+      delay: 120,
+      delayOnTouchOnly: true,
+      ghostClass: 'sidebar-drag-ghost',
+      onEnd: onSidebarDragEnd
+    })
+  }).catch(err => console.error('sidebar drag init failed', err))
+})
+
+onBeforeUnmount(() => {
+  sidebarSortable?.destroy?.()
+  sidebarSortable = null
+})
 
 // 转发规则弹窗：弹窗里改草稿，点保存才写回并提交；取消则丢弃
 const forwardRuleShow = ref(false)
@@ -612,6 +694,47 @@ function submitPwd() {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  // 界面与显示：侧边栏条目列表（拖动排序 + 开关显隐）
+  .sidebar-list {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sidebar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    background: var(--el-fill-color-light);
+  }
+
+  .sidebar-drag-handle {
+    flex-shrink: 0;
+    color: var(--regular-text-color);
+    cursor: grab;
+    // 把手上禁止触摸滚动，手机上按住把手拖动时页面不会跟着滑
+    touch-action: none;
+  }
+
+  .sidebar-row-name {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sidebar-must-show {
+    font-size: 12px;
+    color: var(--regular-text-color);
+  }
+
+  .sidebar-drag-ghost {
+    opacity: 0.4;
   }
 }
 

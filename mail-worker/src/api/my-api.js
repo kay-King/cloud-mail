@@ -23,6 +23,16 @@ app.put('/my/spam-blocklist', async (c) => {
 	return c.json(result.ok());
 });
 
+app.get('/my/sidebar-config', async (c) => {
+	const data = await userService.getSidebarConfig(c, userContext.getUserId(c));
+	return c.json(result.ok(data));
+});
+
+app.put('/my/sidebar-config', async (c) => {
+	const data = await userService.setSidebarConfig(c, await c.req.json(), userContext.getUserId(c));
+	return c.json(result.ok(data));
+});
+
 app.delete('/my/delete', async (c) => {
 	await userService.delete(c, userContext.getUserId(c));
 	return c.json(result.ok());

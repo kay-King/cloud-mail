@@ -20,3 +20,11 @@ export function setSpamBlocklist(form) {
     return http.put('/my/spam-blocklist', form)
 }
 
+export function getSidebarConfig() {
+    return http.get('/my/sidebar-config')
+}
+
+export function setSidebarConfig(config) {
+    return http.put('/my/sidebar-config', config)
+}
+

@@ -660,5 +660,9 @@ const zh = {
     clientId: '客户端 ID',
     clientSecret: '客户端密钥',
     notOwner: '基础邮箱不属于您',
+    interfaceDisplay: '界面与显示',
+    sidebarTip: '拖动条目可以调整侧边栏顺序，关闭开关可以在侧边栏隐藏该条目（只是不显示，功能不受影响）',
+    mustShow: '必须显示',
+    saveFailed: '保存失败，请重试',
 }
 export default zh

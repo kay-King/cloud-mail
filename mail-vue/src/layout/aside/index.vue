@@ -10,50 +10,12 @@
         <span>{{ $t('compose') }}</span>
       </button>
       <el-menu :collapse="false" style="margin-top: 6px">
-        <el-menu-item @click="router.push({name: 'email'})" index="email"
-                      :class="route.meta.name === 'email' ? 'choose-item' : ''">
-          <Icon icon="hugeicons:mailbox-01" width="20" height="20" />
-          <span class="menu-name" style="margin-left: 16px">{{$t('inbox')}}</span>
-        </el-menu-item>
-        <el-menu-item @click="router.push({name: 'send'})" index="send" v-perm="'email:send'"
-                      :class="route.meta.name === 'send' ? 'choose-item' : ''">
-          <Icon icon="cil:send" width="20" height="20" />
-          <span class="menu-name" style="margin-left: 16px">{{$t('sent')}}</span>
-        </el-menu-item>
-        <el-menu-item @click="router.push({name: 'draft'})" index="draft" v-perm="'email:send'"
-                      :class="route.meta.name === 'draft' ? 'choose-item' : ''">
-          <Icon icon="ep:document" width="19" height="19" />
-          <span class="menu-name" style="margin-left: 17px">{{$t('drafts')}}</span>
-        </el-menu-item>
-        <el-menu-item @click="router.push({name: 'star'})" index="star"
-                      :class="route.meta.name === 'star' ? 'choose-item' : ''">
-          <Icon icon="solar:star-line-duotone" width="20" height="20" />
-          <span class="menu-name" style="margin-left: 16px">{{$t('starred')}}</span>
-        </el-menu-item>
-        <el-menu-item @click="router.push({name: 'spam'})" index="spam"
-                      :class="route.meta.name === 'spam' ? 'choose-item' : ''">
-          <Icon icon="mdi:email-alert-outline" width="20" height="20" />
-          <span class="menu-name" style="margin-left: 16px">{{$t('spam')}}</span>
-        </el-menu-item>
-        <el-menu-item @click="router.push({name: 'trash'})" index="trash"
-                      :class="route.meta.name === 'trash' ? 'choose-item' : ''">
-          <Icon icon="fluent:delete-24-regular" width="20" height="20" />
-          <span class="menu-name" style="margin-left: 16px">{{$t('trash')}}</span>
-        </el-menu-item>
-        <el-menu-item @click="router.push({name: 'attachments'})" index="attachments"
-                      :class="route.meta.name === 'attachments' ? 'choose-item' : ''">
-          <Icon icon="fluent:attach-20-regular" width="20" height="20" />
-          <span class="menu-name" style="margin-left: 16px">{{$t('myAttachments')}}</span>
-        </el-menu-item>
-        <el-menu-item @click="router.push({name: 'contacts'})" index="contacts"
-                      :class="route.meta.name === 'contacts' ? 'choose-item' : ''">
-          <Icon icon="fluent:people-20-regular" width="20" height="20" />
-          <span class="menu-name" style="margin-left: 16px">{{$t('contacts')}}</span>
-        </el-menu-item>
-        <el-menu-item @click="router.push({name: 'setting'})" index="setting"
-                      :class="route.meta.name === 'setting' ? 'choose-item' : ''">
-          <Icon icon="fluent:settings-48-regular" width="20" height="20" />
-          <span class="menu-name" style="margin-left: 16px">{{$t('settings')}}</span>
+        <!-- 个人区：顺序与显隐由 sidebarStore 控制（个人设置「界面与显示」里改） -->
+        <el-menu-item v-for="item in visiblePersonalItems" :key="item.key"
+                      @click="router.push({name: item.key})" :index="item.key"
+                      :class="route.meta.name === item.key ? 'choose-item' : ''">
+          <Icon :icon="item.icon" :width="item.size" :height="item.size" />
+          <span class="menu-name" :style="{ marginLeft: (item.labelMargin || 16) + 'px' }">{{$t(item.label)}}</span>
         </el-menu-item>
         <div class="manage-title" v-perm="['all-email:query','user:query','role:query','setting:query','analysis:query','reg-key:query','audit:query']">
           <div>{{$t('manage')}}</div>
@@ -105,15 +67,42 @@
 
 <script setup>
 import router from "@/router/index.js";
-import {computed} from "vue";
+import {computed, onMounted} from "vue";
 import { useRoute } from "vue-router";
 import {Icon} from "@iconify/vue";
 import {useSettingStore} from "@/store/setting.js";
 import {useUiStore} from "@/store/ui.js";
+import {useSidebarStore} from "@/store/sidebar.js";
+import {hasPerm} from "@/perm/perm.js";
 
 const settingStore = useSettingStore();
 const uiStore = useUiStore();
+const sidebarStore = useSidebarStore();
 const route = useRoute();
+
+// 个人区条目（图标尺寸与边距照抄原来的写法，外观不变；顺序与显隐由 sidebarStore 控制）
+const personalItems = [
+  { key: 'email', icon: 'hugeicons:mailbox-01', size: 20, label: 'inbox', perm: null },
+  { key: 'send', icon: 'cil:send', size: 20, label: 'sent', perm: 'email:send' },
+  { key: 'draft', icon: 'ep:document', size: 19, label: 'drafts', perm: 'email:send', labelMargin: 17 },
+  { key: 'star', icon: 'solar:star-line-duotone', size: 20, label: 'starred', perm: null },
+  { key: 'spam', icon: 'mdi:email-alert-outline', size: 20, label: 'spam', perm: null },
+  { key: 'trash', icon: 'fluent:delete-24-regular', size: 20, label: 'trash', perm: null },
+  { key: 'attachments', icon: 'fluent:attach-20-regular', size: 20, label: 'myAttachments', perm: null },
+  { key: 'contacts', icon: 'fluent:people-20-regular', size: 20, label: 'contacts', perm: null },
+  { key: 'setting', icon: 'fluent:settings-48-regular', size: 20, label: 'settings', perm: null },
+]
+// 权限过滤走 hasPerm（计算属性，权限晚到也能补上；原来的 v-perm 指令在 mounted 时删元素，权限晚到就回不来了）
+const visiblePersonalItems = computed(() => {
+  const byKey = Object.fromEntries(personalItems.map(item => [item.key, item]))
+  return sidebarStore.visibleKeys
+    .map(key => byKey[key])
+    .filter(item => item && (!item.perm || hasPerm(item.perm)))
+})
+
+onMounted(() => {
+  sidebarStore.load()
+})
 const logoUrl = computed(() => {
   // Logo 跟随品牌主题：默认用 mail.png，各品牌用对应的 SVG 信封
   const brand = uiStore.brand

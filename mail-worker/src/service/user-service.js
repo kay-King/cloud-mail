@@ -105,6 +105,54 @@ const userService = {
 		}).where(eq(user.userId, userId)).run();
 	},
 
+	// 侧边栏自定义：个人区 9 个条目，收件箱与设置必须显示，其余 7 个可隐藏，9 个都能调顺序
+	// 配置存 user.sidebar_config：{ hidden: [...], order: [...] }
+	sidebarDefaultOrder: ['email', 'send', 'draft', 'star', 'spam', 'trash', 'attachments', 'contacts', 'setting'],
+	sidebarHideable: ['send', 'draft', 'star', 'spam', 'trash', 'attachments', 'contacts'],
+
+	normalizeSidebarConfig(config) {
+		const parsed = config || {};
+		// hidden 只认可隐藏的 7 个，收件箱/设置写进来也强制踢掉
+		const hidden = Array.isArray(parsed.hidden)
+			? [...new Set(parsed.hidden)].filter(key => this.sidebarHideable.includes(key))
+			: [];
+		// order 只认 9 个已知条目，缺的按默认顺序补到末尾（以后新增条目也不会丢）
+		const order = [];
+		if (Array.isArray(parsed.order)) {
+			for (const key of parsed.order) {
+				if (this.sidebarDefaultOrder.includes(key) && !order.includes(key)) {
+					order.push(key);
+				}
+			}
+		}
+		for (const key of this.sidebarDefaultOrder) {
+			if (!order.includes(key)) {
+				order.push(key);
+			}
+		}
+		return { hidden, order };
+	},
+
+	async getSidebarConfig(c, userId) {
+		const row = await this.selectById(c, userId);
+		let parsed = {};
+		try {
+			parsed = JSON.parse(row?.sidebarConfig || '{}');
+		} catch {
+			parsed = {};
+		}
+		return this.normalizeSidebarConfig(parsed);
+	},
+
+	// 侧边栏保存：只改自己的，读写同一套 normalize（脏数据进库前先洗干净）
+	async setSidebarConfig(c, params, userId) {
+		const normalized = this.normalizeSidebarConfig(params || {});
+		await orm(c).update(user).set({
+			sidebarConfig: JSON.stringify(normalized)
+		}).where(eq(user.userId, userId)).run();
+		return normalized;
+	},
+
 	selectByEmail(c, email) {
 		return orm(c).select().from(user).where(
 			and(
