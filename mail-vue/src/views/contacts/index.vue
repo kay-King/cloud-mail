@@ -316,4 +316,14 @@ function writeTo(row) {
     order: 3;
   }
 }
+
+// 新增/编辑弹窗：内容被传送到 body 下，样式须挂在弹窗根类上，不能放在 .contacts-page 里
+// 手机上弹窗改成几乎全宽（左右各留 20px），不再固定 420px 撑出屏幕
+:deep(.contact-dialog.el-dialog) {
+  @media (max-width: 540px) {
+    width: calc(100% - 40px) !important;
+    margin-right: 20px !important;
+    margin-left: 20px !important;
+  }
+}
 </style>
