@@ -152,14 +152,28 @@
       <div class="sidebar-dialog-tip">{{$t('sidebarTip')}}</div>
       <div ref="sidebarListRef" class="sidebar-list">
         <div v-for="key in sidebarDraftOrder" :key="key" class="sidebar-row">
-          <Icon icon="mdi:drag-vertical" width="16" height="16" class="sidebar-drag-handle" />
+          <Icon icon="mdi:menu" width="20" height="20" class="sidebar-drag-handle" />
           <span class="sidebar-row-name">{{ sidebarItemLabel(key) }}</span>
           <el-switch v-if="!isSidebarHideable(key)" :model-value="true" disabled />
-          <div v-else-if="isSidebarUnreadKey(key)" class="sidebar-visibility-options">
-            <span class="sidebar-visibility-option" :class="{ active: sidebarDraftVisibility(key) === 'show' }" @click="onSidebarDraftVisibility(key, 'show')">{{ $t('sidebarShow') }}</span>
-            <span class="sidebar-visibility-option" :class="{ active: sidebarDraftVisibility(key) === 'unread' }" @click="onSidebarDraftVisibility(key, 'unread')">{{ $t('sidebarShowIfUnread') }}</span>
-            <span class="sidebar-visibility-option" :class="{ active: sidebarDraftVisibility(key) === 'hide' }" @click="onSidebarDraftVisibility(key, 'hide')">{{ $t('sidebarHide') }}</span>
-          </div>
+          <el-dropdown v-else-if="isSidebarUnreadKey(key)" trigger="click" placement="bottom-end" @command="onSidebarDraftVisibility(key, $event)">
+            <span class="sidebar-visibility-select">
+              {{ sidebarVisibilityLabel(key) }}
+              <Icon icon="mdi:chevron-down" width="14" height="14" class="sidebar-visibility-arrow" />
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="show">
+                  <span class="sidebar-dropdown-label" :class="{ active: sidebarDraftVisibility(key) === 'show' }">{{ $t('sidebarShow') }}</span>
+                </el-dropdown-item>
+                <el-dropdown-item command="unread">
+                  <span class="sidebar-dropdown-label" :class="{ active: sidebarDraftVisibility(key) === 'unread' }">{{ $t('sidebarShowIfUnread') }}</span>
+                </el-dropdown-item>
+                <el-dropdown-item command="hide">
+                  <span class="sidebar-dropdown-label" :class="{ active: sidebarDraftVisibility(key) === 'hide' }">{{ $t('sidebarHide') }}</span>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <el-switch v-else :model-value="!sidebarDraftHidden.includes(key)" @change="onSidebarDraftToggle(key, $event)" />
         </div>
       </div>
@@ -349,6 +363,17 @@ function sidebarDraftVisibility(key) {
     return 'unread'
   }
   return 'show'
+}
+// 下拉框触发器上只显示当前选项的文字
+function sidebarVisibilityLabel(key) {
+  const mode = sidebarDraftVisibility(key)
+  if (mode === 'unread') {
+    return t('sidebarShowIfUnread')
+  }
+  if (mode === 'hide') {
+    return t('sidebarHide')
+  }
+  return t('sidebarShow')
 }
 function setDraftVisibility(key, mode) {
   if (!SIDEBAR_HIDEABLE.includes(key)) {
@@ -855,32 +880,36 @@ function submitPwd() {
   .sidebar-row-name {
     flex: 1;
     min-width: 0;
+    // 名字不换行：控件再宽也只省略，不把行撑成两行
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .sidebar-visibility-options {
+  // 下拉框触发器：只显示当前选项文字 + 小箭头，无框线
+  .sidebar-visibility-select {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
+    cursor: pointer;
+    color: var(--regular-text-color);
     font-size: 13px;
     white-space: nowrap;
   }
 
-  // 三个选项是可点的文字按钮，选中态是浅蓝小药丸，不再是裸文字加斜杠
-  .sidebar-visibility-option {
-    cursor: pointer;
-    color: var(--regular-text-color);
-    padding: 3px 8px;
-    border-radius: 4px;
-  }
-
-  .sidebar-visibility-option:hover {
+  .sidebar-visibility-select:hover {
     color: var(--el-color-primary);
   }
 
-  .sidebar-visibility-option.active {
+  .sidebar-visibility-arrow {
+    flex-shrink: 0;
+    color: var(--el-text-color-placeholder);
+  }
+
+  // 下拉菜单里的当前项：品牌蓝加粗（菜单虽传送到 body，但这层 span 是本组件渲染的，scoped 样式能命中）
+  .sidebar-dropdown-label.active {
     color: var(--el-color-primary);
     font-weight: 600;
-    background: var(--el-color-primary-light-9);
   }
 
   .sidebar-drag-ghost {
@@ -890,9 +919,12 @@ function submitPwd() {
 
 :deep(.sidebar-dialog.el-dialog) {
   width: 500px !important;
-  // 弹窗上下留白收紧，配合紧凑行高把总高度降下来
+  // 弹窗上下留白收紧，配合紧凑行高把总高度降下来；标题与提示语之间也收紧
+  .el-dialog__header {
+    padding-bottom: 4px;
+  }
   .el-dialog__body {
-    padding-top: 12px;
+    padding-top: 8px;
     padding-bottom: 16px;
   }
   @media (max-width: 540px) {
