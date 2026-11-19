@@ -23,4 +23,5 @@ import '../api/oauth-api'
 import '../api/att-api'
 import '../api/backup-api'
 import '../api/audit-api'
+import '../api/contact-api'
 export default app;

@@ -31,9 +31,9 @@
               >
                 <el-option
                     v-for="item in selectRecipientList"
-                    :key="item"
-                    :label="item"
-                    :value="item"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
                     style="color: var(--secondary-text-color);"
                 />
               </el-select>
@@ -63,9 +63,9 @@
               >
                 <el-option
                     v-for="item in ccSuggestList"
-                    :key="item"
-                    :label="item"
-                    :value="item"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
                     style="color: var(--secondary-text-color);"
                 />
               </el-select>
@@ -93,9 +93,9 @@
               >
                 <el-option
                     v-for="item in bccSuggestList"
-                    :key="item"
-                    :label="item"
-                    :value="item"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
                     style="color: var(--secondary-text-color);"
                 />
               </el-select>
@@ -147,9 +147,18 @@
         </div>
       </div>
     </div>
-    <el-dialog top="10vh" v-model="showContacts" @closed="clearSelectContact" :title="t('recentContacts')">
-      <el-table class="contacts-table" ref="contactsTabRef" row-key="email" :data="contacts" style="height: 445px" @row-click="toggleContactRow">
+    <el-dialog top="10vh" v-model="showContacts" @closed="clearSelectContact" :title="t('chooseContacts')">
+      <el-tabs v-model="contactTab" @tab-click="clearSelectContact">
+        <el-tab-pane :label="t('contacts')" name="book"/>
+        <el-tab-pane :label="t('recentContacts')" name="recent"/>
+      </el-tabs>
+      <el-table class="contacts-table" ref="contactsTabRef" row-key="email" :data="dialogContacts" style="height: 400px" @row-click="toggleContactRow">
         <el-table-column type="selection" width="32" />
+        <el-table-column v-if="contactTab === 'book'" property="name" :label="t('contactName')" width="120">
+          <template #default="props">
+            <div class="email-row">{{ props.row.name }}</div>
+          </template>
+        </el-table-column>
         <el-table-column property="email" :label="t('emailAccount')" >
           <template #default="props">
             <div class="email-row">{{ props.row.email }}</div>
@@ -164,7 +173,7 @@
         </el-table-column>
       </el-table>
       <div class="contacts-bottom">
-        <el-button type="default" @click="deleteContact">{{t('clear')}}</el-button>
+        <el-button type="default" v-if="contactTab === 'recent'" @click="deleteContact">{{t('clear')}}</el-button>
         <el-button type="primary" @click="chooseContact">{{t('selectContacts')}}</el-button>
       </div>
     </el-dialog>
@@ -176,6 +185,7 @@ import {h, nextTick, onMounted, onUnmounted, reactive, ref, toRaw, computed} fro
 import {Icon} from "@iconify/vue";
 import {useUserStore} from "@/store/user.js";
 import {emailSend} from "@/request/email.js";
+import {contactList as fetchContactList} from "@/request/contact.js";
 import {isEmail} from "@/utils/verify-utils.js";
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
@@ -198,6 +208,7 @@ defineExpose({
   openReply,
   openForward,
   openDraft,
+  openTo,
   openWithAttachments
 })
 
@@ -225,6 +236,7 @@ const mySelect = ref()
 const ccSelectRef = ref()
 const bccSelectRef = ref()
 const suggestOpen = { receive: false, cc: false, bcc: false }
+const suggestSeq = { receive: 0, cc: 0, bcc: 0 }
 const backReply = reactive({
   receiveEmail: [],
   subject: '',
@@ -256,6 +268,22 @@ const suggestSelectMap = { receive: mySelect, cc: ccSelectRef, bcc: bccSelectRef
 const suggestFieldMap = { receive: 'receiveEmail', cc: 'ccEmail', bcc: 'bccEmail' }
 
 const contacts = computed(() => writerStore.sendRecipientRecord.map(item => ({email: item})))
+
+// 通讯录（服务端存的联系人）：选联系人弹窗的「通讯录」页 + 收件人联想都用它
+const contactTab = ref('book')
+const bookContacts = ref([])
+let bookContactsLoaded = false
+const dialogContacts = computed(() => contactTab.value === 'book' ? bookContacts.value : contacts.value)
+
+async function loadBookContacts() {
+  try {
+    const data = await fetchContactList({page: 1, size: 200})
+    bookContacts.value = data.list || []
+    bookContactsLoaded = true
+  } catch {
+    bookContacts.value = []
+  }
+}
 const separateSendLabel = computed(() => t(form.sendType === 'forward' ? 'separateForward' : 'separateSend'))
 const sendButtonLabel = computed(() => {
   if (form.manyType === 'divide') return separateSendLabel.value
@@ -284,12 +312,14 @@ function targetAddressKey() {
   return 'receiveEmail'
 }
 
-function openContacts(target = 'receive') {
+async function openContacts(target = 'receive') {
   contactTarget.value = target
+  contactTab.value = 'book'
   showContacts.value = true
+  await loadBookContacts()
   nextTick(() => {
     form[targetAddressKey()].forEach(item => {
-      if (writerStore.sendRecipientRecord.includes(item)) {
+      if (dialogContacts.value.some(row => row.email === item)) {
         contactsTabRef.value.toggleRowSelection({email: item});
       }
     })
@@ -319,9 +349,12 @@ function chooseContact() {
     }
   })
 
-  form[key] = form[key].filter(item => {
-    return contactList.includes(item) || !writerStore.sendRecipientRecord.includes(item);
-  });
+  // 最近联系人页：取消勾选的最近联系人同时从收件人里去掉（原有行为）；通讯录页不做反向删除
+  if (contactTab.value === 'recent') {
+    form[key] = form[key].filter(item => {
+      return contactList.includes(item) || !writerStore.sendRecipientRecord.includes(item);
+    });
+  }
 
   showContacts.value = false
 }
@@ -347,9 +380,20 @@ function suggestChange(target, value) {
   form[suggestFieldMap[target]].push(value)
 }
 
-function updateSuggest(target, value) {
+async function updateSuggest(target, value) {
   const field = suggestFieldMap[target]
-  const list = writerStore.sendRecipientRecord.filter(item => value && !form[field].includes(item) && item.startsWith(value)).slice(0, 10)
+  const seq = ++suggestSeq[target]
+  // 通讯录优先：姓名/邮箱包含匹配，显示成「姓名 <邮箱>」
+  let book = []
+  if (value) {
+    if (!bookContactsLoaded) await loadBookContacts()
+    if (seq !== suggestSeq[target]) return
+    const q = value.toLowerCase()
+    book = bookContacts.value.filter(c => !form[field].includes(c.email) && (c.email.toLowerCase().includes(q) || (c.name && c.name.toLowerCase().includes(q)))).slice(0, 10).map(c => ({label: c.name ? `${c.name} <${c.email}>` : c.email, value: c.email}))
+  }
+  const recent = writerStore.sendRecipientRecord.filter(item => value && !form[field].includes(item) && item.startsWith(value)).map(email => ({label: email, value: email}))
+  const seen = new Set()
+  const list = [...book, ...recent].filter(o => !seen.has(o.value) && seen.add(o.value)).slice(0, 10)
   suggestListMap[target].value = list
 
   if (!suggestOpen[target] && list.length > 0) {
@@ -640,6 +684,12 @@ function openForward(email) {
     })
 
   });
+}
+
+function openTo(email) {
+  resetForm();
+  form.receiveEmail.push(email)
+  open()
 }
 
 function openReply(email) {

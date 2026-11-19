@@ -46,6 +46,16 @@ const dbInit = {
 		  )
 		`).run();
 		await c.env.db.prepare(`
+		  CREATE TABLE IF NOT EXISTS contact (
+			contact_id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			name TEXT NOT NULL DEFAULT '',
+			email TEXT NOT NULL,
+			remark TEXT NOT NULL DEFAULT '',
+			create_time DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+		  )
+		`).run();
+		await c.env.db.prepare(`
 		  CREATE TABLE IF NOT EXISTS attachments (
 			att_id INTEGER PRIMARY KEY AUTOINCREMENT,
 			user_id INTEGER NOT NULL,
