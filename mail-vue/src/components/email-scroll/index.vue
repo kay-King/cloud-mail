@@ -111,7 +111,7 @@
                         <Icon v-if="item.hasInlineImage" icon="mdi:image" width="16" height="16" class="attachment-icon"/>
                       </el-tooltip>
                       <el-tooltip effect="dark" :content="$t('pairCountTip', {count: item.pairCount})">
-                        <Icon v-if="item.pairCount > 1" icon="hugeicons:copy-01" width="16" height="16" class="attachment-icon"/>
+                        <Icon v-if="item.pairCount > 1" icon="fluent:mail-copy-20-regular" width="16" height="16" class="attachment-icon"/>
                       </el-tooltip>
                     </span>
                     <span class="email-content" v-html="item.listHtml"></span>

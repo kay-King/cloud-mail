@@ -56,7 +56,7 @@
                 <div>{{ formatDetailDate(email.createTime) }}</div>
               </div>
               <div class="pair-count" v-if="email.pairCount > 1">
-                <Icon icon="hugeicons:copy-01" width="16" height="16"/>
+                <Icon icon="fluent:mail-copy-20-regular" width="16" height="16"/>
                 <span>{{ $t('pairCountTip', {count: email.pairCount}) }}</span>
               </div>
             </div>
