@@ -127,13 +127,13 @@
     <el-dialog v-model="blackListShow" class="forward-rule-dialog" :title="$t('blackList')">
       <el-form>
         <el-form-item :label="t('blackFromDesc')" label-position="top">
-          <el-input-tag v-model="blackListDraft.blackFrom"/>
+          <el-input-tag v-model="blackListDraft.blackFrom" :placeholder="t('blackFromPlaceholder')"/>
         </el-form-item>
         <el-form-item :label="t('blackSubjectDesc')" label-position="top">
-          <el-input-tag v-model="blackListDraft.blackSubject"/>
+          <el-input-tag v-model="blackListDraft.blackSubject" :placeholder="t('blackSubjectPlaceholder')"/>
         </el-form-item>
         <el-form-item :label="t('blackContentDesc')" label-position="top">
-          <el-input-tag v-model="blackListDraft.blackContent"/>
+          <el-input-tag v-model="blackListDraft.blackContent" :placeholder="t('blackContentPlaceholder')"/>
         </el-form-item>
       </el-form>
       <template #footer>

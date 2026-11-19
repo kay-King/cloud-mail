@@ -1329,13 +1329,13 @@ Authorization: &lt;secret&gt;</pre>
         </template>
         <el-form>
           <el-form-item :label="t('blackFromDesc')" label-position="top">
-            <el-input-tag v-model="blackListForm.blackFrom" @add-tag="banEmailAddTag"  />
+            <el-input-tag v-model="blackListForm.blackFrom" :placeholder="t('blackFromPlaceholder')" @add-tag="banEmailAddTag"  />
           </el-form-item>
           <el-form-item :label="t('blackSubjectDesc')" label-position="top">
-            <el-input-tag v-model="blackListForm.blackSubject"/>
+            <el-input-tag v-model="blackListForm.blackSubject" :placeholder="t('blackSubjectPlaceholder')"/>
           </el-form-item>
           <el-form-item :label="t('blackContentDesc')" label-position="top">
-            <el-input-tag v-model="blackListForm.blackContent"/>
+            <el-input-tag v-model="blackListForm.blackContent" :placeholder="t('blackContentPlaceholder')"/>
           </el-form-item>
         </el-form>
         <el-button type="primary" style="width: 100%;" :loading="settingLoading" @click="saveBlackList">{{ $t('save') }}</el-button>
