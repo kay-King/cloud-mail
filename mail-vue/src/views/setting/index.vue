@@ -158,7 +158,7 @@
           <el-dropdown v-else-if="isSidebarUnreadKey(key)" trigger="click" placement="bottom-end" @command="onSidebarDraftVisibility(key, $event)">
             <span class="sidebar-visibility-select">
               {{ sidebarVisibilityLabel(key) }}
-              <Icon icon="mdi:chevron-down" width="14" height="14" class="sidebar-visibility-arrow" />
+              <Icon icon="mdi:chevron-down" width="16" height="16" class="sidebar-visibility-arrow" />
             </span>
             <template #dropdown>
               <el-dropdown-menu>
@@ -886,13 +886,14 @@ function submitPwd() {
     text-overflow: ellipsis;
   }
 
-  // 下拉框触发器：只显示当前选项文字 + 小箭头，无框线
+  // 下拉框触发器：只显示当前选项文字 + 小箭头，无框线；
+  // 文字用品牌蓝——开关行右侧是实心蓝开关，灰字下拉框看着会比开关行窄
   .sidebar-visibility-select {
     display: flex;
     align-items: center;
     gap: 2px;
     cursor: pointer;
-    color: var(--regular-text-color);
+    color: var(--el-color-primary);
     font-size: 13px;
     white-space: nowrap;
   }
@@ -903,7 +904,7 @@ function submitPwd() {
 
   .sidebar-visibility-arrow {
     flex-shrink: 0;
-    color: var(--el-text-color-placeholder);
+    color: var(--el-color-primary);
   }
 
   // 下拉菜单里的当前项：品牌蓝加粗（菜单虽传送到 body，但这层 span 是本组件渲染的，scoped 样式能命中）
