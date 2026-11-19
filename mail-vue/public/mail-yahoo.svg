@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-  <!-- Yahoo 风 Logo：雅虎紫信封 + 黄色感叹点 -->
-  <rect x="4" y="10" width="40" height="28" rx="5" fill="#6001d2"/>
-  <path d="M9 15.5 L24 27 L39 15.5" stroke="#ffffff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="24" cy="31" r="2.5" fill="#ffd200"/>
+  <!-- Yahoo 风 v3：雅虎紫信封 + 白色封口线 -->
+  <rect x="5" y="11" width="38" height="26" rx="5" fill="#6001d2"/>
+  <path d="M9 15 L24 26 L39 15" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
