@@ -35,16 +35,42 @@ function normalize(config) {
   return { hidden, order, showIfUnread }
 }
 
+// 启动闪烁：侧边栏首屏用默认 state（全显示、默认顺序）渲染，等服务器配置回来才过滤，
+// 隐藏/「有未读时显示」的条目会先闪一下再消失。把上次的配置缓存在 localStorage，
+// 首屏先用缓存渲染，服务器配置回来后再校正（跟主题设置一个做法）。
+// 缓存不区分用户：换账号登录时首屏可能短暂显示上个账号的配置，load() 很快会校正。
+const SIDEBAR_CACHE_KEY = 'sidebarConfig'
+function loadCached() {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_CACHE_KEY)
+    if (!raw) return null
+    return normalize(JSON.parse(raw))
+  } catch (e) {
+    return null
+  }
+}
+function saveCached(config) {
+  try {
+    localStorage.setItem(SIDEBAR_CACHE_KEY, JSON.stringify(config))
+  } catch (e) {
+    // 隐私模式等写不进去时忽略，服务器配置仍是准绳
+  }
+}
+
 export const useSidebarStore = defineStore('sidebar', {
-  state: () => ({
-    hidden: [],
-    order: [...SIDEBAR_DEFAULT_ORDER],
-    showIfUnread: [],
-    // 「有未读时显示」用的未读数（只统计星标与垃圾箱）
-    unread: { star: 0, spam: 0 },
-    loaded: false,
-    loading: false
-  }),
+  state: () => {
+    const cached = loadCached()
+    return {
+      hidden: cached?.hidden || [],
+      order: cached?.order || [...SIDEBAR_DEFAULT_ORDER],
+      showIfUnread: cached?.showIfUnread || [],
+      // 「有未读时显示」用的未读数（只统计星标与垃圾箱）；未读数不缓存，初始为 0，
+      // 「有未读时显示」的条目首屏先隐藏、有未读时再出现（只进不出，不会闪错）
+      unread: { star: 0, spam: 0 },
+      loaded: false,
+      loading: false
+    }
+  },
   getters: {
     // 侧边栏实际显示的条目：隐藏的不显示；「有未读时显示」的只有未读数 > 0 才显示
     visibleKeys: (state) => state.order.filter(key => {
@@ -78,6 +104,7 @@ export const useSidebarStore = defineStore('sidebar', {
           this.showIfUnread = showIfUnread
           this.unread = { star: unread?.star || 0, spam: unread?.spam || 0 }
           this.loaded = true
+          saveCached({ hidden, order, showIfUnread })
         } catch (e) {
           // 加载失败就用默认（全显示、默认顺序），不要让侧边栏空白
           console.error('load sidebar config failed', e)
@@ -119,6 +146,7 @@ export const useSidebarStore = defineStore('sidebar', {
       this.hidden = hidden
       this.order = order
       this.showIfUnread = showIfUnread
+      saveCached({ hidden, order, showIfUnread })
     },
     // 三段显隐：show 显示 / hide 隐藏 / unread 有未读时显示（仅星标与垃圾箱）
     setVisibility(key, mode) {
