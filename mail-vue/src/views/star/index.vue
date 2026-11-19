@@ -4,8 +4,10 @@
                :cancel-success="cancelStar"
                :getEmailList="getEmailList"
                :emailDelete="emailDelete"
-               :star-add="starAdd"
-               :star-cancel="starCancel"
+               :email-read="handleListRead"
+               :show-unread="true"
+               :star-add="handleStarAdd"
+               :star-cancel="handleStarCancel"
                @jump="jumpContent"
                actionLeft="6px"
                :show-account-icon="false"
@@ -14,9 +16,10 @@
 
 <script setup>
 import emailScroll from "@/components/email-scroll/index.vue"
-import {emailDelete} from "@/request/email.js";
+import {emailDelete, emailRead} from "@/request/email.js";
 import {starAdd, starCancel, starList} from "@/request/star.js";
 import {useEmailStore} from "@/store/email.js";
+import {useSidebarStore} from "@/store/sidebar.js";
 import {defineOptions, onMounted, ref} from "vue";
 import router from "@/router/index.js";
 
@@ -26,10 +29,32 @@ defineOptions({
 
 const scroll = ref({})
 const emailStore = useEmailStore();
+const sidebarStore = useSidebarStore();
+
+// 列表里的标已读 / 星标切换：成功后刷新侧边栏未读数
+function handleListRead(emailIds) {
+  return emailRead(emailIds).then(() => {
+    sidebarStore.refreshUnread()
+  })
+}
+
+function handleStarAdd(emailId) {
+  return starAdd(emailId).then(() => {
+    sidebarStore.refreshUnread()
+  })
+}
+
+function handleStarCancel(emailId) {
+  return starCancel(emailId).then(() => {
+    sidebarStore.refreshUnread()
+  })
+}
 
 function jumpContent(email) {
   emailStore.contentData.email = emailStore.toContentEmail(email)
   emailStore.contentData.delType = 'logic'
+  // 星标邮件也要点开即标已读（原来没设，点开不标已读，「有未读时显示」的星标读完也不消失）
+  emailStore.contentData.showUnread = true
   emailStore.contentData.showStar = true
   emailStore.contentData.showReply = true
   router.push({name: 'content', params: {mailbox: 'starred'}})

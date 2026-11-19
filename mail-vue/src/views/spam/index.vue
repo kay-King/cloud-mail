@@ -4,7 +4,8 @@
                :getEmailList="getEmailList"
                :emailDelete="emailDelete"
                :emailRestore="unmarkSpamEmails"
-               :show-unread="false"
+               :email-read="handleListRead"
+               :show-unread="true"
                :highlight-text="emailStore.searchParams.text"
                actionLeft="4px"
                @jump="jumpContent"
@@ -27,9 +28,10 @@
 <script setup>
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
+import {useSidebarStore} from "@/store/sidebar.js";
 import emailScroll from "@/components/email-scroll/index.vue"
 import {Icon} from "@iconify/vue";
-import {emailList, emailDelete, emailUnmarkSpam, emailClearSpam} from "@/request/email.js";
+import {emailList, emailDelete, emailUnmarkSpam, emailClearSpam, emailRead} from "@/request/email.js";
 import {defineOptions, onMounted, ref, watch, computed} from "vue";
 import router from "@/router/index.js";
 import {ElMessage, ElMessageBox} from "element-plus";
@@ -42,7 +44,15 @@ defineOptions({
 const {t} = useI18n()
 const emailStore = useEmailStore();
 const accountStore = useAccountStore();
+const sidebarStore = useSidebarStore();
 const scroll = ref({})
+
+// 列表里的标已读：成功后刷新侧边栏未读数
+function handleListRead(emailIds) {
+  return emailRead(emailIds).then(() => {
+    sidebarStore.refreshUnread()
+  })
+}
 
 const selectedIds = computed(() => {
   const list = scroll.value?.emailList || []
@@ -72,7 +82,8 @@ watch(
 function jumpContent(email) {
   emailStore.contentData.email = emailStore.toContentEmail(email)
   emailStore.contentData.delType = 'spam'
-  emailStore.contentData.showUnread = false
+  // 垃圾箱的邮件也要点开即标已读（原来是 false，点开不标已读，「有未读时显示」的垃圾箱读完也不消失）
+  emailStore.contentData.showUnread = true
   emailStore.contentData.showStar = false
   emailStore.contentData.showReply = false
   router.push({name: 'content', params: {mailbox: 'spam'}})
@@ -99,6 +110,8 @@ function unmarkSpamEmails(emailIds) {
       plain: true
     })
     emailStore.deleteIds = Array.isArray(emailIds) ? emailIds : [emailIds];
+    // 移出垃圾箱会改变垃圾箱未读数
+    sidebarStore.refreshUnread()
   })
 }
 
@@ -124,6 +137,8 @@ function handleClearSpam() {
         plain: true
       })
       scroll.value.refreshList();
+      // 清空垃圾箱后未读数归零
+      sidebarStore.refreshUnread()
     })
   })
 }
