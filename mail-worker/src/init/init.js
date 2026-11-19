@@ -48,6 +48,7 @@ const dbInit = {
 		await this.v3_16DB(c);
 		await this.v3_17DB(c);
 		await this.v3_18DB(c);
+		await this.v3_19DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -196,6 +197,54 @@ const dbInit = {
 		if (config) {
 			try {
 				await c.env.db.prepare(`UPDATE setting SET backup_config = ?`).bind(JSON.stringify(config)).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+	},
+
+	async v3_19DB(c) {
+		// 附件存储 14 项打包进 att_storage JSON 列（14 列变 1 列，腾 13 个空位；customDomain 是 TG 用的，归 TG 组）。
+		// 顺序：先读出现有值 → 删 14 个旧列 → 加 att_storage 列 → 把值写回去。各步独立 try/catch，重复跑也不怕。
+		let config = null;
+		try {
+			const row = await c.env.db.prepare(`SELECT bucket, region, endpoint, s3_access_key, s3_secret_key, force_path_style, att_storage_type, r2_account_id, r2_bucket, r2_access_key, r2_secret_key, webdav_url, webdav_username, webdav_password FROM setting`).first();
+			if (row) {
+				config = {
+					bucket: row.bucket ?? '',
+					region: row.region ?? '',
+					endpoint: row.endpoint ?? '',
+					s3AccessKey: row.s3_access_key ?? '',
+					s3SecretKey: row.s3_secret_key ?? '',
+					forcePathStyle: row.force_path_style ?? 1,
+					attStorageType: row.att_storage_type ?? 's3',
+					r2AccountId: row.r2_account_id ?? '',
+					r2Bucket: row.r2_bucket ?? '',
+					r2AccessKey: row.r2_access_key ?? '',
+					r2SecretKey: row.r2_secret_key ?? '',
+					webdavUrl: row.webdav_url ?? '',
+					webdavUsername: row.webdav_username ?? '',
+					webdavPassword: row.webdav_password ?? ''
+				};
+			}
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		for (const col of ['bucket', 'region', 'endpoint', 's3_access_key', 's3_secret_key', 'force_path_style', 'att_storage_type', 'r2_account_id', 'r2_bucket', 'r2_access_key', 'r2_secret_key', 'webdav_url', 'webdav_username', 'webdav_password']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN ${col};`).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN att_storage TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		if (config) {
+			try {
+				await c.env.db.prepare(`UPDATE setting SET att_storage = ?`).bind(JSON.stringify(config)).run();
 			} catch (e) {
 				console.warn(`跳过字段：${e.message}`);
 			}

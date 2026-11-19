@@ -23,10 +23,11 @@ const r2Service = {
 
 	// 各存储类型是否配好（KV 永远可用）；供写入回落、读取兜底与删除清理共用
 	readyTypes(c, setting) {
-		const s3Ready = !!(setting.bucket && setting.endpoint && setting.s3AccessKey && setting.s3SecretKey);
+		const a = settingService.attStorage(setting);
+		const s3Ready = !!(a.bucket && a.endpoint && a.s3AccessKey && a.s3SecretKey);
 		const r2Ready = !!(c.env.r2 || this.r2ApiConfig(setting));
 		const webdavReady = webdavService.isConfigured({
-			url: setting.webdavUrl, username: setting.webdavUsername, password: setting.webdavPassword
+			url: a.webdavUrl, username: a.webdavUsername, password: a.webdavPassword
 		});
 		return { s3: s3Ready, r2: r2Ready, webdav: webdavReady, kv: true };
 	},
@@ -35,7 +36,7 @@ const r2Service = {
 
 		setting = setting || await settingService.query(c);
 		const ready = this.readyTypes(c, setting);
-		const type = setting.attStorageType || 's3';
+		const type = settingService.attStorage(setting).attStorageType || 's3';
 
 		// 显式选择优先；所选类型不可用时按 S3 → R2 → WebDAV → KV 安全回落，保证读写不断
 		if (type === 's3' && ready.s3) {
@@ -71,10 +72,11 @@ const r2Service = {
 
 	// 附件 WebDAV 配置（三项齐全才可用）
 	webdavConfig(setting) {
+		const a = settingService.attStorage(setting);
 		const config = {
-			url: (setting.webdavUrl || '').trim(),
-			username: (setting.webdavUsername || '').trim(),
-			password: (setting.webdavPassword || '').trim()
+			url: (a.webdavUrl || '').trim(),
+			username: (a.webdavUsername || '').trim(),
+			password: (a.webdavPassword || '').trim()
 		};
 		return webdavService.isConfigured(config) ? config : null;
 	},
@@ -82,10 +84,11 @@ const r2Service = {
 	// R2 的 S3 兼容 API 配置（网页里填的账号 ID + bucket + API 令牌），四项齐全才可用；
 	// 返回 null 表示未配，走绑定或回落。endpoint 由账号 ID 固定拼出，region 恒为 auto。
 	r2ApiConfig(setting) {
-		const accountId = (setting.r2AccountId || '').trim();
-		const bucket = (setting.r2Bucket || '').trim();
-		const s3AccessKey = (setting.r2AccessKey || '').trim();
-		const s3SecretKey = (setting.r2SecretKey || '').trim();
+		const a = settingService.attStorage(setting);
+		const accountId = (a.r2AccountId || '').trim();
+		const bucket = (a.r2Bucket || '').trim();
+		const s3AccessKey = (a.r2AccessKey || '').trim();
+		const s3SecretKey = (a.r2SecretKey || '').trim();
 		if (!(accountId && bucket && s3AccessKey && s3SecretKey)) {
 			return null;
 		}

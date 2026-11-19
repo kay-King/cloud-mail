@@ -21,6 +21,7 @@ const settingService = {
 		settingRow.notifyFlags = JSON.parse(settingRow.notifyFlags || '{}');
 		settingRow.globalForward = JSON.parse(settingRow.globalForward || '{}');
 		settingRow.backupConfig = JSON.parse(settingRow.backupConfig || '{}');
+		settingRow.attStorage = JSON.parse(settingRow.attStorage || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -81,6 +82,33 @@ const settingService = {
 			backupWebdavUrl: pick('backupWebdavUrl', ''),
 			backupWebdavUsername: pick('backupWebdavUsername', ''),
 			backupWebdavPassword: pick('backupWebdavPassword', '')
+		};
+	},
+
+	// 附件存储配置读值（att_storage 打包后）：新格式是 setting.attStorage 对象里的字段；
+	// 旧缓存里是平铺字段，两边都兜底；都没有时按默认。
+	attStorage(setting) {
+		const a = setting?.attStorage;
+		const pick = (key, def) => {
+			if (a && typeof a === 'object' && a[key] !== undefined && a[key] !== null) return a[key];
+			if (setting && setting[key] !== undefined && setting[key] !== null) return setting[key];
+			return def;
+		};
+		return {
+			bucket: pick('bucket', ''),
+			region: pick('region', ''),
+			endpoint: pick('endpoint', ''),
+			s3AccessKey: pick('s3AccessKey', ''),
+			s3SecretKey: pick('s3SecretKey', ''),
+			forcePathStyle: pick('forcePathStyle', 1),
+			attStorageType: pick('attStorageType', 's3'),
+			r2AccountId: pick('r2AccountId', ''),
+			r2Bucket: pick('r2Bucket', ''),
+			r2AccessKey: pick('r2AccessKey', ''),
+			r2SecretKey: pick('r2SecretKey', ''),
+			webdavUrl: pick('webdavUrl', ''),
+			webdavUsername: pick('webdavUsername', ''),
+			webdavPassword: pick('webdavPassword', '')
 		};
 	},
 
@@ -151,12 +179,12 @@ const settingService = {
 			settingRow.brevoTokens[key] = `${settingRow.brevoTokens[key].slice(0, 12)}******`;
 		});
 
-		settingRow.s3AccessKey = settingRow.s3AccessKey ? `${settingRow.s3AccessKey.slice(0, 12)}******` : null;
-		settingRow.s3SecretKey = settingRow.s3SecretKey ? `${settingRow.s3SecretKey.slice(0, 12)}******` : null;
-		settingRow.r2AccessKey = settingRow.r2AccessKey ? `${settingRow.r2AccessKey.slice(0, 12)}******` : null;
-		settingRow.r2SecretKey = settingRow.r2SecretKey ? `${settingRow.r2SecretKey.slice(0, 12)}******` : null;
-		settingRow.webdavUsername = settingRow.webdavUsername ? `${settingRow.webdavUsername.slice(0, 12)}******` : null;
-		settingRow.webdavPassword = settingRow.webdavPassword ? `${settingRow.webdavPassword.slice(0, 12)}******` : null;
+		// 附件密钥脱敏：新格式在 attStorage 对象里，旧缓存是平铺字段，两边都脱敏
+		const _as = settingRow.attStorage || {};
+		for (const k of ['s3AccessKey', 's3SecretKey', 'r2AccessKey', 'r2SecretKey', 'webdavUsername', 'webdavPassword']) {
+			if (_as[k]) _as[k] = `${String(_as[k]).slice(0, 12)}******`;
+			if (settingRow[k]) settingRow[k] = `${String(settingRow[k]).slice(0, 12)}******`;
+		}
 		// 备份密钥脱敏：新格式在 backupConfig 对象里，旧缓存是平铺字段，两边都脱敏
 		const _bc = settingRow.backupConfig || {};
 		for (const k of ['backupR2AccessKey', 'backupR2SecretKey', 'backupWebdavUsername', 'backupWebdavPassword', 'backupS3AccessKey', 'backupS3SecretKey']) {
@@ -230,6 +258,14 @@ const settingService = {
 				backupConfig[k] = v;
 			}
 		}
+		let attStorage = { ...(settingData.attStorage || {}) };
+		if (params.attStorage && typeof params.attStorage === 'object') {
+			for (const [k, v] of Object.entries(params.attStorage)) {
+				// 带 ****** 的是前端回显的脱敏值，不是真实密钥，跳过不覆盖
+				if (typeof v === 'string' && v.includes('******')) continue;
+				attStorage[k] = v;
+			}
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
@@ -237,6 +273,7 @@ const settingService = {
 		params.notifyFlags = JSON.stringify(notifyFlags);
 		params.globalForward = JSON.stringify(globalForward);
 		params.backupConfig = JSON.stringify(backupConfig);
+		params.attStorage = JSON.stringify(attStorage);
 
 		// 旧版平铺列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
@@ -262,6 +299,20 @@ const settingService = {
 		delete params.backupWebdavUrl;
 		delete params.backupWebdavUsername;
 		delete params.backupWebdavPassword;
+		delete params.bucket;
+		delete params.region;
+		delete params.endpoint;
+		delete params.s3AccessKey;
+		delete params.s3SecretKey;
+		delete params.forcePathStyle;
+		delete params.attStorageType;
+		delete params.r2AccountId;
+		delete params.r2Bucket;
+		delete params.r2AccessKey;
+		delete params.r2SecretKey;
+		delete params.webdavUrl;
+		delete params.webdavUsername;
+		delete params.webdavPassword;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);

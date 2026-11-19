@@ -1085,7 +1085,7 @@ Authorization: &lt;secret&gt;</pre>
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
-          <el-input class="dialog-input" type="text" :placeholder="setting.s3AccessKey || 'Access key'"
+          <el-input class="dialog-input" type="text" :placeholder="setting.attStorage?.s3AccessKey || 'Access key'"
                     v-model="s3.s3AccessKey" @keyup.enter="saveS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupSecretKey') }}</span>
@@ -1093,7 +1093,7 @@ Authorization: &lt;secret&gt;</pre>
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
-          <el-input style="margin-bottom: 10px" type="text" :placeholder="setting.s3SecretKey || 'Secret key'" v-model="s3.s3SecretKey" @keyup.enter="saveS3"/>
+          <el-input style="margin-bottom: 10px" type="text" :placeholder="setting.attStorage?.s3SecretKey || 'Secret key'" v-model="s3.s3SecretKey" @keyup.enter="saveS3"/>
           <div class="force-path-style">
             <div class="force-path-style-left">
               <span>ForcePathStyle</span>
@@ -1126,7 +1126,7 @@ Authorization: &lt;secret&gt;</pre>
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
-          <el-input class="dialog-input" type="text" :placeholder="setting.r2AccessKey || 'Access key'"
+          <el-input class="dialog-input" type="text" :placeholder="setting.attStorage?.r2AccessKey || 'Access key'"
                     v-model="r2.accessKey" @keyup.enter="saveS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupSecretKey') }}</span>
@@ -1134,7 +1134,7 @@ Authorization: &lt;secret&gt;</pre>
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
-          <el-input style="margin-bottom: 10px" type="text" :placeholder="setting.r2SecretKey || 'Secret key'" v-model="r2.secretKey" @keyup.enter="saveS3"/>
+          <el-input style="margin-bottom: 10px" type="text" :placeholder="setting.attStorage?.r2SecretKey || 'Secret key'" v-model="r2.secretKey" @keyup.enter="saveS3"/>
           <div class="backup-kv-note" style="margin-bottom: 15px">{{ t('attStorageR2ApiNote') }}</div>
           </template>
           <template v-else-if="s3.type === 'webdav'">
@@ -1148,11 +1148,11 @@ Authorization: &lt;secret&gt;</pre>
           <div class="backup-field-label">
             <span>{{ t('webdavUsername') }}</span>
           </div>
-          <el-input class="dialog-input" type="text" :placeholder="setting.webdavUsername || 'Username'" v-model="webdav.username" @keyup.enter="saveS3"/>
+          <el-input class="dialog-input" type="text" :placeholder="setting.attStorage?.webdavUsername || 'Username'" v-model="webdav.username" @keyup.enter="saveS3"/>
           <div class="backup-field-label">
             <span>{{ t('webdavPassword') }}</span>
           </div>
-          <el-input style="margin-bottom: 10px" type="password" :placeholder="setting.webdavPassword || 'Password'" v-model="webdav.password" @keyup.enter="saveS3" show-password/>
+          <el-input style="margin-bottom: 10px" type="password" :placeholder="setting.attStorage?.webdavPassword || 'Password'" v-model="webdav.password" @keyup.enter="saveS3" show-password/>
           <div class="backup-kv-note" style="margin-bottom: 15px">{{ t('attStorageWebdavNote') }}</div>
           </template>
           <template v-else-if="s3.type === 'kv'">
@@ -1653,6 +1653,23 @@ function getSettings() {
       backupWebdavUsername: bc.backupWebdavUsername ?? settingData.backupWebdavUsername ?? '',
       backupWebdavPassword: bc.backupWebdavPassword ?? settingData.backupWebdavPassword ?? ''
     }
+    const as = settingData.attStorage || {}
+    settingData.attStorage = {
+      bucket: as.bucket ?? settingData.bucket ?? '',
+      region: as.region ?? settingData.region ?? '',
+      endpoint: as.endpoint ?? settingData.endpoint ?? '',
+      s3AccessKey: as.s3AccessKey ?? settingData.s3AccessKey ?? '',
+      s3SecretKey: as.s3SecretKey ?? settingData.s3SecretKey ?? '',
+      forcePathStyle: as.forcePathStyle ?? settingData.forcePathStyle ?? 1,
+      attStorageType: as.attStorageType ?? settingData.attStorageType ?? 's3',
+      r2AccountId: as.r2AccountId ?? settingData.r2AccountId ?? '',
+      r2Bucket: as.r2Bucket ?? settingData.r2Bucket ?? '',
+      r2AccessKey: as.r2AccessKey ?? settingData.r2AccessKey ?? '',
+      r2SecretKey: as.r2SecretKey ?? settingData.r2SecretKey ?? '',
+      webdavUrl: as.webdavUrl ?? settingData.webdavUrl ?? '',
+      webdavUsername: as.webdavUsername ?? settingData.webdavUsername ?? '',
+      webdavPassword: as.webdavPassword ?? settingData.webdavPassword ?? ''
+    }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
@@ -2004,7 +2021,7 @@ function clearS3() {
 
 function saveS3() {
 
-  const form = {
+  const as = {
     attStorageType: s3.type,
     bucket: s3.bucket,
     endpoint: s3.endpoint,
@@ -2015,14 +2032,14 @@ function saveS3() {
     webdavUrl: webdav.url
   }
 
-  if (s3.s3AccessKey) form.s3AccessKey = s3.s3AccessKey
-  if (s3.s3SecretKey) form.s3SecretKey = s3.s3SecretKey
-  if (r2.accessKey) form.r2AccessKey = r2.accessKey
-  if (r2.secretKey) form.r2SecretKey = r2.secretKey
-  if (webdav.username) form.webdavUsername = webdav.username
-  if (webdav.password) form.webdavPassword = webdav.password
+  if (s3.s3AccessKey) as.s3AccessKey = s3.s3AccessKey
+  if (s3.s3SecretKey) as.s3SecretKey = s3.s3SecretKey
+  if (r2.accessKey) as.r2AccessKey = r2.accessKey
+  if (r2.secretKey) as.r2SecretKey = r2.secretKey
+  if (webdav.username) as.webdavUsername = webdav.username
+  if (webdav.password) as.webdavPassword = webdav.password
 
-  editSetting(form)
+  editSetting({attStorage: as})
 }
 
 function tgBotSave() {
@@ -2485,12 +2502,17 @@ function change(e) {
   const settingForm = {...setting.value}
   delete settingForm.siteKey
   delete settingForm.secretKey
-  delete settingForm.s3AccessKey
-  delete settingForm.s3SecretKey
-  delete settingForm.r2AccessKey
-  delete settingForm.r2SecretKey
-  delete settingForm.webdavUsername
-  delete settingForm.webdavPassword
+  // 附件密钥在 attStorage 对象里，整包发过去会带上脱敏值，先从副本里去掉（后端合并时保留现值）
+  if (settingForm.attStorage) {
+    const as = {...settingForm.attStorage}
+    delete as.s3AccessKey
+    delete as.s3SecretKey
+    delete as.r2AccessKey
+    delete as.r2SecretKey
+    delete as.webdavUsername
+    delete as.webdavPassword
+    settingForm.attStorage = as
+  }
   // 备份密钥在 backupConfig 对象里，整包发过去会带上脱敏值，先从副本里去掉（后端合并时保留现值）
   if (settingForm.backupConfig) {
     const bc = {...settingForm.backupConfig}

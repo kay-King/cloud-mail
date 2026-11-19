@@ -27,7 +27,7 @@ const s3Service = {
 
 		const client = await this.client(c, override);
 
-		const bucket = override?.bucket || (await settingService.query(c)).bucket;
+		const bucket = override?.bucket || settingService.attStorage(await settingService.query(c)).bucket;
 
 		let obj = { Bucket: bucket, Key: key, Body: content,
 			CacheControl: metadata.cacheControl
@@ -59,7 +59,7 @@ const s3Service = {
 		}
 
 		const client = await this.client(c, override);
-		const bucket = override?.bucket || (await settingService.query(c)).bucket;
+		const bucket = override?.bucket || settingService.attStorage(await settingService.query(c)).bucket;
 
 
 		client.middlewareStack.add(
@@ -96,7 +96,7 @@ const s3Service = {
 
 	async getObj(c, key, override) {
 		const client = await this.client(c, override);
-		const bucket = override?.bucket || (await settingService.query(c)).bucket;
+		const bucket = override?.bucket || settingService.attStorage(await settingService.query(c)).bucket;
 		const result = await client.send(new GetObjectCommand({
 			Bucket: bucket,
 			Key: key
@@ -125,7 +125,7 @@ const s3Service = {
 				}
 			});
 		}
-		const { region, endpoint, s3AccessKey, s3SecretKey, forcePathStyle } = await settingService.query(c);
+		const { region, endpoint, s3AccessKey, s3SecretKey, forcePathStyle } = settingService.attStorage(await settingService.query(c));
 		return new S3Client({
 			region: region || 'auto',
 			endpoint: domainUtils.toOssDomain(endpoint),
