@@ -87,7 +87,7 @@ const personalItems = [
   { key: 'send', icon: 'cil:send', size: 20, label: 'sent', perm: 'email:send' },
   { key: 'draft', icon: 'ep:document', size: 19, label: 'drafts', perm: 'email:send', labelMargin: 17 },
   { key: 'star', icon: 'solar:star-line-duotone', size: 20, label: 'starred', perm: null },
-  { key: 'spam', icon: 'mdi:email-alert-outline', size: 20, label: 'spam', perm: null },
+  { key: 'spam', icon: 'fluent:folder-prohibited-20-regular', size: 20, label: 'spam', perm: null },
   { key: 'trash', icon: 'fluent:delete-24-regular', size: 20, label: 'trash', perm: null },
   { key: 'attachments', icon: 'fluent:attach-20-regular', size: 20, label: 'myAttachments', perm: null },
   { key: 'contacts', icon: 'fluent:people-20-regular', size: 20, label: 'contacts', perm: null },
@@ -101,7 +101,7 @@ const visiblePersonalItems = computed(() => {
     .filter(item => item && (!item.perm || hasPerm(item.perm)))
 })
 
-// 未读数字角标：收件箱/星标/垃圾箱在行尾显示未读数，超过 99 显示 99+，没有未读不显示
+// 未读数字角标：收件箱/星标/垃圾邮件在行尾显示未读数，超过 99 显示 99+，没有未读不显示
 const UNREAD_BADGE_KEYS = ['email', 'star', 'spam']
 function unreadBadge(key) {
   if (!UNREAD_BADGE_KEYS.includes(key)) {
