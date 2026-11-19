@@ -64,9 +64,9 @@ export const useSidebarStore = defineStore('sidebar', {
       hidden: cached?.hidden || [],
       order: cached?.order || [...SIDEBAR_DEFAULT_ORDER],
       showIfUnread: cached?.showIfUnread || [],
-      // 「有未读时显示」用的未读数（只统计星标与垃圾箱）；未读数不缓存，初始为 0，
+      // 「有未读时显示」与数字角标用的未读数（收件箱、星标、垃圾箱）；未读数不缓存，初始为 0，
       // 「有未读时显示」的条目首屏先隐藏、有未读时再出现（只进不出，不会闪错）
-      unread: { star: 0, spam: 0 },
+      unread: { star: 0, spam: 0, inbox: 0 },
       loaded: false,
       loading: false
     }
@@ -102,7 +102,7 @@ export const useSidebarStore = defineStore('sidebar', {
           this.hidden = hidden
           this.order = order
           this.showIfUnread = showIfUnread
-          this.unread = { star: unread?.star || 0, spam: unread?.spam || 0 }
+          this.unread = { star: unread?.star || 0, spam: unread?.spam || 0, inbox: unread?.inbox || 0 }
           this.loaded = true
           saveCached({ hidden, order, showIfUnread })
         } catch (e) {
@@ -123,7 +123,7 @@ export const useSidebarStore = defineStore('sidebar', {
       this.unreadPromise = (async () => {
         try {
           const unread = await getSidebarUnread()
-          this.unread = { star: unread?.star || 0, spam: unread?.spam || 0 }
+          this.unread = { star: unread?.star || 0, spam: unread?.spam || 0, inbox: unread?.inbox || 0 }
         } catch (e) {
           console.error('refresh sidebar unread failed', e)
         } finally {

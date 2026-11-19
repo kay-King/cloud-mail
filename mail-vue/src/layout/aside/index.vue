@@ -16,6 +16,7 @@
                       :class="route.meta.name === item.key ? 'choose-item' : ''">
           <Icon :icon="item.icon" :width="item.size" :height="item.size" />
           <span class="menu-name" :style="{ marginLeft: (item.labelMargin || 16) + 'px' }">{{$t(item.label)}}</span>
+          <span v-if="unreadBadge(item.key)" class="menu-badge" :class="{ active: route.meta.name === item.key }">{{ unreadBadge(item.key) }}</span>
         </el-menu-item>
         <div class="manage-title" v-perm="['all-email:query','user:query','role:query','setting:query','analysis:query','reg-key:query','audit:query']">
           <div>{{$t('manage')}}</div>
@@ -99,6 +100,19 @@ const visiblePersonalItems = computed(() => {
     .map(key => byKey[key])
     .filter(item => item && (!item.perm || hasPerm(item.perm)))
 })
+
+// 未读数字角标：收件箱/星标/垃圾箱在行尾显示未读数，超过 99 显示 99+，没有未读不显示
+const UNREAD_BADGE_KEYS = ['email', 'star', 'spam']
+function unreadBadge(key) {
+  if (!UNREAD_BADGE_KEYS.includes(key)) {
+    return ''
+  }
+  const count = sidebarStore.unread[key === 'email' ? 'inbox' : key] || 0
+  if (count <= 0) {
+    return ''
+  }
+  return count > 99 ? '99+' : String(count)
+}
 
 onMounted(() => {
   sidebarStore.load()
@@ -225,6 +239,28 @@ function openCompose() {
   /* 当前选中菜单的文字与图标跟随品牌主色（默认主题保持白色） */
   color: var(--aside-active-color) !important;
   backdrop-filter: blur(4px);
+}
+
+/* 未读数字角标：行尾小圆角牌，平时浅灰底灰字，选中那行换品牌浅底蓝字（照 Outlook 移动版样式） */
+.menu-badge {
+  margin-left: auto;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.menu-badge.active {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
 }
 
 @media (hover: hover) {

@@ -157,7 +157,15 @@ const userService = {
 				eq(email.isSpam, 0),
 				eq(email.unread, emailConst.unread.UNREAD)
 			)).get();
-		return { star: starRow?.count || 0, spam: spamRow?.count || 0 };
+		// 收件箱未读：收到的、没删、非垃圾、未读（跟收件箱列表同一个过滤条件），供侧边栏数字角标用
+		const inboxRow = await orm(c).select({ count: count() }).from(email).where(and(
+			eq(email.userId, userId),
+			eq(email.type, emailConst.type.RECEIVE),
+			eq(email.isDel, isDel.NORMAL),
+			eq(email.isSpam, 0),
+			eq(email.unread, emailConst.unread.UNREAD)
+		)).get();
+		return { star: starRow?.count || 0, spam: spamRow?.count || 0, inbox: inboxRow?.count || 0 };
 	},
 
 	async getSidebarConfig(c, userId) {
