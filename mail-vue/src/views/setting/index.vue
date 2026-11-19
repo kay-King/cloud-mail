@@ -154,7 +154,8 @@
         <div v-for="key in sidebarDraftOrder" :key="key" class="sidebar-row">
           <Icon icon="mdi:drag-vertical" width="20" height="20" class="sidebar-drag-handle" />
           <span class="sidebar-row-name">{{ sidebarItemLabel(key) }}</span>
-          <div v-if="isSidebarUnreadKey(key)" class="sidebar-visibility-options">
+          <el-switch v-if="!isSidebarHideable(key)" :model-value="true" disabled />
+          <div v-else-if="isSidebarUnreadKey(key)" class="sidebar-visibility-options">
             <span class="sidebar-visibility-option" :class="{ active: sidebarDraftVisibility(key) === 'show' }" @click="onSidebarDraftVisibility(key, 'show')">{{ $t('sidebarShow') }}</span>
             <span class="sidebar-visibility-sep">/</span>
             <span class="sidebar-visibility-option" :class="{ active: sidebarDraftVisibility(key) === 'unread' }" @click="onSidebarDraftVisibility(key, 'unread')">{{ $t('sidebarShowIfUnread') }}</span>
@@ -298,20 +299,19 @@ const sidebarShow = ref(false)
 const sidebarSaving = ref(false)
 const sidebarListRef = ref(null)
 // 草稿：打开弹窗时从 store 复制一份，弹窗里只改草稿
-// 弹窗里只放 7 个可隐藏条目：收件箱固定最上、设置固定最下，不进列表
-function sidebarEditableOrder(order) {
-  return (order || []).filter(k => SIDEBAR_HIDEABLE.includes(k))
-}
-const sidebarDraftOrder = ref(sidebarEditableOrder(SIDEBAR_DEFAULT_ORDER))
+const sidebarDraftOrder = ref([...SIDEBAR_DEFAULT_ORDER])
 const sidebarDraftHidden = ref([])
 const sidebarDraftShowIfUnread = ref([])
 let sidebarSortable = null
 const sidebarItemLabels = {
-  send: 'sent', draft: 'drafts', star: 'starred', spam: 'spam',
-  trash: 'trash', attachments: 'myAttachments', contacts: 'contacts'
+  email: 'inbox', send: 'sent', draft: 'drafts', star: 'starred', spam: 'spam',
+  trash: 'trash', attachments: 'myAttachments', contacts: 'contacts', setting: 'settings'
 }
 function sidebarItemLabel(key) {
   return t(sidebarItemLabels[key] || key)
+}
+function isSidebarHideable(key) {
+  return SIDEBAR_HIDEABLE.includes(key)
 }
 function isSidebarUnreadKey(key) {
   return SIDEBAR_UNREAD_KEYS.includes(key)
@@ -329,7 +329,7 @@ const sidebarSummary = computed(() => {
 })
 function openSidebarDialog() {
   sidebarStore.load().then(() => {
-    sidebarDraftOrder.value = sidebarEditableOrder(sidebarStore.order)
+    sidebarDraftOrder.value = [...sidebarStore.order]
     sidebarDraftHidden.value = [...sidebarStore.hidden]
     sidebarDraftShowIfUnread.value = [...sidebarStore.showIfUnread]
     sidebarShow.value = true
@@ -394,8 +394,7 @@ function saveSidebarDialog() {
   sidebarSaving.value = true
   sidebarStore.applyConfig({
     hidden: sidebarDraftHidden.value,
-    // 收件箱固定最上、设置固定最下，只保存中间 7 个的顺序
-    order: ['email', ...sidebarDraftOrder.value, 'setting'],
+    order: sidebarDraftOrder.value,
     showIfUnread: sidebarDraftShowIfUnread.value
   })
   sidebarStore.save().then(() => {
@@ -404,7 +403,7 @@ function saveSidebarDialog() {
     // 保存失败：提示并从服务器重载，草稿同步回服务器状态，弹窗保持打开
     ElMessage({ message: t('saveFailed'), type: 'error', plain: true })
     sidebarStore.load(true).then(() => {
-      sidebarDraftOrder.value = sidebarEditableOrder(sidebarStore.order)
+      sidebarDraftOrder.value = [...sidebarStore.order]
       sidebarDraftHidden.value = [...sidebarStore.hidden]
       sidebarDraftShowIfUnread.value = [...sidebarStore.showIfUnread]
     })
