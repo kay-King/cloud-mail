@@ -55,6 +55,10 @@
               <div class="date">
                 <div>{{ formatDetailDate(email.createTime) }}</div>
               </div>
+              <div class="pair-count" v-if="email.pairCount > 1">
+                <Icon icon="hugeicons:copy-01" width="16" height="16"/>
+                <span>{{ $t('pairCountTip', {count: email.pairCount}) }}</span>
+              </div>
             </div>
             <el-alert v-if="email.status === 3" :closable="false" :title="toMessage(email.message)" class="email-msg" type="error" show-icon />
             <el-alert v-if="email.status === 4" :closable="false" :title="$t('complained')" class="email-msg" type="warning" show-icon />
@@ -102,6 +106,7 @@
         @close="showPreview = false"
     />
     <delete-notify-dialog v-model="notifyDialog.visible" :message="notifyDialog.message"
+                          :show-notify="notifyDialog.showNotify" :has-pair="notifyDialog.hasPair"
                           @confirm="onNotifyDialogConfirm"/>
     <att-previewer ref="previewerRef"/>
   </div>
@@ -137,20 +142,23 @@ const emailStore = useEmailStore();
 const userStore = useUserStore();
 const router = useRouter()
 
-// 管理员删除通知弹窗：仅全部邮件详情页、开关开启、且删到别人的邮件时出现
+// 管理员删除通知弹窗：仅全部邮件详情页，删到别人的邮件、或邮件带副本时出现
 const notifyDialog = reactive({
   visible: false,
   message: '',
+  showNotify: true,
+  hasPair: false,
 })
 
 function onNotifyDialogConfirm(opts) {
-  allEmailDelete(email.value.emailId, opts).then(() => {
+  allEmailDelete(email.value.emailId, opts).then((deletedIds) => {
     ElMessage({
       message: t('delSuccessMsg'),
       type: 'success',
       plain: true,
     })
-    emailStore.deleteIds = [email.value.emailId]
+    // 成对删除时后端返回实际删掉的全部 id（含副本），列表按它移除
+    emailStore.deleteIds = Array.isArray(deletedIds) && deletedIds.length ? deletedIds : [email.value.emailId]
   })
   router.back()
 }
@@ -359,8 +367,12 @@ const handleDelete = () => {
     const enabled = v === undefined || v === null || v !== 0
     const myEmail = (userStore.user.email || '').toLowerCase()
     const other = email.value.userEmail && email.value.userEmail.toLowerCase() !== myEmail
-    if (enabled && other) {
+    const showNotify = enabled && other
+    const hasPair = email.value.pairCount > 1
+    if (showNotify || hasPair) {
       notifyDialog.message = t('delEmailConfirm')
+      notifyDialog.showNotify = showNotify
+      notifyDialog.hasPair = hasPair
       notifyDialog.visible = true
       return
     }
@@ -553,6 +565,14 @@ const handleRestore = () => {
         margin-bottom: 15px;
       }
       .date {
+        color: var(--regular-text-color);
+        margin-bottom: 6px;
+      }
+
+      .pair-count {
+        display: flex;
+        align-items: center;
+        gap: 4px;
         color: var(--regular-text-color);
         margin-bottom: 6px;
       }

@@ -340,6 +340,22 @@ const emailService = {
 			conditions.push(eq(email.status, emailConst.status.NOONE));
 		}
 
+		// 全部/回收站视图去重：发件份有对应收件份时只留收件份
+		// 配对 key：发件人 + 主题 + 创建时间（秒）+ 收件人名单
+		if (type !== 'send' && type !== 'receive') {
+			conditions.push(sql`NOT (
+				${email.type} = ${emailConst.type.SEND}
+				AND EXISTS (
+					SELECT 1 FROM ${email} AS r
+					WHERE r.type = ${emailConst.type.RECEIVE}
+					AND r.send_email = ${email.sendEmail}
+					AND r.subject = ${email.subject}
+					AND r.create_time = ${email.createTime}
+					AND r.recipient = ${email.recipient}
+				)
+			)`);
+		}
+
 		if (userEmail) {
 			conditions.push(sql`${user.email} COLLATE NOCASE LIKE ${userEmail + '%'}`);
 		}
@@ -1692,12 +1708,34 @@ const emailService = {
 		return list;
 	},
 
+	// 取同一批发送的全部邮件 id（发件份 + 收件份），供全部邮件成对删除用
+	// 配对 key 与列表去重一致：发件人 + 主题 + 创建时间（秒）+ 收件人名单
+	async expandToSendGroup(c, emailIds) {
+		const rows = await orm(c).select({
+			sendEmail: email.sendEmail,
+			subject: email.subject,
+			createTime: email.createTime,
+			recipient: email.recipient,
+		}).from(email).where(inArray(email.emailId, emailIds)).all();
+		if (rows.length === 0) return emailIds;
+		const group = await orm(c).select({ emailId: email.emailId }).from(email).where(
+			or(...rows.map(row => and(
+				eq(email.sendEmail, row.sendEmail),
+				eq(email.subject, row.subject),
+				eq(email.createTime, row.createTime),
+				eq(email.recipient, row.recipient),
+			)))
+		).all();
+		return [...new Set(group.map(g => g.emailId))];
+	},
+
 	async physicsDelete(c, params) {
 		let { emailIds } = params;
 		emailIds = emailIds.split(',').map(Number);
 		await attService.removeByEmailIds(c, emailIds);
 		await starService.removeByEmailIds(c, emailIds);
 		await orm(c).delete(email).where(inArray(email.emailId, emailIds)).run();
+		return emailIds;
 	},
 
 	async physicsDeleteUserIds(c, userIds) {
@@ -1770,7 +1808,13 @@ const emailService = {
 			// 列表回形针标识：只算真正附件（type=ATT），正文内嵌图不算
 			hasAttachment: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.ATT})`.as('hasAttachment'),
 			// 列表图片标识：正文有内嵌图（type=EMBED）时显示；正文引用了站内存放的图片也算（补历史漏记的内嵌图记录）
-			hasInlineImage: sql`(EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.EMBED}) OR ${email.content} LIKE '%attachments/%')`.as('hasInlineImage')
+			hasInlineImage: sql`(EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.EMBED}) OR ${email.content} LIKE '%attachments/%')`.as('hasInlineImage'),
+			// 同一批发送的副本数（发件份 + 收件份）：>1 时列表显示副本标志
+			pairCount: sql`(SELECT COUNT(*) FROM ${email} AS p
+				WHERE p.send_email = ${email.sendEmail}
+				AND p.subject = ${email.subject}
+				AND p.create_time = ${email.createTime}
+				AND p.recipient = ${email.recipient})`.as('pairCount')
 		})
 			.from(email)
 			.leftJoin(user, eq(email.userId, user.userId));
@@ -1828,7 +1872,13 @@ const emailService = {
 			...emailListColumns,
 			userEmail: user.email,
 			hasAttachment: sql`EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.ATT})`.as('hasAttachment'),
-			hasInlineImage: sql`(EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.EMBED}) OR ${email.content} LIKE '%attachments/%')`.as('hasInlineImage')
+			hasInlineImage: sql`(EXISTS (SELECT 1 FROM ${att} WHERE ${att.emailId} = ${email.emailId} AND ${att.type} = ${attConst.type.EMBED}) OR ${email.content} LIKE '%attachments/%')`.as('hasInlineImage'),
+			// 同一批发送的副本数（发件份 + 收件份）：>1 时列表显示副本标志
+			pairCount: sql`(SELECT COUNT(*) FROM ${email} AS p
+				WHERE p.send_email = ${email.sendEmail}
+				AND p.subject = ${email.subject}
+				AND p.create_time = ${email.createTime}
+				AND p.recipient = ${email.recipient})`.as('pairCount')
 		}).from(email)
 			.leftJoin(user, eq(email.userId, user.userId))
 			.where(

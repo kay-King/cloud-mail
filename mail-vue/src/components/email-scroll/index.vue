@@ -110,6 +110,9 @@
                       <el-tooltip effect="dark" :content="$t('hasImageTip')">
                         <Icon v-if="item.hasInlineImage" icon="mdi:image" width="16" height="16" class="attachment-icon"/>
                       </el-tooltip>
+                      <el-tooltip effect="dark" :content="$t('pairCountTip', {count: item.pairCount})">
+                        <Icon v-if="item.pairCount > 1" icon="hugeicons:copy-01" width="16" height="16" class="attachment-icon"/>
+                      </el-tooltip>
                     </span>
                     <span class="email-content" v-html="item.listHtml"></span>
                   </div>
@@ -269,6 +272,7 @@
       </template>
     </el-dropdown>
     <delete-notify-dialog v-model="notifyDialog.visible" :message="notifyDialog.message"
+                          :show-notify="notifyDialog.showNotify" :has-pair="notifyDialog.hasPair"
                           @confirm="onNotifyDialogConfirm"/>
   </div>
 </template>
@@ -358,6 +362,8 @@ const notifyDialog = reactive({
   visible: false,
   message: '',
   emailIds: [],
+  showNotify: true,
+  hasPair: false,
 })
 
 function notifyEnabled() {
@@ -373,21 +379,32 @@ function involvesOtherUser(emailIds) {
   })
 }
 
-function openNotifyDialog(emailIds, message) {
+// 选中的邮件里是否有带副本的（全部邮件列表才有 pairCount）
+function hasPairIds(emailIds) {
+  return emailIds.some(id => {
+    const item = emailList.find(e => e.emailId === id)
+    return item && item.pairCount > 1
+  })
+}
+
+function openNotifyDialog(emailIds, message, opts = {}) {
   notifyDialog.emailIds = emailIds
   notifyDialog.message = message
+  notifyDialog.showNotify = opts.showNotify !== false
+  notifyDialog.hasPair = opts.hasPair === true
   notifyDialog.visible = true
 }
 
 function onNotifyDialogConfirm(opts) {
   const emailIds = notifyDialog.emailIds
-  props.emailDelete(emailIds, opts).then(() => {
+  props.emailDelete(emailIds, opts).then((deletedIds) => {
     ElMessage({
       message: t('delSuccessMsg'),
       type: 'success',
       plain: true
     })
-    emailStore.deleteIds = emailIds;
+    // 成对删除时后端返回实际删掉的全部 id（含副本），列表按它移除
+    emailStore.deleteIds = Array.isArray(deletedIds) && deletedIds.length ? deletedIds : emailIds;
   })
 }
 const loading = ref(false);
@@ -734,9 +751,13 @@ function rightExport(emailId) {
 function rightDelete(emailId) {
 
   if (props.type === 'all-email' || props.type === 'trash') {
-    if (props.type === 'all-email' && notifyEnabled() && involvesOtherUser([emailId])) {
-      openNotifyDialog([emailId], t('delOneEmailConfirm'))
-      return
+    if (props.type === 'all-email') {
+      const showNotify = notifyEnabled() && involvesOtherUser([emailId])
+      const hasPair = hasPairIds([emailId])
+      if (showNotify || hasPair) {
+        openNotifyDialog([emailId], t('delOneEmailConfirm'), {showNotify, hasPair})
+        return
+      }
     }
     ElMessageBox.confirm(props.type === 'trash' ? t('delForeverOneConfirm') : t('delOneEmailConfirm'), {
       confirmButtonText: t('confirm'),
@@ -787,10 +808,12 @@ async function copyCode(code) {
 }
 
 function handleDelete() {
-  if (props.type === 'all-email' && notifyEnabled()) {
+  if (props.type === 'all-email') {
     const emailIds = getSelectedMailsIds();
-    if (involvesOtherUser(emailIds)) {
-      openNotifyDialog(emailIds, t('delEmailsConfirm'))
+    const showNotify = notifyEnabled() && involvesOtherUser(emailIds)
+    const hasPair = hasPairIds(emailIds)
+    if (showNotify || hasPair) {
+      openNotifyDialog(emailIds, t('delEmailsConfirm'), {showNotify, hasPair})
       return
     }
   }

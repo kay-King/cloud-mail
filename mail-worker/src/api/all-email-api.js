@@ -19,8 +19,13 @@ app.delete('/allEmail/delete', async (c) => {
 	const query = c.req.query();
 	const notify = query.notify === '1';
 	const reason = (query.reason || '').slice(0, 200);
-	const rows = await emailService.selectByIds(c, (query.emailIds || '').split(','));
-	const list = await emailService.physicsDelete(c, query);
+	let emailIds = (query.emailIds || '').split(',').filter(Boolean).map(Number);
+	// pair=1：成对删除，把同一批发送的发件份与收件份一起删掉
+	if (query.pair === '1' && emailIds.length > 0) {
+		emailIds = await emailService.expandToSendGroup(c, emailIds);
+	}
+	const rows = await emailService.selectByIds(c, emailIds);
+	const list = await emailService.physicsDelete(c, { emailIds: emailIds.join(',') });
 	if (notify && rows.length > 0 && await adminNotifyService.isEnabled(c)) {
 		await adminNotifyService.notifyEmailDeleted(c, rows, reason);
 	}

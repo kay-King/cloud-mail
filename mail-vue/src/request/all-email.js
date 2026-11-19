@@ -9,6 +9,9 @@ export function allEmailDelete(emailIds, opts = {}) {
     if (opts.notify) {
         url += '&notify=1&reason=' + encodeURIComponent(opts.reason || '')
     }
+    if (opts.pair) {
+        url += '&pair=1'
+    }
     return http.delete(url)
 }
 
