@@ -14,6 +14,7 @@
     <div v-else :style="background"></div>
     <div class="form-wrapper">
       <div class="container">
+        <img class="form-logo" :src="logoUrl" alt="">
         <span class="form-title">{{ settingStore.settings.title }}</span>
         <span class="form-desc" v-if="show === 'login'">{{ $t('loginTitle') }}</span>
         <span class="form-desc" v-else>{{ $t('regTitle') }}</span>
@@ -184,6 +185,12 @@ const accountStore = useAccountStore();
 const userStore = useUserStore();
 const uiStore = useUiStore();
 const settingStore = useSettingStore();
+const logoUrl = computed(() => {
+  // 登录页 Logo 跟随品牌主题：默认用 mail.png，各品牌用对应的 SVG 信封（与侧栏一致）
+  const brand = uiStore.brand
+  const file = brand === 'default' ? 'mail.png' : `mail-${brand}.svg`
+  return `${import.meta.env.BASE_URL}${file}`
+})
 const route = useRoute();
 const loginLoading = ref(false)
 const bindLoading = ref(false)
@@ -717,9 +724,16 @@ function submitRegister() {
     color: var(--form-desc-color);
   }
 
+  .form-logo {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    margin-bottom: 16px;
+  }
+
   .form-title {
     font-weight: bold;
-    font-size: 22px !important;
+    font-size: 26px !important;
   }
 
   .switch {
