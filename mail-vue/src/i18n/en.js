@@ -353,7 +353,7 @@ const en = {
     emailSetting: 'Email',
     receiveEmail: 'Receive email',
     autoRefresh: 'Auto refresh',
-    autoRefreshDesc: 'Automatically fetch the latest emails from the server',
+    autoRefreshDesc: 'Push new mail in real time',
     sendEmail: 'Send email',
     resendToken: 'Resend token',
     sendkitToken: 'Sendkit API Key',

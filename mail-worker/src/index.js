@@ -9,6 +9,8 @@ import analysisService from './service/analysis-service';
 import backupService from './service/backup-service';
 import auditService from './service/audit-service';
 import proxyService from './service/proxy-service';
+import { handleWsUpgrade } from './websocket/connect';
+export { MailHub } from './websocket/hub'; // Durable Object 必须从 Worker 入口导出
 export default {
 	 async fetch(req, env, ctx) {
 
@@ -17,6 +19,11 @@ export default {
 		// 邮件图片代理：校验链接签名后，由 Worker 代拉外链图。
 		if (url.pathname === '/proxy') {
 			return proxyService.fetchImage(env, url.searchParams);
+		}
+
+		// WebSocket：浏览器连 /api/realtime，转到 MailHub Durable Object
+		if (url.pathname === '/api/realtime') {
+			return handleWsUpgrade(req, env);
 		}
 
 		if (url.pathname.startsWith('/api/')) {

@@ -340,6 +340,9 @@ const settingService = {
 
 		setting.projectLink = projectLink;
 
+		// 实时推送后 autoRefresh 只有两档：1 关闭，2 开启（旧值 0/3/5…一律按开启算）
+		setting.autoRefresh = Number(setting.autoRefresh) === 1 ? 1 : 2;
+
 		// query() 返回的 emailPrefixFilter 是数组（供 account/login-service 的 .some() 与前端标签输入用）；
 		// 打包后字符串在 emailPrefixConfig 对象里，旧缓存是平铺字段，两边都兜底，仍拼成数组返回
 		const filterStr = setting.emailPrefixConfig?.emailPrefixFilter ?? setting.emailPrefixFilter ?? '';
@@ -441,6 +444,11 @@ const settingService = {
 		// Webhook 地址进了 webhookConfig 对象，域名规范化随之挪到对象里的字段上
 		if (params.webhookConfig?.webhookUrl !== undefined) {
 			params.webhookConfig.webhookUrl = domainUtils.toOssDomain(params.webhookConfig.webhookUrl) || '';
+		}
+
+		// 实时推送后 autoRefresh 只有两档：1 关闭，其余一律按 2 开启存
+		if (params.autoRefresh !== undefined) {
+			params.autoRefresh = Number(params.autoRefresh) === 1 ? 1 : 2;
 		}
 
 		let notifyFlags = { ...(settingData.notifyFlags || {}) };

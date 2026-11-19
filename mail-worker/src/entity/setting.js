@@ -5,7 +5,7 @@ export const setting = sqliteTable('setting', {
 	title: text('title').default('').notNull(),
 	manyEmail: integer('many_email').default(0).notNull(),
 	addEmail: integer('add_email').default(0).notNull(),
-	autoRefresh: integer('auto_refresh').default(0).notNull(),
+	autoRefresh: integer('auto_refresh').default(2).notNull(),
 	// 验证相关 4 项打包进一个 JSON 列，4 列变 1 列腾 3 个空位
 	verifyConfig: text('verify_config').default('{}').notNull(),
 	send: integer('send').default(1).notNull(),

@@ -59,6 +59,7 @@ const dbInit = {
 		await this.v3_27DB(c);
 		await this.v3_28DB(c);
 		await this.v3_29DB(c);
+		await this.v3_30DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -615,6 +616,16 @@ const dbInit = {
 		// 读值时 helper 兜底（开关默认 1=关，次数默认 1）。
 		try {
 			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN login_verify_config TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+	},
+
+	async v3_30DB(c) {
+		// 上游 0abdbc7 实时推送：autoRefresh 由轮询秒数（0=关、3/5/10…=间隔）改成两档开关（1=关、2=开）。
+		// 旧值里只有 1 保持关闭，其余（0、3、5…）一律改成 2 开启。
+		try {
+			await c.env.db.prepare(`UPDATE setting SET auto_refresh = 2 WHERE auto_refresh != 1`).run();
 		} catch (e) {
 			console.warn(`跳过字段：${e.message}`);
 		}
@@ -1376,7 +1387,7 @@ const dbInit = {
 			  INSERT INTO setting (
 				register, receive, add_email, many_email, title, auto_refresh, register_verify, add_email_verify
 			  )
-			  SELECT 0, 0, 0, 0, 'Cloud Mail', 0, 1, 1
+			  SELECT 0, 0, 0, 0, 'Cloud Mail', 2, 1, 1
 			  WHERE NOT EXISTS (SELECT 1 FROM setting)
 			`).run();
 		} catch (e) {

@@ -12,6 +12,7 @@ import userService from '../service/user-service';
 import telegramService from '../service/telegram-service';
 import aiService from '../service/ai-service';
 import webhookService from '../service/webhook-service';
+import { notifyMailWs } from '../websocket/notify';
 import { matchesForwardRule } from '../utils/forward-rule';
 import { mergeForwardTargets } from '../utils/forward-targets';
 
@@ -156,6 +157,8 @@ export async function email(message, env, ctx) {
 
 		emailRow = await emailService.completeReceive({ env }, account ? emailConst.status.RECEIVE : emailConst.status.NOONE, emailRow.emailId);
 
+		// 有账号才推个人收件箱；无人收件（无 account / userId=0）只推全部邮件。
+		notifyMailWs(env, ctx, emailRow);
 
 		// 转发规则（按收件地址筛）影响全局转发、TG 与 Webhook 推送；按账号转发用各自的发件人/主题规则，不受此规则限制
 		const ruleMatched = ruleType !== settingConst.ruleType.RULE || ruleEmail.split(',').includes(message.to);

@@ -24,6 +24,7 @@ import account from "../entity/account";
 import { att } from '../entity/att';
 import telegramService from './telegram-service';
 import webhookService from './webhook-service';
+import { notifyMailWsFromContext } from '../websocket/notify';
 import forwardMime from '../utils/forward-mime';
 import { matchesForwardRule } from '../utils/forward-rule';
 import verifyUtils from '../utils/verify-utils';
@@ -1327,6 +1328,8 @@ const emailService = {
 
 			const emailRow = await orm(c).insert(email).values(emailData).returning().get();
 			emailRowList.push(emailRow);
+			// 站内信同样：有 userId 推收件箱，无人收件只推全部邮件。
+			notifyMailWsFromContext(c, emailRow);
 
 			//设置附件保存
 			for (const attRow of attList) {
@@ -1651,7 +1654,7 @@ const emailService = {
 					eq(email.type, emailConst.type.RECEIVE)
 				))
 			.orderBy(desc(email.emailId))
-			.limit(20);
+			.limit(50);
 
 		await this.emailAddAtt(c, list);
 		for (const item of list) {
@@ -1806,7 +1809,7 @@ const emailService = {
 					ne(email.status, emailConst.status.SAVING)
 				))
 			.orderBy(desc(email.emailId))
-			.limit(20);
+			.limit(50);
 
 		await this.emailAddAtt(c, list);
 		for (const item of list) {
