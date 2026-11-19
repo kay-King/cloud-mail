@@ -26,8 +26,13 @@
         </el-tooltip>
         <el-tooltip effect="dark" :content="$t('markAsRead')">
           <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-read-20-regular" width="20" height="20"
-                v-if="getSelectedMailsIds().length > 0 && showUnread"
+                v-if="getSelectedMailsIds().length > 0 && showUnread && props.emailRead"
                 @click="handleRead"/>
+        </el-tooltip>
+        <el-tooltip effect="dark" :content="$t('markAsUnread')">
+          <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-unread-20-regular" width="20" height="20"
+                v-if="getSelectedMailsIds().length > 0 && showUnread && props.emailUnread"
+                @click="handleUnread"/>
         </el-tooltip>
       </div>
 
@@ -303,6 +308,7 @@ import {emailExport, downloadExport} from "@/request/email.js";
 import {useUserStore} from "@/store/user.js";
 import {useUiStore} from "@/store/ui.js";
 import {useSettingStore} from "@/store/setting.js";
+import {useSidebarStore} from "@/store/sidebar.js";
 import {sleep} from "@/utils/time-utils.js"
 import {fromNow} from "@/utils/day.js";
 import {useI18n} from "vue-i18n";
@@ -316,6 +322,7 @@ const props = defineProps({
   emailRestore: Function,
   emailSpam: Function,
   emailRead: Function,
+  emailUnread: Function,
   starAdd: Function,
   starCancel: Function,
   cancelSuccess: Function,
@@ -373,6 +380,7 @@ const settingStore = useSettingStore()
 const uiStore = useUiStore();
 const emailStore = useEmailStore();
 const userStore = useUserStore();
+const sidebarStore = useSidebarStore();
 
 // 管理员删除通知弹窗：仅全部邮件视图、开关开启、且删到别人的邮件时出现
 const notifyDialog = reactive({
@@ -422,6 +430,8 @@ function onNotifyDialogConfirm(opts) {
     })
     // 成对删除时后端返回实际删掉的全部 id（含副本），列表按它移除
     emailStore.deleteIds = Array.isArray(deletedIds) && deletedIds.length ? deletedIds : emailIds;
+    // 删掉未读邮件会改变侧边栏未读数，立即刷新，不用等切页面
+    sidebarStore.refreshUnread()
   })
 }
 const loading = ref(false);
@@ -724,6 +734,12 @@ const handleRead = () => {
   localRead(emailIds);
 }
 
+const handleUnread = () => {
+  const emailIds = getSelectedMailsIds();
+  props.emailUnread(emailIds);
+  localUnread(emailIds);
+}
+
 function emailRead(emailId) {
   props.emailRead([emailId])
   localRead([emailId]);
@@ -734,6 +750,17 @@ function localRead(emailIds) {
     const index = emailList.findIndex(email => email.emailId === emailId);
     if (index > -1) {
       emailList[index].unread = EmailUnreadEnum.READ;
+      emailList[index].checked = false;
+    }
+  })
+}
+
+// 标为未读的本地状态：localRead 的镜像，行变回加粗 + 蓝点，勾选清除
+function localUnread(emailIds) {
+  emailIds.forEach(emailId => {
+    const index = emailList.findIndex(email => email.emailId === emailId);
+    if (index > -1) {
+      emailList[index].unread = EmailUnreadEnum.UNREAD;
       emailList[index].checked = false;
     }
   })
@@ -861,6 +888,8 @@ function handleDelete() {
         plain: true
       })
       emailStore.deleteIds = emailIds;
+      // 删掉未读邮件会改变侧边栏未读数，立即刷新，不用等切页面
+      sidebarStore.refreshUnread()
     })
   })
 }

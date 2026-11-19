@@ -6,6 +6,7 @@
                  :star-add="starAdd"
                  :star-cancel="starCancel"
                  :show-star="false"
+                 :show-unread="true"
                  show-user-info
                  show-status
                  actionLeft="4px"

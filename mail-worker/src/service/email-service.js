@@ -2153,6 +2153,12 @@ const emailService = {
 	async read(c, params, userId) {
 		const { emailIds } = params;
 		await orm(c).update(email).set({ unread: emailConst.unread.READ }).where(and(eq(email.userId, userId), inArray(email.emailId, emailIds)));
+	},
+
+	// 标为未读：read() 的镜像操作，只改自己的邮件
+	async unread(c, params, userId) {
+		const { emailIds } = params;
+		await orm(c).update(email).set({ unread: emailConst.unread.UNREAD }).where(and(eq(email.userId, userId), inArray(email.emailId, emailIds)));
 	}
 };
 

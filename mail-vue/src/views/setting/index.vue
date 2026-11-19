@@ -166,6 +166,7 @@
         </div>
       </div>
       <template #footer>
+        <el-button style="float: left" @click="resetSidebarDraft">{{$t('sidebarResetDefault')}}</el-button>
         <el-button @click="sidebarShow = false">{{$t('cancel')}}</el-button>
         <el-button type="primary" :loading="sidebarSaving" @click="saveSidebarDialog">{{$t('save')}}</el-button>
       </template>
@@ -334,6 +335,12 @@ function openSidebarDialog() {
     sidebarDraftShowIfUnread.value = [...sidebarStore.showIfUnread]
     sidebarShow.value = true
   })
+}
+// 一键恢复默认：草稿写回默认顺序、全部显示；仍需点保存才生效，点取消可丢弃
+function resetSidebarDraft() {
+  sidebarDraftOrder.value = [...SIDEBAR_DEFAULT_ORDER]
+  sidebarDraftHidden.value = []
+  sidebarDraftShowIfUnread.value = []
 }
 // 草稿的三段显隐：show 显示 / unread 有未读时显示 / hide 隐藏
 function sidebarDraftVisibility(key) {

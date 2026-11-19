@@ -85,6 +85,11 @@ app.put('/email/read', async (c) => {
 	return c.json(result.ok());
 })
 
+app.put('/email/unread', async (c) => {
+	await emailService.unread(c, await c.req.json(), userContext.getUserId(c));
+	return c.json(result.ok());
+})
+
 // 导出邮件：1 封下 .eml，多封打成 zip；普通用户只导自己的，管理员可导全站的
 app.get('/email/export', async (c) => {
 	const userId = userContext.getUserId(c);

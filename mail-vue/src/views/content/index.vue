@@ -24,6 +24,9 @@
           <Icon class="icon" @click="changeStar" icon="solar:star-line-duotone" width="18.5" height="18.5"/>
         </el-tooltip>
       </span>
+      <el-tooltip effect="dark" :content="$t('markAsUnread')">
+        <Icon class="icon" v-if="['logic', 'spam'].includes(emailStore.contentData.delType) && email.unread === EmailUnreadEnum.READ" @click="handleMarkUnread" icon="fluent:mail-unread-20-regular" width="20" height="20" />
+      </el-tooltip>
       <el-tooltip effect="dark" :content="$t('reply')">
         <Icon class="icon" v-if="emailStore.contentData.showReply" v-perm="'email:send'"  @click="openReply" icon="fluent-mdl2:reply" width="19" height="19" />
       </el-tooltip>
@@ -123,7 +126,7 @@ import deleteNotifyDialog from "@/components/delete-notify-dialog/index.vue"
 import {computed, reactive, ref, watch, onMounted, onUnmounted, nextTick} from "vue";
 import {useRouter} from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import {emailDelete, emailRead, emailRestore, emailPhysicsDelete, emailExport, downloadExport, emailMarkSpam, emailUnmarkSpam} from "@/request/email.js";
+import {emailDelete, emailRead, emailUnread, emailRestore, emailPhysicsDelete, emailExport, downloadExport, emailMarkSpam, emailUnmarkSpam} from "@/request/email.js";
 import {Icon} from "@iconify/vue";
 import {useEmailStore} from "@/store/email.js";
 import {useSidebarStore} from "@/store/sidebar.js";
@@ -249,6 +252,21 @@ function tryMarkRead() {
   emailRead([emailId]).finally(() => {
     readRequesting = false
     // 点开邮件即标已读，未读数变了，「有未读时显示」的条目靠它决定显隐
+    sidebarStore.refreshUnread()
+  })
+}
+
+// 详情页标为未读：tryMarkRead 的反向操作，本地状态先改回未读，成功后刷新侧边栏未读数
+const handleMarkUnread = () => {
+  const current = email.value
+  if (!current?.emailId || current.unread !== EmailUnreadEnum.READ) return
+  const emailId = current.emailId
+  current.unread = EmailUnreadEnum.UNREAD
+  if (emailStore.detailMap[emailId]) {
+    emailStore.detailMap[emailId].unread = EmailUnreadEnum.UNREAD
+  }
+  emailStore.markListUnread(emailId)
+  emailUnread([emailId]).then(() => {
     sidebarStore.refreshUnread()
   })
 }
@@ -402,6 +420,7 @@ const handleDelete = () => {
           plain: true,
         })
         emailStore.deleteIds = [email.value.emailId]
+        sidebarStore.refreshUnread()
       })
     } else if (emailStore.contentData.delType === 'trash') {
 
@@ -412,6 +431,7 @@ const handleDelete = () => {
           plain: true,
         })
         emailStore.deleteIds = [email.value.emailId]
+        sidebarStore.refreshUnread()
       })
     } else  {
 
@@ -422,6 +442,7 @@ const handleDelete = () => {
           plain: true,
         })
         emailStore.deleteIds = [email.value.emailId]
+        sidebarStore.refreshUnread()
       })
     }
 

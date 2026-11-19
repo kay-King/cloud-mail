@@ -90,5 +90,15 @@ export const useEmailStore = defineStore('email', {
                 if (item) item.unread = EmailUnreadEnum.READ
             }
         },
+        // 详情页标为未读的镜像：把各列表里同一封的本地状态改回未读（跟 markListRead 一对）
+        markListUnread(emailId) {
+            const scrolls = [this.emailScroll, this.starScroll, this.sendScroll]
+            for (const scroll of scrolls) {
+                const list = scroll?.emailList
+                if (!list?.length) continue
+                const item = list.find(e => e.emailId === emailId)
+                if (item) item.unread = EmailUnreadEnum.UNREAD
+            }
+        },
     },
 })

@@ -8,6 +8,7 @@
                :star-add="handleStarAdd"
                :star-cancel="handleStarCancel"
                :email-read="handleListRead"
+               :email-unread="handleListUnread"
                :show-unread="true"
                :highlight-text="emailStore.searchParams.text"
                actionLeft="4px"
@@ -31,7 +32,7 @@ import {useSettingStore} from "@/store/setting.js";
 import {useSidebarStore} from "@/store/sidebar.js";
 import emailScroll from "@/components/email-scroll/index.vue"
 import {Icon} from "@iconify/vue";
-import {emailList, emailDelete, emailLatest, emailRead, emailMarkSpam} from "@/request/email.js";
+import {emailList, emailDelete, emailLatest, emailRead, emailUnread, emailMarkSpam} from "@/request/email.js";
 import {starAdd, starCancel} from "@/request/star.js";
 import {defineOptions, onBeforeUnmount, onMounted, ref, watch, computed} from "vue";
 import {ElMessage} from "element-plus";
@@ -126,6 +127,13 @@ function markSpamEmails(emailIds) {
 // 列表里的标已读 / 星标切换：成功后刷新侧边栏未读数
 function handleListRead(emailIds) {
   return emailRead(emailIds).then(() => {
+    sidebarStore.refreshUnread()
+  })
+}
+
+// 列表里的标为未读：handleListRead 的镜像
+function handleListUnread(emailIds) {
+  return emailUnread(emailIds).then(() => {
     sidebarStore.refreshUnread()
   })
 }

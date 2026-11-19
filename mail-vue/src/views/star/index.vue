@@ -5,6 +5,7 @@
                :getEmailList="getEmailList"
                :emailDelete="emailDelete"
                :email-read="handleListRead"
+               :email-unread="handleListUnread"
                :show-unread="true"
                :star-add="handleStarAdd"
                :star-cancel="handleStarCancel"
@@ -16,7 +17,7 @@
 
 <script setup>
 import emailScroll from "@/components/email-scroll/index.vue"
-import {emailDelete, emailRead} from "@/request/email.js";
+import {emailDelete, emailRead, emailUnread} from "@/request/email.js";
 import {starAdd, starCancel, starList} from "@/request/star.js";
 import {useEmailStore} from "@/store/email.js";
 import {useSidebarStore} from "@/store/sidebar.js";
@@ -34,6 +35,13 @@ const sidebarStore = useSidebarStore();
 // 列表里的标已读 / 星标切换：成功后刷新侧边栏未读数
 function handleListRead(emailIds) {
   return emailRead(emailIds).then(() => {
+    sidebarStore.refreshUnread()
+  })
+}
+
+// 列表里的标为未读：handleListRead 的镜像
+function handleListUnread(emailIds) {
+  return emailUnread(emailIds).then(() => {
     sidebarStore.refreshUnread()
   })
 }
