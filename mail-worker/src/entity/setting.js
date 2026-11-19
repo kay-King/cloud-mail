@@ -32,9 +32,9 @@ export const setting = sqliteTable('setting', {
 	emailPrefixFilter: text('email_prefix_filter').default('').notNull(),
 	// 黑名单 3 项打包进一个 JSON 列，3 列变 1 列腾 2 个空位
 	blacklistConfig: text('blacklist_config').default('{}').notNull(),
-	aiCode: integer('ai_code').default(1).notNull(),
+	// AI 验证码 2 项打包进一个 JSON 列，2 列变 1 列腾 1 个空位
+	aiCodeConfig: text('ai_code_config').default('{}').notNull(),
 	syncDelete: integer('sync_delete').default(1).notNull(),
-	aiCodeFilter: text('ai_code_filter').default('').notNull(),
 	// 第三方登录 9 项打包进一个 JSON 列，9 列变 1 列腾 8 个空位（功能未配置但 oauth-service 代码活着，只能打包不能删）
 	oauthConfig: text('oauth_config').default('{}').notNull(),
 	// 自动清理 3 项打包进一个 JSON 列，3 列变 1 列腾 2 个空位

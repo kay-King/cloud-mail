@@ -31,7 +31,7 @@ const SETTING_LABELS = {
 	background: '登录背景',
 	globalForward: '全局转发',
 	blacklistConfig: '黑名单',
-	aiCode: 'AI 识别',
+	aiCodeConfig: 'AI 识别',
 	emailPrefixFilter: '邮箱前缀过滤',
 	minEmailPrefix: '邮箱前缀最短长度',
 	loginDomain: '登录域名',

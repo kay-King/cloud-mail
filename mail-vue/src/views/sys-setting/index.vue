@@ -561,8 +561,8 @@
               <div class="setting-item">
                 <div><span>{{ $t('codeRecognition') }}</span></div>
                 <div>
-                  <el-switch @change="changeField('aiCode', $event)" :before-change="beforeChange" :active-value="0" :inactive-value="1"
-                             v-model="setting.aiCode"/>
+                  <el-switch @change="changeAiCode($event)" :before-change="beforeChange" :active-value="0" :inactive-value="1"
+                             v-model="setting.aiCodeConfig.aiCode"/>
                 </div>
               </div>
               <div class="setting-item">
@@ -1729,6 +1729,11 @@ function getSettings() {
       autoCleanExclude: ac.autoCleanExclude ?? settingData.autoCleanExclude ?? '',
       auditCleanDays: ac.auditCleanDays ?? settingData.auditCleanDays ?? 0
     }
+    const ai = settingData.aiCodeConfig || {}
+    settingData.aiCodeConfig = {
+      aiCode: ai.aiCode ?? settingData.aiCode ?? 1,
+      aiCodeFilter: ai.aiCodeFilter ?? settingData.aiCodeFilter ?? ''
+    }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
@@ -2231,7 +2236,8 @@ function resetAuditClean() {
 }
 
 function resetAiCodeFilter() {
-  aiCodeFilter.value = setting.value.aiCodeFilter ? setting.value.aiCodeFilter.split(',') : []
+  const f = setting.value.aiCodeConfig?.aiCodeFilter ?? setting.value.aiCodeFilter
+  aiCodeFilter.value = f ? f.split(',') : []
 }
 
 function saveEmailPrefix() {
@@ -2259,7 +2265,7 @@ function saveAuditClean() {
 }
 
 function saveAiCodeFilter() {
-  editSetting({aiCodeFilter: aiCodeFilter.value + ''})
+  editSetting({aiCodeConfig: {aiCodeFilter: aiCodeFilter.value + ''}})
 }
 
 const opacityChange = debounce(doOpacityChange, 1000, {
@@ -2618,6 +2624,13 @@ function changeField(key, value) {
   if (!settingReady.value || settingLoading.value) return
   setting.value[key] = value
   editSetting({[key]: value}, false)
+}
+
+// AI 识别开关单字段保存（aiCode 在 aiCodeConfig 对象里，changeField 只发平铺字段，走不通）
+function changeAiCode(value) {
+  if (!settingReady.value || settingLoading.value) return
+  setting.value.aiCodeConfig.aiCode = value
+  editSetting({aiCodeConfig: {aiCode: value}}, false)
 }
 
 function loadAttStatus() {

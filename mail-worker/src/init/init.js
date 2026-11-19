@@ -56,6 +56,7 @@ const dbInit = {
 		await this.v3_24DB(c);
 		await this.v3_25DB(c);
 		await this.v3_26DB(c);
+		await this.v3_27DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -528,6 +529,42 @@ const dbInit = {
 		if (config) {
 			try {
 				await c.env.db.prepare(`UPDATE setting SET auto_clean_config = ?`).bind(JSON.stringify(config)).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+	},
+
+	async v3_27DB(c) {
+		// AI 验证码 2 项打包进 ai_code_config JSON 列（2 列变 1 列，腾 1 个空位）。
+		// 顺序：先读出现有值 → 删 2 个旧列 → 加 ai_code_config 列 → 把值写回去。各步独立 try/catch，重复跑也不怕。
+		let config = null;
+		try {
+			const row = await c.env.db.prepare(`SELECT ai_code, ai_code_filter FROM setting`).first();
+			if (row) {
+				config = {
+					aiCode: row.ai_code ?? 1,
+					aiCodeFilter: row.ai_code_filter ?? ''
+				};
+			}
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		for (const col of ['ai_code', 'ai_code_filter']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN ${col};`).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN ai_code_config TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		if (config) {
+			try {
+				await c.env.db.prepare(`UPDATE setting SET ai_code_config = ?`).bind(JSON.stringify(config)).run();
 			} catch (e) {
 				console.warn(`跳过字段：${e.message}`);
 			}

@@ -23,12 +23,11 @@ export async function email(message, env, ctx) {
 		const { tgChatId, tgBotStatus } = settingService.tgConfig(setting);
 		const { webhookStatus, webhookUrl, webhookRetry, webhookSecret } = settingService.webhookConfig(setting);
 		const { blackSubject, blackContent, blackFrom } = settingService.blacklistConfig(setting);
+		const { aiCode, aiCodeFilter } = settingService.aiCodeConfig(setting);
 		const {
 			receive,
 			r2Domain,
-			noRecipient,
-			aiCode,
-			aiCodeFilter
+			noRecipient
 		} = setting;
 		const { ruleEmail, ruleType, forwardEmail, forwardStatus } = settingService.globalForward(setting);
 

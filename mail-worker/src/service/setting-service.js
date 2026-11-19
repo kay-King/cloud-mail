@@ -29,6 +29,7 @@ const settingService = {
 		settingRow.webhookConfig = JSON.parse(settingRow.webhookConfig || '{}');
 		settingRow.blacklistConfig = JSON.parse(settingRow.blacklistConfig || '{}');
 		settingRow.autoCleanConfig = JSON.parse(settingRow.autoCleanConfig || '{}');
+		settingRow.aiCodeConfig = JSON.parse(settingRow.aiCodeConfig || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -248,6 +249,21 @@ const settingService = {
 		};
 	},
 
+	// AI 验证码配置读值（ai_code_config 打包后）：新格式是 setting.aiCodeConfig 对象里的字段；
+	// 旧缓存里是平铺字段，两边都兜底；都没有时按默认（开关默认 1=关，过滤列表默认空）。
+	aiCodeConfig(setting) {
+		const a = setting?.aiCodeConfig;
+		const pick = (key, def) => {
+			if (a && typeof a === 'object' && a[key] !== undefined && a[key] !== null) return a[key];
+			if (setting && setting[key] !== undefined && setting[key] !== null) return setting[key];
+			return def;
+		};
+		return {
+			aiCode: pick('aiCode', 1),
+			aiCodeFilter: pick('aiCodeFilter', '')
+		};
+	},
+
 	async query(c) {
 
 		if (c.get?.('setting')) {
@@ -372,8 +388,9 @@ const settingService = {
 			params.emailPrefixFilter = params.emailPrefixFilter + '';
 		}
 
-		if (Array.isArray(params.aiCodeFilter)) {
-			params.aiCodeFilter = params.aiCodeFilter + '';
+		// aiCodeFilter 进了 aiCodeConfig 对象，数组转字符串的处理随之挪到对象里的字段上
+		if (Array.isArray(params.aiCodeConfig?.aiCodeFilter)) {
+			params.aiCodeConfig.aiCodeFilter = params.aiCodeConfig.aiCodeFilter + '';
 		}
 
 		// Webhook 地址进了 webhookConfig 对象，域名规范化随之挪到对象里的字段上
@@ -461,6 +478,14 @@ const settingService = {
 				autoCleanConfig[k] = v;
 			}
 		}
+		let aiCodeConfig = { ...(settingData.aiCodeConfig || {}) };
+		if (params.aiCodeConfig && typeof params.aiCodeConfig === 'object') {
+			for (const [k, v] of Object.entries(params.aiCodeConfig)) {
+				// 带 ****** 的是前端回显的脱敏值，不是真实密钥，跳过不覆盖
+				if (typeof v === 'string' && v.includes('******')) continue;
+				aiCodeConfig[k] = v;
+			}
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
@@ -476,6 +501,7 @@ const settingService = {
 		params.webhookConfig = JSON.stringify(webhookConfig);
 		params.blacklistConfig = JSON.stringify(blacklistConfig);
 		params.autoCleanConfig = JSON.stringify(autoCleanConfig);
+		params.aiCodeConfig = JSON.stringify(aiCodeConfig);
 
 		// 旧版平铺列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
@@ -553,6 +579,8 @@ const settingService = {
 		delete params.autoCleanDays;
 		delete params.autoCleanExclude;
 		delete params.auditCleanDays;
+		delete params.aiCode;
+		delete params.aiCodeFilter;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);
