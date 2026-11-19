@@ -1479,19 +1479,48 @@ const emailService = {
 		}
 	},
 
+	// 规则转发名单匹配（两种方式共存，名单只有一个，匹配方式决定怎么解读它）：
+	// mailbox=跟收件邮箱地址比（默认，旧行为），user=跟收件邮箱所属用户的登录邮箱比。
+	// 名单按逗号切、去空格、转小写再比；被比的地址为空时不匹配。
+	matchForwardRule({ ruleEmail, userEmail, toEmail, ruleMatch }) {
+		const list = String(ruleEmail || '').split(',').map(item => item.trim().toLowerCase()).filter(Boolean);
+		if (ruleMatch === 'user') {
+			return !!(userEmail && list.includes(String(userEmail).toLowerCase()));
+		}
+		return !!(toEmail && list.includes(String(toEmail).toLowerCase()));
+	},
+
 	//站内邮件不经过 email 事件，在这里按转发规则推送
 	async forwardOnSiteEmail(c, emailRowList, { sendParams }) {
 
 		const setting = await settingService.query(c);
 		const { tgBotStatus, tgChatId } = settingService.tgConfig(setting);
 		const { webhookStatus, webhookUrl, webhookRetry, webhookSecret } = settingService.webhookConfig(setting);
-		const { ruleEmail, ruleType } = settingService.globalForward(setting);
+		const { ruleEmail, ruleType, ruleMatch } = settingService.globalForward(setting);
 
 		// 转发规则只影响 TG 与 Webhook 推送
 		let notifyRows = emailRowList;
 		if (ruleType === settingConst.ruleType.RULE) {
-			const emails = ruleEmail.split(',');
-			notifyRows = emailRowList.filter(emailRow => emails.includes(emailRow.toEmail));
+			if (ruleMatch === 'user') {
+				// 按用户：批量查收件邮箱所属用户的登录邮箱再过滤
+				const userIds = [...new Set(emailRowList.map(row => row.userId).filter(Boolean))];
+				const userRows = userIds.length
+					? await orm(c).select({ userId: user.userId, email: user.email }).from(user).where(inArray(user.userId, userIds)).all()
+					: [];
+				const userEmailById = Object.fromEntries(userRows.map(row => [row.userId, row.email]));
+				notifyRows = emailRowList.filter(emailRow => this.matchForwardRule({
+					ruleEmail,
+					userEmail: userEmailById[emailRow.userId],
+					ruleMatch
+				}));
+			} else {
+				// 按邮箱：跟收件邮箱地址比
+				notifyRows = emailRowList.filter(emailRow => this.matchForwardRule({
+					ruleEmail,
+					toEmail: emailRow.toEmail,
+					ruleMatch
+				}));
+			}
 		}
 
 		for (const emailRow of notifyRows) {

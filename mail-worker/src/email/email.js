@@ -30,7 +30,7 @@ export async function email(message, env, ctx) {
 			r2Domain,
 			noRecipient
 		} = setting;
-		const { ruleEmail, ruleType, forwardEmail, forwardStatus } = settingService.globalForward(setting);
+		const { ruleEmail, ruleType, ruleMatch, forwardEmail, forwardStatus } = settingService.globalForward(setting);
 
 		if (receive === settingConst.receive.CLOSE) {
 			message.setReject('Service suspended');
@@ -160,8 +160,14 @@ export async function email(message, env, ctx) {
 		// 有账号才推个人收件箱；无人收件（无 account / userId=0）只推全部邮件。
 		notifyMailWs(env, ctx, emailRow);
 
-		// 转发规则（按收件地址筛）影响全局转发、TG 与 Webhook 推送；按账号转发用各自的发件人/主题规则，不受此规则限制
-		const ruleMatched = ruleType !== settingConst.ruleType.RULE || ruleEmail.split(',').includes(message.to);
+		// 转发规则影响全局转发、TG 与 Webhook 推送；按账号转发用各自的发件人/主题规则，不受此规则限制。
+		// 名单匹配方式：mailbox=跟收件邮箱地址比（默认），user=跟收件邮箱所属用户的登录邮箱比。
+		const ruleMatched = ruleType !== settingConst.ruleType.RULE || emailService.matchForwardRule({
+			ruleEmail,
+			userEmail: userRow?.email,
+			toEmail: message.to,
+			ruleMatch
+		});
 
 		//转发到TG
 		if (ruleMatched && tgBotStatus === settingConst.tgBotStatus.OPEN && tgChatId) {

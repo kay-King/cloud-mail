@@ -52,6 +52,7 @@ const settingService = {
 
 	// 全局转发配置读值（global_forward 打包后）：新格式是 setting.globalForward 对象里的字段；
 	// 旧缓存里是平铺字段，两边都兜底；都没有时按默认（关闭、规则全部）。forwardStatus：0=开、1=关；ruleType：0=全部、1=按规则。
+	// ruleMatch：规则名单的匹配方式，mailbox=按收件邮箱地址（默认），user=按收件邮箱所属用户的登录邮箱。
 	globalForward(setting) {
 		const g = setting?.globalForward;
 		const pick = (key, def) => {
@@ -63,7 +64,8 @@ const settingService = {
 			forwardEmail: pick('forwardEmail', ''),
 			forwardStatus: pick('forwardStatus', 1),
 			ruleEmail: pick('ruleEmail', ''),
-			ruleType: pick('ruleType', 0)
+			ruleType: pick('ruleType', 0),
+			ruleMatch: pick('ruleMatch', 'mailbox')
 		};
 	},
 

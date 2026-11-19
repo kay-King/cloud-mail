@@ -928,7 +928,12 @@ Authorization: &lt;secret&gt;</pre>
             <el-radio-button :value="0">{{ $t('forwardAll') }}</el-radio-button>
             <el-radio-button :value="1">{{ $t('rules') }}</el-radio-button>
           </el-radio-group>
-          <el-input v-if="globalRuleType === 1" :placeholder="$t('globalForwardRulePlaceholder')"
+          <el-radio-group v-if="globalRuleType === 1" v-model="globalRuleMatch" class="forward-rule-row">
+            <el-radio-button value="mailbox">{{ $t('ruleMatchMailbox') }}</el-radio-button>
+            <el-radio-button value="user">{{ $t('ruleMatchUser') }}</el-radio-button>
+          </el-radio-group>
+          <el-input v-if="globalRuleType === 1"
+                    :placeholder="globalRuleMatch === 'user' ? $t('ruleUsersInputDesc') : $t('ruleEmailsInputDesc')"
                     v-model="globalRuleEmail" @keyup.enter="globalForwardSave"></el-input>
           <div class="forward-tip">{{ $t('globalForwardTip') }}</div>
         </div>
@@ -1434,6 +1439,7 @@ const globalForwardEmail = ref('')
 const globalForwardStatus = ref(1)
 const globalRuleType = ref(0)
 const globalRuleEmail = ref('')
+const globalRuleMatch = ref('mailbox')
 const emailPrefixShow = ref(false)
 const showResendList = ref(false)
 const showSendkitList = ref(false)
@@ -1641,7 +1647,8 @@ function getSettings() {
       forwardEmail: g.forwardEmail ?? settingData.forwardEmail ?? '',
       forwardStatus: g.forwardStatus ?? settingData.forwardStatus ?? 1,
       ruleEmail: g.ruleEmail ?? settingData.ruleEmail ?? '',
-      ruleType: g.ruleType ?? settingData.ruleType ?? 0
+      ruleType: g.ruleType ?? settingData.ruleType ?? 0,
+      ruleMatch: g.ruleMatch ?? settingData.ruleMatch ?? 'mailbox'
     }
     // 备份配置默认值兜底：backupConfig 是打包后的 JSON 对象；缓存是旧版时只有平铺字段，两边都兜底
     const bc = settingData.backupConfig || {}
@@ -2194,6 +2201,7 @@ function openGlobalForward() {
   globalForwardStatus.value = g.forwardStatus ?? setting.value.forwardStatus ?? 1
   globalRuleType.value = g.ruleType ?? setting.value.ruleType ?? 0
   globalRuleEmail.value = (g.ruleEmail ?? setting.value.ruleEmail) || ''
+  globalRuleMatch.value = g.ruleMatch ?? setting.value.ruleMatch ?? 'mailbox'
   globalForwardShow.value = true
 }
 
@@ -2214,7 +2222,8 @@ function globalForwardSave() {
     forwardEmail: targets.join(','),
     forwardStatus: globalForwardStatus.value,
     ruleType: globalRuleType.value,
-    ruleEmail: rules.join(',')
+    ruleEmail: rules.join(','),
+    ruleMatch: globalRuleMatch.value
   }).then((data) => {
     const status = data?.verifyStatus
     const msgKey = {

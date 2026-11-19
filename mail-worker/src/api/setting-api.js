@@ -23,7 +23,7 @@ app.put('/setting/set', async (c) => {
 });
 
 app.put('/setting/setGlobalForward', async (c) => {
-	const { forwardEmail, forwardStatus, ruleType, ruleEmail } = await c.req.json();
+	const { forwardEmail, forwardStatus, ruleType, ruleEmail, ruleMatch } = await c.req.json();
 	const status = Number(forwardStatus) === settingConst.forwardStatus.OPEN
 		? settingConst.forwardStatus.OPEN : settingConst.forwardStatus.CLOSE;
 	const targets = (forwardEmail || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -40,12 +40,15 @@ app.put('/setting/setGlobalForward', async (c) => {
 			throw new BizError(t('notEmail'));
 		}
 	}
+	// 规则名单匹配方式：user=按用户登录邮箱，其余一律按收件邮箱地址（默认，与旧行为一致）
+	const match = ruleMatch === 'user' ? 'user' : 'mailbox';
 	const values = {
 		globalForward: {
 			forwardEmail: status === settingConst.forwardStatus.OPEN ? targets.join(',') : '',
 			forwardStatus: status,
 			ruleType: type,
-			ruleEmail: rules.join(',')
+			ruleEmail: rules.join(','),
+			ruleMatch: match
 		}
 	};
 	const before = await settingService.query(c);
