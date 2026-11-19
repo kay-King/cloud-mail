@@ -1717,6 +1717,12 @@ function getSettings() {
       webhookRetry: wc.webhookRetry ?? settingData.webhookRetry ?? 0,
       webhookSecret: wc.webhookSecret ?? settingData.webhookSecret ?? ''
     }
+    const bl = settingData.blacklistConfig || {}
+    settingData.blacklistConfig = {
+      blackSubject: bl.blackSubject ?? settingData.blackSubject ?? '',
+      blackContent: bl.blackContent ?? settingData.blackContent ?? '',
+      blackFrom: bl.blackFrom ?? settingData.blackFrom ?? ''
+    }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
@@ -2195,9 +2201,13 @@ function resetEmailPrefix() {
 }
 
 function resetBlackList() {
-  blackListForm.value.blackFrom = setting.value.blackFrom ? setting.value.blackFrom.split(',') : []
-  blackListForm.value.blackContent = setting.value.blackContent ? setting.value.blackContent.split(',') : []
-  blackListForm.value.blackSubject = setting.value.blackSubject ? setting.value.blackSubject.split(',') : []
+  const b = setting.value.blacklistConfig || {}
+  const blackFrom = b.blackFrom ?? setting.value.blackFrom
+  const blackContent = b.blackContent ?? setting.value.blackContent
+  const blackSubject = b.blackSubject ?? setting.value.blackSubject
+  blackListForm.value.blackFrom = blackFrom ? blackFrom.split(',') : []
+  blackListForm.value.blackContent = blackContent ? blackContent.split(',') : []
+  blackListForm.value.blackSubject = blackSubject ? blackSubject.split(',') : []
 }
 
 function resetAutoClean() {

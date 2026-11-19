@@ -30,9 +30,8 @@ export const setting = sqliteTable('setting', {
 	attStorage: text('att_storage').default('{}').notNull(),
 	minEmailPrefix: integer('min_email_prefix').default(0).notNull(),
 	emailPrefixFilter: text('email_prefix_filter').default('').notNull(),
-	blackSubject: text('black_subject').default('').notNull(),
-	blackContent: text('black_content').default('').notNull(),
-	blackFrom: text('black_from').default('').notNull(),
+	// 黑名单 3 项打包进一个 JSON 列，3 列变 1 列腾 2 个空位
+	blacklistConfig: text('blacklist_config').default('{}').notNull(),
 	aiCode: integer('ai_code').default(1).notNull(),
 	syncDelete: integer('sync_delete').default(1).notNull(),
 	aiCodeFilter: text('ai_code_filter').default('').notNull(),

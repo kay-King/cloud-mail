@@ -22,13 +22,11 @@ export async function email(message, env, ctx) {
 		const setting = await settingService.query({ env });
 		const { tgChatId, tgBotStatus } = settingService.tgConfig(setting);
 		const { webhookStatus, webhookUrl, webhookRetry, webhookSecret } = settingService.webhookConfig(setting);
+		const { blackSubject, blackContent, blackFrom } = settingService.blacklistConfig(setting);
 		const {
 			receive,
 			r2Domain,
 			noRecipient,
-			blackSubject,
-			blackContent,
-			blackFrom,
 			aiCode,
 			aiCodeFilter
 		} = setting;

@@ -27,6 +27,7 @@ const settingService = {
 		settingRow.tgConfig = JSON.parse(settingRow.tgConfig || '{}');
 		settingRow.verifyConfig = JSON.parse(settingRow.verifyConfig || '{}');
 		settingRow.webhookConfig = JSON.parse(settingRow.webhookConfig || '{}');
+		settingRow.blacklistConfig = JSON.parse(settingRow.blacklistConfig || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -211,6 +212,22 @@ const settingService = {
 			webhookStatus: pick('webhookStatus', 1),
 			webhookRetry: pick('webhookRetry', 0),
 			webhookSecret: pick('webhookSecret', '')
+		};
+	},
+
+	// 黑名单配置读值（blacklist_config 打包后）：新格式是 setting.blacklistConfig 对象里的字段；
+	// 旧缓存里是平铺字段，两边都兜底；都没有时按默认（3 项都为空字符串）。
+	blacklistConfig(setting) {
+		const b = setting?.blacklistConfig;
+		const pick = (key, def) => {
+			if (b && typeof b === 'object' && b[key] !== undefined && b[key] !== null) return b[key];
+			if (setting && setting[key] !== undefined && setting[key] !== null) return setting[key];
+			return def;
+		};
+		return {
+			blackSubject: pick('blackSubject', ''),
+			blackContent: pick('blackContent', ''),
+			blackFrom: pick('blackFrom', '')
 		};
 	},
 
@@ -411,6 +428,14 @@ const settingService = {
 				webhookConfig[k] = v;
 			}
 		}
+		let blacklistConfig = { ...(settingData.blacklistConfig || {}) };
+		if (params.blacklistConfig && typeof params.blacklistConfig === 'object') {
+			for (const [k, v] of Object.entries(params.blacklistConfig)) {
+				// 带 ****** 的是前端回显的脱敏值，不是真实密钥，跳过不覆盖
+				if (typeof v === 'string' && v.includes('******')) continue;
+				blacklistConfig[k] = v;
+			}
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
@@ -424,6 +449,7 @@ const settingService = {
 		params.tgConfig = JSON.stringify(tgConfig);
 		params.verifyConfig = JSON.stringify(verifyConfig);
 		params.webhookConfig = JSON.stringify(webhookConfig);
+		params.blacklistConfig = JSON.stringify(blacklistConfig);
 
 		// 旧版平铺列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
@@ -495,6 +521,9 @@ const settingService = {
 		delete params.webhookStatus;
 		delete params.webhookRetry;
 		delete params.webhookSecret;
+		delete params.blackSubject;
+		delete params.blackContent;
+		delete params.blackFrom;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);
@@ -548,8 +577,13 @@ const settingService = {
 	},
 
 	async setBlacklist(c, params) {
-		const { blackSubject, blackContent, blackFrom  } = params
-		await orm(c).update(setting).set({ blackSubject, blackContent, blackFrom }).run();
+		// 入参仍是 3 个平铺字段（前端黑名单弹窗的约定不变），内部合并进 blacklistConfig JSON 列再写库
+		const { blackSubject, blackContent, blackFrom } = params
+		const merged = { ...this.blacklistConfig(await this.query(c)) };
+		if (blackSubject !== undefined) merged.blackSubject = blackSubject;
+		if (blackContent !== undefined) merged.blackContent = blackContent;
+		if (blackFrom !== undefined) merged.blackFrom = blackFrom;
+		await orm(c).update(setting).set({ blacklistConfig: JSON.stringify(merged) }).run();
 		await this.refresh(c);
 		return this.get(c);
 	},

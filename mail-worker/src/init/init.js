@@ -54,6 +54,7 @@ const dbInit = {
 		await this.v3_22DB(c);
 		await this.v3_23DB(c);
 		await this.v3_24DB(c);
+		await this.v3_25DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -452,6 +453,43 @@ const dbInit = {
 		if (config) {
 			try {
 				await c.env.db.prepare(`UPDATE setting SET webhook_config = ?`).bind(JSON.stringify(config)).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+	},
+
+	async v3_25DB(c) {
+		// 黑名单 3 项打包进 blacklist_config JSON 列（3 列变 1 列，腾 2 个空位）。
+		// 顺序：先读出现有值 → 删 3 个旧列 → 加 blacklist_config 列 → 把值写回去。各步独立 try/catch，重复跑也不怕。
+		let config = null;
+		try {
+			const row = await c.env.db.prepare(`SELECT black_subject, black_content, black_from FROM setting`).first();
+			if (row) {
+				config = {
+					blackSubject: row.black_subject ?? '',
+					blackContent: row.black_content ?? '',
+					blackFrom: row.black_from ?? ''
+				};
+			}
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		for (const col of ['black_subject', 'black_content', 'black_from']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN ${col};`).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN blacklist_config TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		if (config) {
+			try {
+				await c.env.db.prepare(`UPDATE setting SET blacklist_config = ?`).bind(JSON.stringify(config)).run();
 			} catch (e) {
 				console.warn(`跳过字段：${e.message}`);
 			}
