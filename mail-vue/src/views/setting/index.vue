@@ -148,18 +148,16 @@
         <el-button type="primary" :loading="blackListLoading" @click="savePersonalBlackList">{{$t('save')}}</el-button>
       </template>
     </el-dialog>
-    <el-dialog v-model="sidebarShow" class="sidebar-dialog" :title="$t('interfaceDisplay')" @opened="initSidebarSortable">
+    <el-dialog v-model="sidebarShow" class="sidebar-dialog" :title="$t('sidebarSettings')" @opened="initSidebarSortable">
       <div class="sidebar-dialog-tip">{{$t('sidebarTip')}}</div>
       <div ref="sidebarListRef" class="sidebar-list">
         <div v-for="key in sidebarDraftOrder" :key="key" class="sidebar-row">
-          <Icon icon="mdi:drag-vertical" width="20" height="20" class="sidebar-drag-handle" />
+          <Icon icon="mdi:drag-vertical" width="16" height="16" class="sidebar-drag-handle" />
           <span class="sidebar-row-name">{{ sidebarItemLabel(key) }}</span>
           <el-switch v-if="!isSidebarHideable(key)" :model-value="true" disabled />
           <div v-else-if="isSidebarUnreadKey(key)" class="sidebar-visibility-options">
             <span class="sidebar-visibility-option" :class="{ active: sidebarDraftVisibility(key) === 'show' }" @click="onSidebarDraftVisibility(key, 'show')">{{ $t('sidebarShow') }}</span>
-            <span class="sidebar-visibility-sep">/</span>
             <span class="sidebar-visibility-option" :class="{ active: sidebarDraftVisibility(key) === 'unread' }" @click="onSidebarDraftVisibility(key, 'unread')">{{ $t('sidebarShowIfUnread') }}</span>
-            <span class="sidebar-visibility-sep">/</span>
             <span class="sidebar-visibility-option" :class="{ active: sidebarDraftVisibility(key) === 'hide' }" @click="onSidebarDraftVisibility(key, 'hide')">{{ $t('sidebarHide') }}</span>
           </div>
           <el-switch v-else :model-value="!sidebarDraftHidden.includes(key)" @change="onSidebarDraftToggle(key, $event)" />
@@ -810,26 +808,33 @@ function submitPwd() {
     margin-bottom: 12px;
   }
 
+  // 白卡 + 细分隔线，不再是每行一条灰底长条
   .sidebar-list {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--el-bg-color);
   }
 
   .sidebar-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 10px;
-    border-radius: 6px;
+    padding: 11px 12px;
     font-size: 14px;
-    background: var(--el-fill-color-light);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  .sidebar-row:last-child {
+    border-bottom: none;
   }
 
   .sidebar-drag-handle {
     flex-shrink: 0;
-    color: var(--regular-text-color);
+    color: var(--el-text-color-placeholder);
     cursor: grab;
     // 把手上禁止触摸滚动，手机上按住把手拖动时页面不会跟着滑
     touch-action: none;
@@ -843,14 +848,17 @@ function submitPwd() {
   .sidebar-visibility-options {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     font-size: 13px;
     white-space: nowrap;
   }
 
+  // 三个选项是可点的文字按钮，选中态是浅蓝小药丸，不再是裸文字加斜杠
   .sidebar-visibility-option {
     cursor: pointer;
     color: var(--regular-text-color);
+    padding: 3px 8px;
+    border-radius: 4px;
   }
 
   .sidebar-visibility-option:hover {
@@ -860,10 +868,7 @@ function submitPwd() {
   .sidebar-visibility-option.active {
     color: var(--el-color-primary);
     font-weight: 600;
-  }
-
-  .sidebar-visibility-sep {
-    color: var(--el-border-color);
+    background: var(--el-color-primary-light-9);
   }
 
   .sidebar-drag-ghost {

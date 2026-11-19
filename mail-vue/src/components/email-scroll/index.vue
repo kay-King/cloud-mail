@@ -585,10 +585,9 @@ watch(() => arrivedState.bottom, (isBottom) => {
 watch(
     () => emailList.map(item => item.checked),
     () => {
-      checkedEmailCount.value = emailList.length
-      if (emailList.length > 0) {
-        updateCheckStatus();
-      }
+      // 直接调 updateCheckStatus：它对空列表也算得对（计数 0、全选关），
+      // 原先先把计数写成 emailList.length 再纠正是多余的错值
+      updateCheckStatus();
     },
     {deep: true}
 );
