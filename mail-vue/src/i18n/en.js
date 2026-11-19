@@ -185,6 +185,7 @@ const en = {
     hasAttachmentTip: 'Has attachments',
     hasImageTip: 'Has inline images',
     download: 'Download',
+    view: 'View',
     save: 'Save',
     profile: 'Account and password',
     themeStyle: 'Theme',

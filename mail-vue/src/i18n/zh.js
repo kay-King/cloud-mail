@@ -185,6 +185,7 @@ const zh = {
     hasAttachmentTip: '有附件',
     hasImageTip: '有内嵌图片',
     download: '下载',
+    view: '查看',
     save: '保存',
     profile: '账户与密码',
     themeStyle: '主题样式',
