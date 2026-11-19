@@ -538,7 +538,7 @@
               <div class="setting-item">
                 <div><span>{{ $t('noticePopup') }}</span></div>
                 <div class="forward">
-                  <span>{{ setting.notice === 0 ? $t('enabled') : $t('disabled') }}</span>
+                  <span>{{ (setting.noticeConfig?.notice ?? setting.notice) === 0 ? $t('enabled') : $t('disabled') }}</span>
                   <el-button class="opt-button" size="small" type="primary" @click="openNoticePopupSetting">
                     <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
                   </el-button>
@@ -1682,6 +1682,17 @@ function getSettings() {
       googleClientSecret: oc.googleClientSecret ?? settingData.googleClientSecret ?? '',
       googleSwitch: oc.googleSwitch ?? settingData.googleSwitch ?? 1
     }
+    const nc = settingData.noticeConfig || {}
+    settingData.noticeConfig = {
+      noticeTitle: nc.noticeTitle ?? settingData.noticeTitle ?? '',
+      noticeContent: nc.noticeContent ?? settingData.noticeContent ?? '',
+      noticeType: nc.noticeType ?? settingData.noticeType ?? '',
+      noticeDuration: nc.noticeDuration ?? settingData.noticeDuration ?? 0,
+      noticePosition: nc.noticePosition ?? settingData.noticePosition ?? '',
+      noticeOffset: nc.noticeOffset ?? settingData.noticeOffset ?? 0,
+      noticeWidth: nc.noticeWidth ?? settingData.noticeWidth ?? 400,
+      notice: nc.notice ?? settingData.notice ?? 0
+    }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
@@ -1940,21 +1951,22 @@ function openSendProviderForm() {
 }
 
 function resetNoticeForm() {
-  noticeForm.notice = setting.value.notice
-  noticeForm.noticeContent = setting.value.noticeContent
-  noticeForm.noticeDuration = setting.value.noticeDuration
-  noticeForm.noticeTitle = setting.value.noticeTitle
-  noticeForm.noticePosition = setting.value.noticePosition
-  noticeForm.noticeType = setting.value.noticeType
-  noticeForm.noticeOffset = setting.value.noticeOffset
-  noticeForm.noticeWidth = setting.value.noticeWidth
+  const n = setting.value.noticeConfig || {}
+  noticeForm.notice = n.notice ?? setting.value.notice
+  noticeForm.noticeContent = n.noticeContent ?? setting.value.noticeContent
+  noticeForm.noticeDuration = n.noticeDuration ?? setting.value.noticeDuration
+  noticeForm.noticeTitle = n.noticeTitle ?? setting.value.noticeTitle
+  noticeForm.noticePosition = n.noticePosition ?? setting.value.noticePosition
+  noticeForm.noticeType = n.noticeType ?? setting.value.noticeType
+  noticeForm.noticeOffset = n.noticeOffset ?? setting.value.noticeOffset
+  noticeForm.noticeWidth = n.noticeWidth ?? setting.value.noticeWidth
 }
 
 function saveNoticePopup() {
   noticeForm.noticeOffset = noticeForm.noticeOffset || 0
   noticeForm.noticeWidth = noticeForm.noticeWidth || 0
   noticeForm.noticeDuration = noticeForm.noticeDuration || 0
-  editSetting({...noticeForm})
+  editSetting({noticeConfig: {...noticeForm}})
 }
 
 function previewNoticePopup() {

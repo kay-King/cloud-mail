@@ -23,6 +23,7 @@ const settingService = {
 		settingRow.backupConfig = JSON.parse(settingRow.backupConfig || '{}');
 		settingRow.attStorage = JSON.parse(settingRow.attStorage || '{}');
 		settingRow.oauthConfig = JSON.parse(settingRow.oauthConfig || '{}');
+		settingRow.noticeConfig = JSON.parse(settingRow.noticeConfig || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -132,6 +133,27 @@ const settingService = {
 			googleClientId: pick('googleClientId', ''),
 			googleClientSecret: pick('googleClientSecret', ''),
 			googleSwitch: pick('googleSwitch', 1)
+		};
+	},
+
+	// 系统公告配置读值（notice_config 打包后）：新格式是 setting.noticeConfig 对象里的字段；
+	// 旧缓存里是平铺字段，两边都兜底；都没有时按默认（notice 0=开，noticeWidth 400）。
+	noticeConfig(setting) {
+		const n = setting?.noticeConfig;
+		const pick = (key, def) => {
+			if (n && typeof n === 'object' && n[key] !== undefined && n[key] !== null) return n[key];
+			if (setting && setting[key] !== undefined && setting[key] !== null) return setting[key];
+			return def;
+		};
+		return {
+			noticeTitle: pick('noticeTitle', ''),
+			noticeContent: pick('noticeContent', ''),
+			noticeType: pick('noticeType', ''),
+			noticeDuration: pick('noticeDuration', 0),
+			noticePosition: pick('noticePosition', ''),
+			noticeOffset: pick('noticeOffset', 0),
+			noticeWidth: pick('noticeWidth', 400),
+			notice: pick('notice', 0)
 		};
 	},
 
@@ -297,6 +319,14 @@ const settingService = {
 				oauthConfig[k] = v;
 			}
 		}
+		let noticeConfig = { ...(settingData.noticeConfig || {}) };
+		if (params.noticeConfig && typeof params.noticeConfig === 'object') {
+			for (const [k, v] of Object.entries(params.noticeConfig)) {
+				// 带 ****** 的是前端回显的脱敏值，不是真实密钥，跳过不覆盖
+				if (typeof v === 'string' && v.includes('******')) continue;
+				noticeConfig[k] = v;
+			}
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
@@ -306,6 +336,7 @@ const settingService = {
 		params.backupConfig = JSON.stringify(backupConfig);
 		params.attStorage = JSON.stringify(attStorage);
 		params.oauthConfig = JSON.stringify(oauthConfig);
+		params.noticeConfig = JSON.stringify(noticeConfig);
 
 		// 旧版平铺列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
@@ -354,6 +385,14 @@ const settingService = {
 		delete params.googleClientId;
 		delete params.googleClientSecret;
 		delete params.googleSwitch;
+		delete params.noticeTitle;
+		delete params.noticeContent;
+		delete params.noticeType;
+		delete params.noticeDuration;
+		delete params.noticePosition;
+		delete params.noticeOffset;
+		delete params.noticeWidth;
+		delete params.notice;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);
@@ -435,14 +474,14 @@ const settingService = {
 			regKey: settingRow.regKey,
 			regVerifyOpen: settingRow.regVerifyOpen,
 			addVerifyOpen: settingRow.addVerifyOpen,
-			noticeTitle: settingRow.noticeTitle,
-			noticeContent: settingRow.noticeContent,
-			noticeType: settingRow.noticeType,
-			noticeDuration: settingRow.noticeDuration,
-			noticePosition: settingRow.noticePosition,
-			noticeWidth: settingRow.noticeWidth,
-			noticeOffset: settingRow.noticeOffset,
-			notice: settingRow.notice,
+			noticeTitle: this.noticeConfig(settingRow).noticeTitle,
+			noticeContent: this.noticeConfig(settingRow).noticeContent,
+			noticeType: this.noticeConfig(settingRow).noticeType,
+			noticeDuration: this.noticeConfig(settingRow).noticeDuration,
+			noticePosition: this.noticeConfig(settingRow).noticePosition,
+			noticeWidth: this.noticeConfig(settingRow).noticeWidth,
+			noticeOffset: this.noticeConfig(settingRow).noticeOffset,
+			notice: this.noticeConfig(settingRow).notice,
 			loginDomain: settingRow.loginDomain,
 			linuxdoClientId: this.oauthConfig(settingRow).linuxdoClientId,
 			linuxdoSwitch: this.oauthConfig(settingRow).linuxdoSwitch,

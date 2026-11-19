@@ -50,6 +50,7 @@ const dbInit = {
 		await this.v3_18DB(c);
 		await this.v3_19DB(c);
 		await this.v3_20DB(c);
+		await this.v3_21DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -289,6 +290,48 @@ const dbInit = {
 		if (config) {
 			try {
 				await c.env.db.prepare(`UPDATE setting SET oauth_config = ?`).bind(JSON.stringify(config)).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+	},
+
+	async v3_21DB(c) {
+		// 系统公告 8 项打包进 notice_config JSON 列（8 列变 1 列，腾 7 个空位）。
+		// 顺序：先读出现有值 → 删 8 个旧列 → 加 notice_config 列 → 把值写回去。各步独立 try/catch，重复跑也不怕。
+		let config = null;
+		try {
+			const row = await c.env.db.prepare(`SELECT notice_title, notice_content, notice_type, notice_duration, notice_position, notice_offset, notice_width, notice FROM setting`).first();
+			if (row) {
+				config = {
+					noticeTitle: row.notice_title ?? '',
+					noticeContent: row.notice_content ?? '',
+					noticeType: row.notice_type ?? '',
+					noticeDuration: row.notice_duration ?? 0,
+					noticePosition: row.notice_position ?? '',
+					noticeOffset: row.notice_offset ?? 0,
+					noticeWidth: row.notice_width ?? 400,
+					notice: row.notice ?? 0
+				};
+			}
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		for (const col of ['notice_title', 'notice_content', 'notice_type', 'notice_duration', 'notice_position', 'notice_offset', 'notice_width', 'notice']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN ${col};`).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN notice_config TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		if (config) {
+			try {
+				await c.env.db.prepare(`UPDATE setting SET notice_config = ?`).bind(JSON.stringify(config)).run();
 			} catch (e) {
 				console.warn(`跳过字段：${e.message}`);
 			}

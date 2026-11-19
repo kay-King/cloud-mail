@@ -25,14 +25,8 @@ export const setting = sqliteTable('setting', {
 	resendTokens: text('resend_tokens').default("{}").notNull(),
 	sendkitTokens: text('sendkit_tokens').default("{}").notNull(),
 	brevoTokens: text('brevo_tokens').default("{}").notNull(),
-	noticeTitle: text('notice_title').default('').notNull(),
-	noticeContent: text('notice_content').default('').notNull(),
-	noticeType: text('notice_type').default('').notNull(),
-	noticeDuration: integer('notice_duration').default(0).notNull(),
-	noticePosition: text('notice_position').default('').notNull(),
-	noticeOffset: integer('notice_offset').default(0).notNull(),
-	noticeWidth: integer('notice_width').default(400).notNull(),
-	notice: integer('notice').default(0).notNull(),
+	// 系统公告 8 项打包进一个 JSON 列，8 列变 1 列腾 7 个空位
+	noticeConfig: text('notice_config').default('{}').notNull(),
 	noRecipient: integer('no_recipient').default(1).notNull(),
 	loginDomain: integer('login_domain').default(0).notNull(),
 	// 附件存储 14 项打包进一个 JSON 列，14 列变 1 列腾 13 个空位（customDomain 是 TG 网页应用用的，归 TG 组）
