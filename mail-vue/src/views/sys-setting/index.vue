@@ -1710,18 +1710,19 @@ function openRegVerifyCount() {
 }
 
 function resetAddS3Form() {
-  s3.type = setting.value.attStorageType || 's3'
-  s3.bucket = setting.value.bucket
-  s3.endpoint = setting.value.endpoint
-  s3.region = setting.value.region
+  const a = setting.value.attStorage || {}
+  s3.type = a.attStorageType ?? setting.value.attStorageType ?? 's3'
+  s3.bucket = a.bucket ?? setting.value.bucket
+  s3.endpoint = a.endpoint ?? setting.value.endpoint
+  s3.region = a.region ?? setting.value.region
   s3.s3AccessKey = ''
   s3.s3SecretKey = ''
-  s3.forcePathStyle = setting.value.forcePathStyle
-  r2.accountId = setting.value.r2AccountId
-  r2.bucket = setting.value.r2Bucket
+  s3.forcePathStyle = a.forcePathStyle ?? setting.value.forcePathStyle
+  r2.accountId = a.r2AccountId ?? setting.value.r2AccountId
+  r2.bucket = a.r2Bucket ?? setting.value.r2Bucket
   r2.accessKey = ''
   r2.secretKey = ''
-  webdav.url = setting.value.webdavUrl
+  webdav.url = a.webdavUrl ?? setting.value.webdavUrl
   webdav.username = ''
   webdav.password = ''
 }
