@@ -25,6 +25,7 @@ const settingService = {
 		settingRow.oauthConfig = JSON.parse(settingRow.oauthConfig || '{}');
 		settingRow.noticeConfig = JSON.parse(settingRow.noticeConfig || '{}');
 		settingRow.tgConfig = JSON.parse(settingRow.tgConfig || '{}');
+		settingRow.verifyConfig = JSON.parse(settingRow.verifyConfig || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -178,6 +179,23 @@ const settingService = {
 		};
 	},
 
+	// 验证配置读值（verify_config 打包后）：新格式是 setting.verifyConfig 对象里的字段；
+	// 旧缓存里是平铺字段，两边都兜底；都没有时按默认（开关默认 1=关，次数默认 1）。
+	verifyConfig(setting) {
+		const v = setting?.verifyConfig;
+		const pick = (key, def) => {
+			if (v && typeof v === 'object' && v[key] !== undefined && v[key] !== null) return v[key];
+			if (setting && setting[key] !== undefined && setting[key] !== null) return setting[key];
+			return def;
+		};
+		return {
+			addEmailVerify: pick('addEmailVerify', 1),
+			registerVerify: pick('registerVerify', 1),
+			regVerifyCount: pick('regVerifyCount', 1),
+			addVerifyCount: pick('addVerifyCount', 1)
+		};
+	},
+
 	async query(c) {
 
 		if (c.get?.('setting')) {
@@ -268,10 +286,10 @@ const settingService = {
 
 		recordList.forEach(row => {
 			if (row.type === verifyRecordType.REG) {
-				regVerifyOpen = row.count >= settingRow.regVerifyCount
+				regVerifyOpen = row.count >= this.verifyConfig(settingRow).regVerifyCount
 			}
 			if (row.type === verifyRecordType.ADD) {
-				addVerifyOpen = row.count >= settingRow.addVerifyCount
+				addVerifyOpen = row.count >= this.verifyConfig(settingRow).addVerifyCount
 			}
 		})
 
@@ -358,6 +376,14 @@ const settingService = {
 				tgConfig[k] = v;
 			}
 		}
+		let verifyConfig = { ...(settingData.verifyConfig || {}) };
+		if (params.verifyConfig && typeof params.verifyConfig === 'object') {
+			for (const [k, v] of Object.entries(params.verifyConfig)) {
+				// 带 ****** 的是前端回显的脱敏值，不是真实密钥，跳过不覆盖
+				if (typeof v === 'string' && v.includes('******')) continue;
+				verifyConfig[k] = v;
+			}
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
@@ -369,6 +395,7 @@ const settingService = {
 		params.oauthConfig = JSON.stringify(oauthConfig);
 		params.noticeConfig = JSON.stringify(noticeConfig);
 		params.tgConfig = JSON.stringify(tgConfig);
+		params.verifyConfig = JSON.stringify(verifyConfig);
 
 		// 旧版平铺列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
@@ -432,6 +459,10 @@ const settingService = {
 		delete params.tgMsgFrom;
 		delete params.tgMsgTo;
 		delete params.tgMsgText;
+		delete params.addEmailVerify;
+		delete params.registerVerify;
+		delete params.regVerifyCount;
+		delete params.addVerifyCount;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);
@@ -502,8 +533,8 @@ const settingService = {
 			manyEmail: settingRow.manyEmail,
 			addEmail: settingRow.addEmail,
 			autoRefresh: settingRow.autoRefresh,
-			addEmailVerify: settingRow.addEmailVerify,
-			registerVerify: settingRow.registerVerify,
+			addEmailVerify: this.verifyConfig(settingRow).addEmailVerify,
+			registerVerify: this.verifyConfig(settingRow).registerVerify,
 			send: settingRow.send,
 			r2Domain: settingRow.r2Domain,
 			siteKey: settingRow.siteKey,

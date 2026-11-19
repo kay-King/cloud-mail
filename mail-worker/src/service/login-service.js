@@ -26,7 +26,9 @@ const loginService = {
 
 		const { email, password, token, code } = params;
 
-		let { regKey, register, registerVerify, regVerifyCount, minEmailPrefix, emailPrefixFilter } = await settingService.query(c)
+		const setting = await settingService.query(c)
+		let { registerVerify, regVerifyCount } = settingService.verifyConfig(setting)
+		let { regKey, register, minEmailPrefix, emailPrefixFilter } = setting
 
 		if (oauth) {
 			registerVerify = settingConst.registerVerify.CLOSE;

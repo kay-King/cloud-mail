@@ -17,7 +17,9 @@ const accountService = {
 
 	async add(c, params, userId) {
 
-		const { addEmailVerify , addEmail, manyEmail, addVerifyCount, minEmailPrefix, emailPrefixFilter } = await settingService.query(c);
+		const setting = await settingService.query(c);
+		const { addEmailVerify, addVerifyCount } = settingService.verifyConfig(setting);
+		const { addEmail, manyEmail, minEmailPrefix, emailPrefixFilter } = setting;
 
 		let { email, token } = params;
 

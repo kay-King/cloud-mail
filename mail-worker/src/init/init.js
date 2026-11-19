@@ -52,6 +52,7 @@ const dbInit = {
 		await this.v3_20DB(c);
 		await this.v3_21DB(c);
 		await this.v3_22DB(c);
+		await this.v3_23DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -374,6 +375,44 @@ const dbInit = {
 		if (config) {
 			try {
 				await c.env.db.prepare(`UPDATE setting SET tg_config = ?`).bind(JSON.stringify(config)).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+	},
+
+	async v3_23DB(c) {
+		// 验证相关 4 项打包进 verify_config JSON 列（4 列变 1 列，腾 3 个空位）。
+		// 顺序：先读出现有值 → 删 4 个旧列 → 加 verify_config 列 → 把值写回去。各步独立 try/catch，重复跑也不怕。
+		let config = null;
+		try {
+			const row = await c.env.db.prepare(`SELECT add_email_verify, register_verify, reg_verify_count, add_verify_count FROM setting`).first();
+			if (row) {
+				config = {
+					addEmailVerify: row.add_email_verify ?? 1,
+					registerVerify: row.register_verify ?? 1,
+					regVerifyCount: row.reg_verify_count ?? 1,
+					addVerifyCount: row.add_verify_count ?? 1
+				};
+			}
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		for (const col of ['add_email_verify', 'register_verify', 'reg_verify_count', 'add_verify_count']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN ${col};`).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN verify_config TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		if (config) {
+			try {
+				await c.env.db.prepare(`UPDATE setting SET verify_config = ?`).bind(JSON.stringify(config)).run();
 			} catch (e) {
 				console.warn(`跳过字段：${e.message}`);
 			}

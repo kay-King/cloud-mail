@@ -6,10 +6,8 @@ export const setting = sqliteTable('setting', {
 	manyEmail: integer('many_email').default(0).notNull(),
 	addEmail: integer('add_email').default(0).notNull(),
 	autoRefresh: integer('auto_refresh').default(0).notNull(),
-	addEmailVerify: integer('add_email_verify').default(1).notNull(),
-	registerVerify: integer('register_verify').default(1).notNull(),
-	regVerifyCount: integer('reg_verify_count').default(1).notNull(),
-	addVerifyCount: integer('add_verify_count').default(1).notNull(),
+	// 验证相关 4 项打包进一个 JSON 列，4 列变 1 列腾 3 个空位
+	verifyConfig: text('verify_config').default('{}').notNull(),
 	send: integer('send').default(1).notNull(),
 	r2Domain: text('r2_domain'),
 	secretKey: text('secret_key'),

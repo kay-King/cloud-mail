@@ -482,7 +482,7 @@
                   <el-select
                       @change="change"
                       :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
-                      v-model="setting.registerVerify"
+                      v-model="setting.verifyConfig.registerVerify"
                       placeholder="Select"
                       class="bot-verify-select"
                   >
@@ -501,7 +501,7 @@
                   <el-select
                       @change="change"
                       :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
-                      v-model="setting.addEmailVerify"
+                      v-model="setting.verifyConfig.addEmailVerify"
                       placeholder="Select"
                       class="bot-verify-select"
                   >
@@ -959,7 +959,7 @@ Authorization: &lt;secret&gt;</pre>
         </el-table>
       </el-dialog>
       <el-dialog v-model="regVerifyCountShow" :title="$t('rulesVerifyTitle',{count: regVerifyCount})"
-                 @closed="regVerifyCount = setting.regVerifyCount">
+                 @closed="regVerifyCount = setting.verifyConfig.regVerifyCount">
         <form @submit.prevent>
           <el-input-number type="text" v-model="regVerifyCount" :min="1" @keyup.enter="saveRegVerifyCount">
           </el-input-number>
@@ -967,7 +967,7 @@ Authorization: &lt;secret&gt;</pre>
         </form>
       </el-dialog>
       <el-dialog v-model="addVerifyCountShow" :title="$t('rulesVerifyTitle',{count: addVerifyCount})"
-                 @closed="addVerifyCount = setting.addVerifyCount">
+                 @closed="addVerifyCount = setting.verifyConfig.addVerifyCount">
         <form @submit.prevent>
           <el-input-number type="text" v-model="addVerifyCount" :min="1" @keyup.enter="saveAddVerifyCount"/>
           <el-button type="primary" :loading="settingLoading" @click="saveAddVerifyCount">{{ $t('save') }}</el-button>
@@ -1703,6 +1703,13 @@ function getSettings() {
       tgMsgTo: tc.tgMsgTo ?? settingData.tgMsgTo ?? 'show',
       tgMsgText: tc.tgMsgText ?? settingData.tgMsgText ?? 'hide'
     }
+    const vc = settingData.verifyConfig || {}
+    settingData.verifyConfig = {
+      addEmailVerify: vc.addEmailVerify ?? settingData.addEmailVerify ?? 1,
+      registerVerify: vc.registerVerify ?? settingData.registerVerify ?? 1,
+      regVerifyCount: vc.regVerifyCount ?? settingData.regVerifyCount ?? 1,
+      addVerifyCount: vc.addVerifyCount ?? settingData.addVerifyCount ?? 1
+    }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
@@ -1714,8 +1721,8 @@ function getSettings() {
     pickDefaultSendProvider()
     backgroundUrl.value = setting.value.background?.startsWith('http') ? setting.value.background : ''
     editTitle.value = setting.value.title
-    addVerifyCount.value = setting.value.addVerifyCount
-    regVerifyCount.value = setting.value.regVerifyCount
+    addVerifyCount.value = setting.value.verifyConfig?.addVerifyCount ?? setting.value.addVerifyCount
+    regVerifyCount.value = setting.value.verifyConfig?.regVerifyCount ?? setting.value.regVerifyCount
     resetNoticeForm()
     resetAddS3Form()
     resetEmailPrefix()
@@ -1844,14 +1851,14 @@ function saveAddVerifyCount() {
   if (!addVerifyCount.value) {
     addVerifyCount.value = 1
   }
-  editSetting({addVerifyCount: addVerifyCount.value})
+  editSetting({verifyConfig: {addVerifyCount: addVerifyCount.value}})
 }
 
 function saveRegVerifyCount() {
   if (!regVerifyCount.value) {
     regVerifyCount.value = 1
   }
-  editSetting({regVerifyCount: regVerifyCount.value})
+  editSetting({verifyConfig: {regVerifyCount: regVerifyCount.value}})
 }
 
 const compareByLengthAndUpperCase = (a, b, key) => {
