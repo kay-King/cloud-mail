@@ -20,6 +20,7 @@ const settingService = {
 		settingRow.brevoTokens = JSON.parse(settingRow.brevoTokens || '{}');
 		settingRow.notifyFlags = JSON.parse(settingRow.notifyFlags || '{}');
 		settingRow.globalForward = JSON.parse(settingRow.globalForward || '{}');
+		settingRow.backupConfig = JSON.parse(settingRow.backupConfig || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -52,6 +53,34 @@ const settingService = {
 			forwardStatus: pick('forwardStatus', 1),
 			ruleEmail: pick('ruleEmail', ''),
 			ruleType: pick('ruleType', 0)
+		};
+	},
+
+	// 备份配置读值（backup_config 打包后）：新格式是 setting.backupConfig 对象里的字段；
+	// 旧缓存里是平铺字段，两边都兜底；都没有时按默认。
+	backupConfig(setting) {
+		const b = setting?.backupConfig;
+		const pick = (key, def) => {
+			if (b && typeof b === 'object' && b[key] !== undefined && b[key] !== null) return b[key];
+			if (setting && setting[key] !== undefined && setting[key] !== null) return setting[key];
+			return def;
+		};
+		return {
+			autoBackup: pick('autoBackup', 1),
+			backupType: pick('backupType', 's3'),
+			backupBucket: pick('backupBucket', ''),
+			backupRegion: pick('backupRegion', ''),
+			backupEndpoint: pick('backupEndpoint', ''),
+			backupS3AccessKey: pick('backupS3AccessKey', ''),
+			backupS3SecretKey: pick('backupS3SecretKey', ''),
+			backupForcePathStyle: pick('backupForcePathStyle', 1),
+			backupR2AccountId: pick('backupR2AccountId', ''),
+			backupR2Bucket: pick('backupR2Bucket', ''),
+			backupR2AccessKey: pick('backupR2AccessKey', ''),
+			backupR2SecretKey: pick('backupR2SecretKey', ''),
+			backupWebdavUrl: pick('backupWebdavUrl', ''),
+			backupWebdavUsername: pick('backupWebdavUsername', ''),
+			backupWebdavPassword: pick('backupWebdavPassword', '')
 		};
 	},
 
@@ -128,12 +157,12 @@ const settingService = {
 		settingRow.r2SecretKey = settingRow.r2SecretKey ? `${settingRow.r2SecretKey.slice(0, 12)}******` : null;
 		settingRow.webdavUsername = settingRow.webdavUsername ? `${settingRow.webdavUsername.slice(0, 12)}******` : null;
 		settingRow.webdavPassword = settingRow.webdavPassword ? `${settingRow.webdavPassword.slice(0, 12)}******` : null;
-		settingRow.backupR2AccessKey = settingRow.backupR2AccessKey ? `${settingRow.backupR2AccessKey.slice(0, 12)}******` : null;
-		settingRow.backupR2SecretKey = settingRow.backupR2SecretKey ? `${settingRow.backupR2SecretKey.slice(0, 12)}******` : null;
-		settingRow.backupWebdavUsername = settingRow.backupWebdavUsername ? `${settingRow.backupWebdavUsername.slice(0, 12)}******` : null;
-		settingRow.backupWebdavPassword = settingRow.backupWebdavPassword ? `${settingRow.backupWebdavPassword.slice(0, 12)}******` : null;
-		settingRow.backupS3AccessKey = settingRow.backupS3AccessKey ? `${settingRow.backupS3AccessKey.slice(0, 12)}******` : null;
-		settingRow.backupS3SecretKey = settingRow.backupS3SecretKey ? `${settingRow.backupS3SecretKey.slice(0, 12)}******` : null;
+		// 备份密钥脱敏：新格式在 backupConfig 对象里，旧缓存是平铺字段，两边都脱敏
+		const _bc = settingRow.backupConfig || {};
+		for (const k of ['backupR2AccessKey', 'backupR2SecretKey', 'backupWebdavUsername', 'backupWebdavPassword', 'backupS3AccessKey', 'backupS3SecretKey']) {
+			if (_bc[k]) _bc[k] = `${String(_bc[k]).slice(0, 12)}******`;
+			if (settingRow[k]) settingRow[k] = `${String(settingRow[k]).slice(0, 12)}******`;
+		}
 		settingRow.tgBotToken = settingRow.tgBotToken ? `${settingRow.tgBotToken.slice(0, 20)}******` : null;
 		settingRow.hasR2 = !!c.env.r2
 		settingRow.hasCfEmail = !!c.env.email
@@ -193,14 +222,23 @@ const settingService = {
 		if (params.globalForward && typeof params.globalForward === 'object') {
 			globalForward = { ...globalForward, ...params.globalForward };
 		}
+		let backupConfig = { ...(settingData.backupConfig || {}) };
+		if (params.backupConfig && typeof params.backupConfig === 'object') {
+			for (const [k, v] of Object.entries(params.backupConfig)) {
+				// 带 ****** 的是前端回显的脱敏值，不是真实密钥，跳过不覆盖
+				if (typeof v === 'string' && v.includes('******')) continue;
+				backupConfig[k] = v;
+			}
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
 		params.brevoTokens = JSON.stringify(brevoTokens);
 		params.notifyFlags = JSON.stringify(notifyFlags);
 		params.globalForward = JSON.stringify(globalForward);
+		params.backupConfig = JSON.stringify(backupConfig);
 
-		// 旧版平铺的通知开关与全局转发列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
+		// 旧版平铺列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
 		delete params.adminDelNotify;
 		delete params.forwardFailNotify;
@@ -209,6 +247,21 @@ const settingService = {
 		delete params.forwardStatus;
 		delete params.ruleEmail;
 		delete params.ruleType;
+		delete params.autoBackup;
+		delete params.backupType;
+		delete params.backupBucket;
+		delete params.backupRegion;
+		delete params.backupEndpoint;
+		delete params.backupS3AccessKey;
+		delete params.backupS3SecretKey;
+		delete params.backupForcePathStyle;
+		delete params.backupR2AccountId;
+		delete params.backupR2Bucket;
+		delete params.backupR2AccessKey;
+		delete params.backupR2SecretKey;
+		delete params.backupWebdavUrl;
+		delete params.backupWebdavUsername;
+		delete params.backupWebdavPassword;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);
@@ -308,7 +361,7 @@ const settingService = {
 			minEmailPrefix: settingRow.minEmailPrefix,
 			projectLink: settingRow.projectLink,
 			adminDelNotify: this.notifyFlag(settingRow, 'adminDelNotify'),
-			autoBackup: settingRow.autoBackup
+			autoBackup: this.backupConfig(settingRow).autoBackup
 		};
 	},
 

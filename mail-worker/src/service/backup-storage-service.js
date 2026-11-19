@@ -15,21 +15,22 @@ const backupStorageService = {
 
 	async config(c) {
 		const setting = await settingService.query(c);
+		const b = settingService.backupConfig(setting);
 		return {
-			type: setting.backupType || 's3',
-			bucket: setting.backupBucket,
-			region: setting.backupRegion,
-			endpoint: setting.backupEndpoint,
-			accessKey: setting.backupS3AccessKey,
-			secretKey: setting.backupS3SecretKey,
-			forcePathStyle: setting.backupForcePathStyle,
-			r2AccountId: setting.backupR2AccountId,
-			r2Bucket: setting.backupR2Bucket,
-			r2AccessKey: setting.backupR2AccessKey,
-			r2SecretKey: setting.backupR2SecretKey,
-			webdavUrl: setting.backupWebdavUrl,
-			webdavUsername: setting.backupWebdavUsername,
-			webdavPassword: setting.backupWebdavPassword
+			type: b.backupType || 's3',
+			bucket: b.backupBucket,
+			region: b.backupRegion,
+			endpoint: b.backupEndpoint,
+			accessKey: b.backupS3AccessKey,
+			secretKey: b.backupS3SecretKey,
+			forcePathStyle: b.backupForcePathStyle,
+			r2AccountId: b.backupR2AccountId,
+			r2Bucket: b.backupR2Bucket,
+			r2AccessKey: b.backupR2AccessKey,
+			r2SecretKey: b.backupR2SecretKey,
+			webdavUrl: b.backupWebdavUrl,
+			webdavUsername: b.backupWebdavUsername,
+			webdavPassword: b.backupWebdavPassword
 		};
 	},
 

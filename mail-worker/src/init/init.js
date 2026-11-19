@@ -47,6 +47,7 @@ const dbInit = {
 		await this.v3_15DB(c);
 		await this.v3_16DB(c);
 		await this.v3_17DB(c);
+		await this.v3_18DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -146,6 +147,55 @@ const dbInit = {
 		if (config) {
 			try {
 				await c.env.db.prepare(`UPDATE setting SET global_forward = ?`).bind(JSON.stringify(config)).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+	},
+
+	async v3_18DB(c) {
+		// 备份设置 15 项打包进 backup_config JSON 列（15 列变 1 列，腾 14 个空位）。
+		// 顺序：先读出现有值 → 删 15 个旧列 → 加 backup_config 列 → 把值写回去。各步独立 try/catch，重复跑也不怕。
+		let config = null;
+		try {
+			const row = await c.env.db.prepare(`SELECT auto_backup, backup_type, backup_bucket, backup_region, backup_endpoint, backup_s3_access_key, backup_s3_secret_key, backup_force_path_style, backup_r2_account_id, backup_r2_bucket, backup_r2_access_key, backup_r2_secret_key, backup_webdav_url, backup_webdav_username, backup_webdav_password FROM setting`).first();
+			if (row) {
+				config = {
+					autoBackup: row.auto_backup ?? 1,
+					backupType: row.backup_type ?? 's3',
+					backupBucket: row.backup_bucket ?? '',
+					backupRegion: row.backup_region ?? '',
+					backupEndpoint: row.backup_endpoint ?? '',
+					backupS3AccessKey: row.backup_s3_access_key ?? '',
+					backupS3SecretKey: row.backup_s3_secret_key ?? '',
+					backupForcePathStyle: row.backup_force_path_style ?? 1,
+					backupR2AccountId: row.backup_r2_account_id ?? '',
+					backupR2Bucket: row.backup_r2_bucket ?? '',
+					backupR2AccessKey: row.backup_r2_access_key ?? '',
+					backupR2SecretKey: row.backup_r2_secret_key ?? '',
+					backupWebdavUrl: row.backup_webdav_url ?? '',
+					backupWebdavUsername: row.backup_webdav_username ?? '',
+					backupWebdavPassword: row.backup_webdav_password ?? ''
+				};
+			}
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		for (const col of ['auto_backup', 'backup_type', 'backup_bucket', 'backup_region', 'backup_endpoint', 'backup_s3_access_key', 'backup_s3_secret_key', 'backup_force_path_style', 'backup_r2_account_id', 'backup_r2_bucket', 'backup_r2_access_key', 'backup_r2_secret_key', 'backup_webdav_url', 'backup_webdav_username', 'backup_webdav_password']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN ${col};`).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN backup_config TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		if (config) {
+			try {
+				await c.env.db.prepare(`UPDATE setting SET backup_config = ?`).bind(JSON.stringify(config)).run();
 			} catch (e) {
 				console.warn(`跳过字段：${e.message}`);
 			}

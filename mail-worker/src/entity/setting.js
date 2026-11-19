@@ -81,20 +81,7 @@ export const setting = sqliteTable('setting', {
 	// 通知 4 开关打包进一个 JSON 列（notifyStatus/adminDelNotify/forwardFailNotify/backupFailNotify），4 列变 1 列腾 3 个空位
 	notifyFlags: text('notify_flags').default('{}').notNull(),
 	notifyEmail: text('notify_email').default('').notNull(),
-	autoBackup: integer('auto_backup').default(1).notNull(),
-	backupType: text('backup_type').default('s3').notNull(),
-	backupBucket: text('backup_bucket').default('').notNull(),
-	backupRegion: text('backup_region').default('').notNull(),
-	backupEndpoint: text('backup_endpoint').default('').notNull(),
-	backupS3AccessKey: text('backup_s3_access_key').default('').notNull(),
-	backupS3SecretKey: text('backup_s3_secret_key').default('').notNull(),
-	backupForcePathStyle: integer('backup_force_path_style').default(1).notNull(),
-	backupR2AccountId: text('backup_r2_account_id').default('').notNull(),
-	backupR2Bucket: text('backup_r2_bucket').default('').notNull(),
-	backupR2AccessKey: text('backup_r2_access_key').default('').notNull(),
-	backupR2SecretKey: text('backup_r2_secret_key').default('').notNull(),
-	backupWebdavUrl: text('backup_webdav_url').default('').notNull(),
-	backupWebdavUsername: text('backup_webdav_username').default('').notNull(),
-	backupWebdavPassword: text('backup_webdav_password').default('').notNull()
+	// 备份设置 15 项打包进一个 JSON 列，15 列变 1 列腾 14 个空位
+	backupConfig: text('backup_config').default('{}').notNull()
 });
 export default setting

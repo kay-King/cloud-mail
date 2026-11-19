@@ -52,8 +52,8 @@ function buildBackupFailNotice(error, manual) {
 const backupService = {
 
 	async isEnabled(c) {
-		const { autoBackup } = await settingService.query(c);
-		return autoBackup !== 0;
+		const setting = await settingService.query(c);
+		return settingService.backupConfig(setting).autoBackup !== 0;
 	},
 
 	async dumpDatabase(c) {

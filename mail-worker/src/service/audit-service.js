@@ -38,12 +38,7 @@ const SETTING_LABELS = {
 	attStorageType: '附件存储',
 	notifyFlags: '通知开关',
 	notifyEmail: '系统通知邮箱',
-	autoBackup: '定时备份',
-	backupType: '备份服务商',
-	backupBucket: '备份桶名',
-	backupRegion: '备份区域',
-	backupEndpoint: '备份地址',
-	backupForcePathStyle: '备份路径风格',
+	backupConfig: '备份设置',
 	bucket: '附件桶名',
 	region: '附件区域',
 	endpoint: '附件地址',
@@ -75,15 +70,6 @@ const SETTING_LABELS = {
 	webdavUrl: '附件 WebDAV 地址',
 	webdavUsername: '附件 WebDAV 用户名',
 	webdavPassword: '附件 WebDAV 密码',
-	backupS3AccessKey: '备份 S3 AccessKey',
-	backupS3SecretKey: '备份 S3 SecretKey',
-	backupR2AccountId: '备份 R2 账号',
-	backupR2Bucket: '备份 R2 桶名',
-	backupR2AccessKey: '备份 R2 AccessKey',
-	backupR2SecretKey: '备份 R2 SecretKey',
-	backupWebdavUrl: '备份 WebDAV 地址',
-	backupWebdavUsername: '备份 WebDAV 用户名',
-	backupWebdavPassword: '备份 WebDAV 密码',
 	linuxdoSwitch: 'Linux DO 登录',
 	githubSwitch: 'GitHub 登录',
 	googleSwitch: 'Google 登录',
@@ -133,7 +119,18 @@ const auditService = {
 		if (!before || !params) return labels;
 		for (const key of Object.keys(params)) {
 			if (!(key in before)) continue;
-			if (normalizeValue(before[key]) !== normalizeValue(params[key])) {
+			const pv = params[key], bv = before[key];
+			if (pv && typeof pv === 'object' && !Array.isArray(pv) && bv && typeof bv === 'object' && !Array.isArray(bv)) {
+				// JSON 打包列：只比较请求里带了的键，缺的键按未改处理（密钥类字段前端会删掉不发，整对象比会误报）
+				let changed = false;
+				for (const k of Object.keys(pv)) {
+					if (normalizeValue(bv[k]) !== normalizeValue(pv[k])) {
+						changed = true;
+						break;
+					}
+				}
+				if (changed) labels.push(SETTING_LABELS[key] || key);
+			} else if (normalizeValue(bv) !== normalizeValue(pv)) {
 				labels.push(SETTING_LABELS[key] || key);
 			}
 		}

@@ -424,10 +424,10 @@
                 </div>
                 <div>
                   <el-switch @change="change" :active-value="1" :inactive-value="0"
-                             v-model="setting.autoBackup"/>
+                             v-model="setting.backupConfig.autoBackup"/>
                 </div>
               </div>
-              <div class="setting-item" v-if="setting.autoBackup === 1">
+              <div class="setting-item" v-if="setting.backupConfig?.autoBackup === 1">
                 <div>
                   <span>{{ $t('backupProvider') }}</span>
                 </div>
@@ -438,7 +438,7 @@
                   </el-button>
                 </div>
               </div>
-              <div v-if="setting.autoBackup === 1 && backupStatus.type === 'kv'" class="backup-kv-tip">
+              <div v-if="setting.backupConfig?.autoBackup === 1 && backupStatus.type === 'kv'" class="backup-kv-tip">
                 {{ $t('backupKvTip') }}
               </div>
               <div class="setting-item">
@@ -1199,7 +1199,7 @@ Authorization: &lt;secret&gt;</pre>
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
-          <el-input class="dialog-input" type="text" :placeholder="setting.backupR2AccessKey || 'Access key'"
+          <el-input class="dialog-input" type="text" :placeholder="setting.backupConfig?.backupR2AccessKey || 'Access key'"
                     v-model="backupR2.accessKey" @keyup.enter="saveBackupS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupSecretKey') }}</span>
@@ -1207,7 +1207,7 @@ Authorization: &lt;secret&gt;</pre>
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
-          <el-input style="margin-bottom: 10px" type="text" :placeholder="setting.backupR2SecretKey || 'Secret key'" v-model="backupR2.secretKey" @keyup.enter="saveBackupS3"/>
+          <el-input style="margin-bottom: 10px" type="text" :placeholder="setting.backupConfig?.backupR2SecretKey || 'Secret key'" v-model="backupR2.secretKey" @keyup.enter="saveBackupS3"/>
           <div class="backup-kv-note" style="margin-bottom: 15px">{{ t('attStorageR2ApiNote') }}</div>
           </template>
           <template v-else-if="backupS3.type === 'webdav'">
@@ -1221,11 +1221,11 @@ Authorization: &lt;secret&gt;</pre>
           <div class="backup-field-label">
             <span>{{ t('webdavUsername') }}</span>
           </div>
-          <el-input class="dialog-input" type="text" :placeholder="setting.backupWebdavUsername || 'Username'" v-model="backupWebdav.username" @keyup.enter="saveBackupS3"/>
+          <el-input class="dialog-input" type="text" :placeholder="setting.backupConfig?.backupWebdavUsername || 'Username'" v-model="backupWebdav.username" @keyup.enter="saveBackupS3"/>
           <div class="backup-field-label">
             <span>{{ t('webdavPassword') }}</span>
           </div>
-          <el-input style="margin-bottom: 10px" type="password" :placeholder="setting.backupWebdavPassword || 'Password'" v-model="backupWebdav.password" @keyup.enter="saveBackupS3" show-password/>
+          <el-input style="margin-bottom: 10px" type="password" :placeholder="setting.backupConfig?.backupWebdavPassword || 'Password'" v-model="backupWebdav.password" @keyup.enter="saveBackupS3" show-password/>
           <div class="backup-kv-note" style="margin-bottom: 15px">{{ t('attStorageWebdavNote') }}</div>
           </template>
           <template v-else>
@@ -1256,7 +1256,7 @@ Authorization: &lt;secret&gt;</pre>
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
-          <el-input class="dialog-input" type="text" :placeholder="setting.backupS3AccessKey || 'Access key'"
+          <el-input class="dialog-input" type="text" :placeholder="setting.backupConfig?.backupS3AccessKey || 'Access key'"
                     v-model="backupS3.s3AccessKey" @keyup.enter="saveBackupS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupSecretKey') }}</span>
@@ -1264,7 +1264,7 @@ Authorization: &lt;secret&gt;</pre>
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
-          <el-input style="margin-bottom: 10px" type="text" :placeholder="setting.backupS3SecretKey || 'Secret key'" v-model="backupS3.s3SecretKey" @keyup.enter="saveBackupS3"/>
+          <el-input style="margin-bottom: 10px" type="text" :placeholder="setting.backupConfig?.backupS3SecretKey || 'Secret key'" v-model="backupS3.s3SecretKey" @keyup.enter="saveBackupS3"/>
           <div class="force-path-style">
             <div class="force-path-style-left">
               <span>ForcePathStyle</span>
@@ -1633,6 +1633,25 @@ function getSettings() {
       forwardStatus: g.forwardStatus ?? settingData.forwardStatus ?? 1,
       ruleEmail: g.ruleEmail ?? settingData.ruleEmail ?? '',
       ruleType: g.ruleType ?? settingData.ruleType ?? 0
+    }
+    // 备份配置默认值兜底：backupConfig 是打包后的 JSON 对象；缓存是旧版时只有平铺字段，两边都兜底
+    const bc = settingData.backupConfig || {}
+    settingData.backupConfig = {
+      autoBackup: bc.autoBackup ?? settingData.autoBackup ?? 1,
+      backupType: bc.backupType ?? settingData.backupType ?? 's3',
+      backupBucket: bc.backupBucket ?? settingData.backupBucket ?? '',
+      backupRegion: bc.backupRegion ?? settingData.backupRegion ?? '',
+      backupEndpoint: bc.backupEndpoint ?? settingData.backupEndpoint ?? '',
+      backupS3AccessKey: bc.backupS3AccessKey ?? settingData.backupS3AccessKey ?? '',
+      backupS3SecretKey: bc.backupS3SecretKey ?? settingData.backupS3SecretKey ?? '',
+      backupForcePathStyle: bc.backupForcePathStyle ?? settingData.backupForcePathStyle ?? 1,
+      backupR2AccountId: bc.backupR2AccountId ?? settingData.backupR2AccountId ?? '',
+      backupR2Bucket: bc.backupR2Bucket ?? settingData.backupR2Bucket ?? '',
+      backupR2AccessKey: bc.backupR2AccessKey ?? settingData.backupR2AccessKey ?? '',
+      backupR2SecretKey: bc.backupR2SecretKey ?? settingData.backupR2SecretKey ?? '',
+      backupWebdavUrl: bc.backupWebdavUrl ?? settingData.backupWebdavUrl ?? '',
+      backupWebdavUsername: bc.backupWebdavUsername ?? settingData.backupWebdavUsername ?? '',
+      backupWebdavPassword: bc.backupWebdavPassword ?? settingData.backupWebdavPassword ?? ''
     }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
@@ -2472,12 +2491,17 @@ function change(e) {
   delete settingForm.r2SecretKey
   delete settingForm.webdavUsername
   delete settingForm.webdavPassword
-  delete settingForm.backupS3AccessKey
-  delete settingForm.backupS3SecretKey
-  delete settingForm.backupR2AccessKey
-  delete settingForm.backupR2SecretKey
-  delete settingForm.backupWebdavUsername
-  delete settingForm.backupWebdavPassword
+  // 备份密钥在 backupConfig 对象里，整包发过去会带上脱敏值，先从副本里去掉（后端合并时保留现值）
+  if (settingForm.backupConfig) {
+    const bc = {...settingForm.backupConfig}
+    delete bc.backupS3AccessKey
+    delete bc.backupS3SecretKey
+    delete bc.backupR2AccessKey
+    delete bc.backupR2SecretKey
+    delete bc.backupWebdavUsername
+    delete bc.backupWebdavPassword
+    settingForm.backupConfig = bc
+  }
   delete settingForm.tgBotToken
   delete settingForm.resendTokens
   delete settingForm.sendkitTokens
@@ -2582,24 +2606,25 @@ async function handleRestoreFile(e) {
 }
 
 function resetBackupS3Form() {
-  backupS3.type = setting.value.backupType || 's3'
-  backupS3.bucket = setting.value.backupBucket
-  backupS3.endpoint = setting.value.backupEndpoint
-  backupS3.region = setting.value.backupRegion
+  const b = setting.value.backupConfig || {}
+  backupS3.type = (b.backupType ?? setting.value.backupType) || 's3'
+  backupS3.bucket = b.backupBucket ?? setting.value.backupBucket
+  backupS3.endpoint = b.backupEndpoint ?? setting.value.backupEndpoint
+  backupS3.region = b.backupRegion ?? setting.value.backupRegion
   backupS3.s3AccessKey = ''
   backupS3.s3SecretKey = ''
-  backupS3.forcePathStyle = setting.value.backupForcePathStyle
-  backupR2.accountId = setting.value.backupR2AccountId
-  backupR2.bucket = setting.value.backupR2Bucket
+  backupS3.forcePathStyle = b.backupForcePathStyle ?? setting.value.backupForcePathStyle
+  backupR2.accountId = b.backupR2AccountId ?? setting.value.backupR2AccountId
+  backupR2.bucket = b.backupR2Bucket ?? setting.value.backupR2Bucket
   backupR2.accessKey = ''
   backupR2.secretKey = ''
-  backupWebdav.url = setting.value.backupWebdavUrl
+  backupWebdav.url = b.backupWebdavUrl ?? setting.value.backupWebdavUrl
   backupWebdav.username = ''
   backupWebdav.password = ''
 }
 
 function saveBackupS3() {
-  const form = {
+  const bc = {
     backupType: backupS3.type,
     backupBucket: backupS3.bucket,
     backupEndpoint: backupS3.endpoint,
@@ -2609,13 +2634,13 @@ function saveBackupS3() {
     backupR2Bucket: backupR2.bucket,
     backupWebdavUrl: backupWebdav.url
   }
-  if (backupS3.s3AccessKey) form.backupS3AccessKey = backupS3.s3AccessKey
-  if (backupS3.s3SecretKey) form.backupS3SecretKey = backupS3.s3SecretKey
-  if (backupR2.accessKey) form.backupR2AccessKey = backupR2.accessKey
-  if (backupR2.secretKey) form.backupR2SecretKey = backupR2.secretKey
-  if (backupWebdav.username) form.backupWebdavUsername = backupWebdav.username
-  if (backupWebdav.password) form.backupWebdavPassword = backupWebdav.password
-  editSetting(form)
+  if (backupS3.s3AccessKey) bc.backupS3AccessKey = backupS3.s3AccessKey
+  if (backupS3.s3SecretKey) bc.backupS3SecretKey = backupS3.s3SecretKey
+  if (backupR2.accessKey) bc.backupR2AccessKey = backupR2.accessKey
+  if (backupR2.secretKey) bc.backupR2SecretKey = backupR2.secretKey
+  if (backupWebdav.username) bc.backupWebdavUsername = backupWebdav.username
+  if (backupWebdav.password) bc.backupWebdavPassword = backupWebdav.password
+  editSetting({backupConfig: bc})
 }
 
 function clearBackupS3() {
