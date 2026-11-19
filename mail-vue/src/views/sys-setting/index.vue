@@ -493,6 +493,25 @@
                 </div>
               </div>
               <div class="setting-item">
+                <div><span>{{ $t('loginVerification') }}</span></div>
+                <div>
+                  <el-button class="opt-button" size="small" type="primary" @click="openLoginVerifyCount">
+                    <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
+                  </el-button>
+                  <el-select
+                      @change="change"
+                      :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
+                      v-model="setting.loginVerifyConfig.loginVerify"
+                      placeholder="Select"
+                      class="bot-verify-select"
+                  >
+                    <el-option key="1" :value="0" :label="$t('enable')"/>
+                    <el-option key="1" :value="1" :label="$t('disable')"/>
+                    <el-option key="1" :value="2" :label="$t('rulesVerify')"/>
+                  </el-select>
+                </div>
+              </div>
+              <div class="setting-item">
                 <div><span>{{ $t('addEmailVerification') }}</span></div>
                 <div>
                   <el-button class="opt-button" size="small" type="primary" @click="openAddVerifyCount">
@@ -964,6 +983,14 @@ Authorization: &lt;secret&gt;</pre>
           <el-input-number type="text" v-model="regVerifyCount" :min="1" @keyup.enter="saveRegVerifyCount">
           </el-input-number>
           <el-button type="primary" :loading="settingLoading" @click="saveRegVerifyCount">{{ $t('save') }}</el-button>
+        </form>
+      </el-dialog>
+      <el-dialog v-model="loginVerifyCountShow" :title="$t('loginRulesVerifyTitle',{count: loginVerifyCount})"
+                 @closed="loginVerifyCount = setting.loginVerifyConfig.loginVerifyCount">
+        <form @submit.prevent>
+          <el-input-number type="text" v-model="loginVerifyCount" :min="1" @keyup.enter="saveLoginVerifyCount">
+          </el-input-number>
+          <el-button type="primary" :loading="settingLoading" @click="saveLoginVerifyCount">{{ $t('save') }}</el-button>
         </form>
       </el-dialog>
       <el-dialog v-model="addVerifyCountShow" :title="$t('rulesVerifyTitle',{count: addVerifyCount})"
@@ -1440,11 +1467,13 @@ const backgroundUrl = ref('')
 let backgroundFile = {}
 const showSetBackground = ref(false)
 let regVerifyCount = ref(1)
+let loginVerifyCount = ref(1)
 let addVerifyCount = ref(1)
 let backup = '{}'
 const addS3Show = ref(false)
 const addVerifyCountShow = ref(false)
 const regVerifyCountShow = ref(false)
+const loginVerifyCountShow = ref(false)
 const resendTokenForm = reactive({
   domain: '',
   token: '',
@@ -1743,6 +1772,11 @@ function getSettings() {
       minEmailPrefix: ep.minEmailPrefix ?? settingData.minEmailPrefix ?? 0,
       emailPrefixFilter: ep.emailPrefixFilter ?? flatFilter
     }
+    const lv = settingData.loginVerifyConfig || {}
+    settingData.loginVerifyConfig = {
+      loginVerify: lv.loginVerify ?? settingData.loginVerify ?? 1,
+      loginVerifyCount: lv.loginVerifyCount ?? settingData.loginVerifyCount ?? 1
+    }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
@@ -1756,6 +1790,7 @@ function getSettings() {
     editTitle.value = setting.value.title
     addVerifyCount.value = setting.value.verifyConfig?.addVerifyCount ?? setting.value.addVerifyCount
     regVerifyCount.value = setting.value.verifyConfig?.regVerifyCount ?? setting.value.regVerifyCount
+    loginVerifyCount.value = setting.value.loginVerifyConfig?.loginVerifyCount ?? setting.value.loginVerifyCount ?? 1
     resetNoticeForm()
     resetAddS3Form()
     resetEmailPrefix()
@@ -1780,6 +1815,11 @@ function openAddVerifyCount() {
 function openRegVerifyCount() {
   if (settingLoading.value) return
   regVerifyCountShow.value = true
+}
+
+function openLoginVerifyCount() {
+  if (settingLoading.value) return
+  loginVerifyCountShow.value = true
 }
 
 function resetAddS3Form() {
@@ -1892,6 +1932,13 @@ function saveRegVerifyCount() {
     regVerifyCount.value = 1
   }
   editSetting({verifyConfig: {regVerifyCount: regVerifyCount.value}})
+}
+
+function saveLoginVerifyCount() {
+  if (!loginVerifyCount.value) {
+    loginVerifyCount.value = 1
+  }
+  editSetting({loginVerifyConfig: {loginVerifyCount: loginVerifyCount.value}})
 }
 
 const compareByLengthAndUpperCase = (a, b, key) => {

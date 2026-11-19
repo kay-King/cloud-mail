@@ -31,6 +31,7 @@ const settingService = {
 		settingRow.autoCleanConfig = JSON.parse(settingRow.autoCleanConfig || '{}');
 		settingRow.aiCodeConfig = JSON.parse(settingRow.aiCodeConfig || '{}');
 		settingRow.emailPrefixConfig = JSON.parse(settingRow.emailPrefixConfig || '{}');
+		settingRow.loginVerifyConfig = JSON.parse(settingRow.loginVerifyConfig || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -283,6 +284,22 @@ const settingService = {
 		};
 	},
 
+	// 登录验证码配置读值（login_verify_config，上游 f001fa5 新增，入库即打包成 JSON 列）：
+	// 新格式是 setting.loginVerifyConfig 对象里的字段；旧缓存里是平铺字段，两边都兜底；
+	// 都没有时按默认（开关默认 1=关，次数默认 1）。
+	loginVerifyConfig(setting) {
+		const l = setting?.loginVerifyConfig;
+		const pick = (key, def) => {
+			if (l && typeof l === 'object' && l[key] !== undefined && l[key] !== null) return l[key];
+			if (setting && setting[key] !== undefined && setting[key] !== null) return setting[key];
+			return def;
+		};
+		return {
+			loginVerify: pick('loginVerify', 1),
+			loginVerifyCount: pick('loginVerifyCount', 1)
+		};
+	},
+
 	async query(c) {
 
 		if (c.get?.('setting')) {
@@ -373,6 +390,7 @@ const settingService = {
 
 		let regVerifyOpen = false
 		let addVerifyOpen = false
+		let loginVerifyOpen = false
 
 		recordList.forEach(row => {
 			if (row.type === verifyRecordType.REG) {
@@ -381,10 +399,14 @@ const settingService = {
 			if (row.type === verifyRecordType.ADD) {
 				addVerifyOpen = row.count >= this.verifyConfig(settingRow).addVerifyCount
 			}
+			if (row.type === verifyRecordType.LOGIN) {
+				loginVerifyOpen = row.count >= this.loginVerifyConfig(settingRow).loginVerifyCount
+			}
 		})
 
 		settingRow.regVerifyOpen = regVerifyOpen
 		settingRow.addVerifyOpen = addVerifyOpen
+		settingRow.loginVerifyOpen = loginVerifyOpen
 
 		settingRow.storageType = await r2Service.storageType(c);
 
@@ -517,6 +539,18 @@ const settingService = {
 				emailPrefixConfig[k] = v;
 			}
 		}
+		let loginVerifyConfig = { ...(settingData.loginVerifyConfig || {}) };
+		if (params.loginVerifyConfig && typeof params.loginVerifyConfig === 'object') {
+			for (const [k, v] of Object.entries(params.loginVerifyConfig)) {
+				// 带 ****** 的是前端回显的脱敏值，不是真实密钥，跳过不覆盖
+				if (typeof v === 'string' && v.includes('******')) continue;
+				loginVerifyConfig[k] = v;
+			}
+		}
+		// 上游校验：登录验证次数必须是 ≥1 的整数，否则按 1 算
+		if (loginVerifyConfig.loginVerifyCount !== undefined && (!Number.isSafeInteger(loginVerifyConfig.loginVerifyCount) || loginVerifyConfig.loginVerifyCount < 1)) {
+			loginVerifyConfig.loginVerifyCount = 1;
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
@@ -534,6 +568,7 @@ const settingService = {
 		params.autoCleanConfig = JSON.stringify(autoCleanConfig);
 		params.aiCodeConfig = JSON.stringify(aiCodeConfig);
 		params.emailPrefixConfig = JSON.stringify(emailPrefixConfig);
+		params.loginVerifyConfig = JSON.stringify(loginVerifyConfig);
 
 		// 旧版平铺列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
@@ -615,6 +650,8 @@ const settingService = {
 		delete params.aiCodeFilter;
 		delete params.minEmailPrefix;
 		delete params.emailPrefixFilter;
+		delete params.loginVerify;
+		delete params.loginVerifyCount;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);
@@ -692,6 +729,7 @@ const settingService = {
 			autoRefresh: settingRow.autoRefresh,
 			addEmailVerify: this.verifyConfig(settingRow).addEmailVerify,
 			registerVerify: this.verifyConfig(settingRow).registerVerify,
+			loginVerify: this.loginVerifyConfig(settingRow).loginVerify,
 			send: settingRow.send,
 			r2Domain: settingRow.r2Domain,
 			siteKey: settingRow.siteKey,
@@ -701,6 +739,7 @@ const settingService = {
 			regKey: settingRow.regKey,
 			regVerifyOpen: settingRow.regVerifyOpen,
 			addVerifyOpen: settingRow.addVerifyOpen,
+			loginVerifyOpen: settingRow.loginVerifyOpen,
 			noticeTitle: this.noticeConfig(settingRow).noticeTitle,
 			noticeContent: this.noticeConfig(settingRow).noticeContent,
 			noticeType: this.noticeConfig(settingRow).noticeType,

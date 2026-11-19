@@ -394,6 +394,8 @@ const en = {
     turnstileSetting: 'Turnstile',
     signUpVerification: 'Sign up verification',
     addEmailVerification: 'Add email verification',
+    loginVerification: 'Login verification',
+    loginRulesVerifyTitle: 'Trigger after {count} daily login attempts per IP',
     about: 'About',
     version: 'Version',
     community: 'Community',

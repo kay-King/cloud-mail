@@ -226,10 +226,19 @@ const loginService = {
 
 	async login(c, params, noVerifyPwd = false) {
 
-		const { email, password } = params;
+		const { email, password, token } = params;
 
 		if ((!email || !password) && !noVerifyPwd) {
 			throw new BizError(t('emailAndPwdEmpty'));
+		}
+
+		// 上游 f001fa5：登录验证码。开关开（0）时每次都验；按规则（2）时同一 IP 免费次数用完后验；关（1）不验。
+		if (!noVerifyPwd) {
+			const { loginVerify, loginVerifyCount } = settingService.loginVerifyConfig(await settingService.query(c));
+			if (loginVerify === settingConst.loginVerify.OPEN ||
+				(loginVerify === settingConst.loginVerify.COUNT && !await verifyRecordService.consumeLoginAttempt(c, loginVerifyCount))) {
+				await turnstileService.verify(c, token);
+			}
 		}
 
 		const userRow = await userService.selectByEmailIncludeDel(c, email);

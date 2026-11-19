@@ -99,6 +99,11 @@ export const settingConst = {
 		CLOSE: 1,
 		COUNT: 2,
 	},
+	loginVerify: {
+		OPEN: 0,
+		CLOSE: 1,
+		COUNT: 2,
+	},
 	addEmailVerify: {
 		OPEN: 0,
 		CLOSE: 1,
@@ -153,6 +158,7 @@ export const settingConst = {
 export const verifyRecordType = {
 	REG: 0,
 	ADD: 1,
+	LOGIN: 2,
 }
 
 

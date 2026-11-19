@@ -394,6 +394,8 @@ const zh = {
     turnstileSetting: 'Turnstile 人机验证',
     signUpVerification: '注册验证',
     addEmailVerification: '添加验证',
+    loginVerification: '登录验证',
+    loginRulesVerifyTitle: '同一 IP 每天尝试登录 {count} 次后触发',
     about: '关于',
     version: '版本',
     community: '交流',

@@ -58,6 +58,7 @@ const dbInit = {
 		await this.v3_26DB(c);
 		await this.v3_27DB(c);
 		await this.v3_28DB(c);
+		await this.v3_29DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -605,6 +606,17 @@ const dbInit = {
 			} catch (e) {
 				console.warn(`跳过字段：${e.message}`);
 			}
+		}
+	},
+
+	async v3_29DB(c) {
+		// 上游 f001fa5 登录验证码 2 项（开关 loginVerify、次数 loginVerifyCount），入库即打包进
+		// login_verify_config JSON 列（不按上游建 2 个平铺列）。新设置无旧值可迁，只加列，默认 '{}'，
+		// 读值时 helper 兜底（开关默认 1=关，次数默认 1）。
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN login_verify_config TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
 		}
 	},
 

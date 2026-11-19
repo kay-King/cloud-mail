@@ -34,6 +34,7 @@ export const setting = sqliteTable('setting', {
 	blacklistConfig: text('blacklist_config').default('{}').notNull(),
 	// AI 验证码 2 项打包进一个 JSON 列，2 列变 1 列腾 1 个空位
 	aiCodeConfig: text('ai_code_config').default('{}').notNull(),
+	loginVerifyConfig: text('login_verify_config').default('{}').notNull(),
 	syncDelete: integer('sync_delete').default(1).notNull(),
 	// 第三方登录 9 项打包进一个 JSON 列，9 列变 1 列腾 8 个空位（功能未配置但 oauth-service 代码活着，只能打包不能删）
 	oauthConfig: text('oauth_config').default('{}').notNull(),

@@ -20,6 +20,25 @@ const verifyRecordService = {
 		await orm(c).delete(verifyRecord).run();
 	},
 
+	// 上游 f001fa5：消费一次登录免费尝试。原子扣减，同一 IP 并发请求共享同一上限；
+	// 返回 true = 本次在免费次数内（不用验证码），false = 免费次数已用完（要验证码）。
+	async consumeLoginAttempt(c, limit) {
+		const ip = reqUtils.getIp(c);
+		const type = verifyRecordType.LOGIN;
+		const db = c.env.db;
+
+		// Reserve a free attempt atomically so concurrent requests share the same limit.
+		const [, updated] = await db.batch([
+			db.prepare(`INSERT INTO verify_record (ip, type, count)
+				SELECT ?, ?, 0 WHERE NOT EXISTS (SELECT 1 FROM verify_record WHERE ip = ? AND type = ?)`)
+				.bind(ip, type, ip, type),
+			db.prepare(`UPDATE verify_record SET count = count + 1, update_time = CURRENT_TIMESTAMP
+				WHERE ip = ? AND type = ? AND count < ? RETURNING vr_id`)
+				.bind(ip, type, limit)
+		]);
+		return updated.results.length > 0;
+	},
+
 	async isOpenRegVerify(c, regVerifyCount) {
 
 		const ip = reqUtils.getIp(c)

@@ -33,6 +33,7 @@ const SETTING_LABELS = {
 	blacklistConfig: '黑名单',
 	aiCodeConfig: 'AI 识别',
 	emailPrefixConfig: '邮箱前缀',
+	loginVerifyConfig: '登录验证',
 	loginDomain: '登录域名',
 	noRecipient: '无收件人',
 	resendTokens: 'Resend 密钥',
