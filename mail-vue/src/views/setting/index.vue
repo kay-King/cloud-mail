@@ -98,21 +98,9 @@
     </div>
     <div class="preference-item">
       <div class="title">{{$t('interfaceDisplay')}}</div>
-      <div style="color: var(--regular-text-color);">
-        {{$t('sidebarTip')}}
-      </div>
-      <div ref="sidebarListRef" class="sidebar-list">
-        <div v-for="key in sidebarOrder" :key="key" class="sidebar-row">
-          <Icon icon="mdi:drag-vertical" width="20" height="20" class="sidebar-drag-handle" />
-          <span class="sidebar-row-name">{{ sidebarItemLabel(key) }}</span>
-          <span v-if="!isSidebarHideable(key)" class="sidebar-must-show">{{ $t('mustShow') }}</span>
-          <el-select v-else-if="isSidebarUnreadKey(key)" :model-value="sidebarVisibility(key)" size="small" class="sidebar-visibility-select" @change="onSidebarVisibility(key, $event)">
-            <el-option :label="$t('sidebarShow')" value="show" />
-            <el-option :label="$t('sidebarShowIfUnread')" value="unread" />
-            <el-option :label="$t('sidebarHide')" value="hide" />
-          </el-select>
-          <el-switch v-else :model-value="!sidebarStore.hidden.includes(key)" @change="onSidebarToggle(key, $event)" />
-        </div>
+      <div class="forward-rule-summary">
+        <span class="forward-rule-summary-text">{{ sidebarSummary }}</span>
+        <el-button @click="openSidebarDialog">{{ $t('sidebarSettings') }}</el-button>
       </div>
     </div>
     <div class="del-email" v-perm="'my:delete'">
@@ -160,12 +148,32 @@
         <el-button type="primary" :loading="blackListLoading" @click="savePersonalBlackList">{{$t('save')}}</el-button>
       </template>
     </el-dialog>
+    <el-dialog v-model="sidebarShow" class="sidebar-dialog" :title="$t('interfaceDisplay')" @opened="initSidebarSortable">
+      <div class="sidebar-dialog-tip">{{$t('sidebarTip')}}</div>
+      <div ref="sidebarListRef" class="sidebar-list">
+        <div v-for="key in sidebarDraftOrder" :key="key" class="sidebar-row">
+          <Icon icon="mdi:drag-vertical" width="20" height="20" class="sidebar-drag-handle" />
+          <span class="sidebar-row-name">{{ sidebarItemLabel(key) }}</span>
+          <span v-if="!isSidebarHideable(key)" class="sidebar-must-show">{{ $t('mustShow') }}</span>
+          <el-select v-else-if="isSidebarUnreadKey(key)" :model-value="sidebarDraftVisibility(key)" size="small" class="sidebar-visibility-select" @change="onSidebarDraftVisibility(key, $event)">
+            <el-option :label="$t('sidebarShow')" value="show" />
+            <el-option :label="$t('sidebarShowIfUnread')" value="unread" />
+            <el-option :label="$t('sidebarHide')" value="hide" />
+          </el-select>
+          <el-switch v-else :model-value="!sidebarDraftHidden.includes(key)" @change="onSidebarDraftToggle(key, $event)" />
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="sidebarShow = false">{{$t('cancel')}}</el-button>
+        <el-button type="primary" :loading="sidebarSaving" @click="saveSidebarDialog">{{$t('save')}}</el-button>
+      </template>
+    </el-dialog>
   </div>
     </el-scrollbar>
   </div>
 </template>
 <script setup>
-import {reactive, ref, computed, defineOptions, watch, onMounted, onBeforeUnmount, nextTick} from 'vue'
+import {reactive, ref, computed, defineOptions, watch, onMounted, onBeforeUnmount} from 'vue'
 import {resetPassword, userDelete, getSpamBlocklist, setSpamBlocklist} from "@/request/my.js";
 import {useUserStore} from "@/store/user.js";
 import router from "@/router/index.js";
@@ -282,11 +290,16 @@ function savePersonalBlackList() {
   })
 }
 
-// 界面与显示：侧边栏个人区 9 个条目，拖动排序 + 开关显隐，改完立即保存（侧边栏实时跟着变）
-// 列表用本地副本：拖动时先改本地，拖完再写回 store 并保存，避免 Sortable 的 DOM 移动与 Vue 渲染打架
+// 界面与显示：侧边栏个人区 9 个条目，弹窗里改草稿，点保存才生效；取消则丢弃（与转发规则、黑名单一个做法）
+// 设置页只留一行摘要，9 行列表收进弹窗，设置页不再被长列表撑满
 const sidebarStore = useSidebarStore()
+const sidebarShow = ref(false)
+const sidebarSaving = ref(false)
 const sidebarListRef = ref(null)
-const sidebarOrder = ref([...SIDEBAR_DEFAULT_ORDER])
+// 草稿：打开弹窗时从 store 复制一份，弹窗里只改草稿
+const sidebarDraftOrder = ref([...SIDEBAR_DEFAULT_ORDER])
+const sidebarDraftHidden = ref([])
+const sidebarDraftShowIfUnread = ref([])
 let sidebarSortable = null
 const sidebarItemLabels = {
   email: 'inbox', send: 'sent', draft: 'drafts', star: 'starred', spam: 'spam',
@@ -301,63 +314,101 @@ function isSidebarHideable(key) {
 function isSidebarUnreadKey(key) {
   return SIDEBAR_UNREAD_KEYS.includes(key)
 }
-// 星标/垃圾箱的三段显隐：show 显示 / unread 有未读时显示 / hide 隐藏
-function sidebarVisibility(key) {
-  if (sidebarStore.hidden.includes(key)) {
+// 摘要：默认「全部显示」；有隐藏 / 有未读时显示时列出来
+const sidebarSummary = computed(() => {
+  const parts = []
+  if (sidebarStore.hidden.length > 0) {
+    parts.push(t('sidebarSummaryHidden', { count: sidebarStore.hidden.length }))
+  }
+  if (sidebarStore.showIfUnread.length > 0) {
+    parts.push(t('sidebarSummaryUnread', { count: sidebarStore.showIfUnread.length }))
+  }
+  return parts.length > 0 ? parts.join(' · ') : t('sidebarSummaryAll')
+})
+function openSidebarDialog() {
+  sidebarStore.load().then(() => {
+    sidebarDraftOrder.value = [...sidebarStore.order]
+    sidebarDraftHidden.value = [...sidebarStore.hidden]
+    sidebarDraftShowIfUnread.value = [...sidebarStore.showIfUnread]
+    sidebarShow.value = true
+  })
+}
+// 草稿的三段显隐：show 显示 / unread 有未读时显示 / hide 隐藏
+function sidebarDraftVisibility(key) {
+  if (sidebarDraftHidden.value.includes(key)) {
     return 'hide'
   }
-  if (sidebarStore.showIfUnread.includes(key)) {
+  if (sidebarDraftShowIfUnread.value.includes(key)) {
     return 'unread'
   }
   return 'show'
 }
-function onSidebarVisibility(key, mode) {
-  sidebarStore.setVisibility(key, mode)
-  sidebarStore.save().catch(revertSidebarConfig)
+function setDraftVisibility(key, mode) {
+  if (!SIDEBAR_HIDEABLE.includes(key)) {
+    return
+  }
+  if (mode === 'unread' && !SIDEBAR_UNREAD_KEYS.includes(key)) {
+    return
+  }
+  sidebarDraftHidden.value = mode === 'hide'
+    ? [...new Set([...sidebarDraftHidden.value, key])]
+    : sidebarDraftHidden.value.filter(k => k !== key)
+  sidebarDraftShowIfUnread.value = mode === 'unread'
+    ? [...new Set([...sidebarDraftShowIfUnread.value, key])]
+    : sidebarDraftShowIfUnread.value.filter(k => k !== key)
 }
-// 保存失败：提示并从服务器重载，把本地与侧边栏都恢复成服务器的样子
-function revertSidebarConfig() {
-  ElMessage({ message: t('saveFailed'), type: 'error', plain: true })
-  sidebarStore.load(true).then(() => {
-    sidebarOrder.value = [...sidebarStore.order]
-  })
+function onSidebarDraftVisibility(key, mode) {
+  setDraftVisibility(key, mode)
 }
-function onSidebarToggle(key, show) {
-  sidebarStore.setVisibility(key, show ? 'show' : 'hide')
-  sidebarStore.save().catch(revertSidebarConfig)
+function onSidebarDraftToggle(key, show) {
+  setDraftVisibility(key, show ? 'show' : 'hide')
 }
-function onSidebarDragEnd(evt) {
+function onSidebarDraftDragEnd(evt) {
   const { oldIndex, newIndex } = evt
   if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) {
     return
   }
-  const order = [...sidebarOrder.value]
+  const order = [...sidebarDraftOrder.value]
   const [moved] = order.splice(oldIndex, 1)
   order.splice(newIndex, 0, moved)
-  sidebarOrder.value = order
-  sidebarStore.order = order
-  sidebarStore.save().catch(revertSidebarConfig)
+  sidebarDraftOrder.value = order
 }
-
-onMounted(() => {
-  sidebarStore.load().then(() => {
-    sidebarOrder.value = [...sidebarStore.order]
-    return nextTick()
-  }).then(() => {
-    if (!sidebarListRef.value) {
-      return
-    }
-    // 拖动只从把手开始（手机上点别处仍可滚动列表）；触摸延迟 120ms，避免一碰就拖
-    sidebarSortable = new Sortable(sidebarListRef.value, {
-      handle: '.sidebar-drag-handle',
-      animation: 150,
-      delay: 120,
-      delayOnTouchOnly: true,
-      ghostClass: 'sidebar-drag-ghost',
-      onEnd: onSidebarDragEnd
+// 弹窗打开后 DOM 才就绪，在这里建 Sortable（只建一次；弹窗内容默认不销毁，实例一直有效）
+function initSidebarSortable() {
+  if (sidebarSortable || !sidebarListRef.value) {
+    return
+  }
+  // 拖动只从把手开始（手机上点别处仍可滚动列表）；触摸延迟 120ms，避免一碰就拖
+  sidebarSortable = new Sortable(sidebarListRef.value, {
+    handle: '.sidebar-drag-handle',
+    animation: 150,
+    delay: 120,
+    delayOnTouchOnly: true,
+    ghostClass: 'sidebar-drag-ghost',
+    onEnd: onSidebarDraftDragEnd
+  })
+}
+function saveSidebarDialog() {
+  sidebarSaving.value = true
+  sidebarStore.applyConfig({
+    hidden: sidebarDraftHidden.value,
+    order: sidebarDraftOrder.value,
+    showIfUnread: sidebarDraftShowIfUnread.value
+  })
+  sidebarStore.save().then(() => {
+    sidebarShow.value = false
+  }).catch(() => {
+    // 保存失败：提示并从服务器重载，草稿同步回服务器状态，弹窗保持打开
+    ElMessage({ message: t('saveFailed'), type: 'error', plain: true })
+    sidebarStore.load(true).then(() => {
+      sidebarDraftOrder.value = [...sidebarStore.order]
+      sidebarDraftHidden.value = [...sidebarStore.hidden]
+      sidebarDraftShowIfUnread.value = [...sidebarStore.showIfUnread]
     })
-  }).catch(err => console.error('sidebar drag init failed', err))
-})
+  }).finally(() => {
+    sidebarSaving.value = false
+  })
+}
 
 onBeforeUnmount(() => {
   sidebarSortable?.destroy?.()
@@ -717,11 +768,41 @@ function submitPwd() {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
 
-  // 界面与显示：侧边栏条目列表（拖动排序 + 开关显隐）
+// 转发规则弹窗：内容被传送到 body 下，样式须挂在弹窗根类上，不能放在 .box 里
+.forward-rule-dialog {
+  .forward-rule-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .forward-rule-tip {
+    font-size: 12px;
+    color: var(--regular-text-color);
+  }
+}
+
+:deep(.forward-rule-dialog.el-dialog) {
+  width: 500px !important;
+  @media (max-width: 540px) {
+    width: calc(100% - 40px) !important;
+    margin-right: 20px !important;
+    margin-left: 20px !important;
+  }
+}
+
+// 侧边栏自定义弹窗：内容被传送到 body 下，样式须挂在弹窗根类上，不能放在 .box 里
+.sidebar-dialog {
+  .sidebar-dialog-tip {
+    font-size: 12px;
+    color: var(--regular-text-color);
+    margin-bottom: 12px;
+  }
+
   .sidebar-list {
     width: 100%;
-    max-width: 420px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -764,21 +845,7 @@ function submitPwd() {
   }
 }
 
-// 转发规则弹窗：内容被传送到 body 下，样式须挂在弹窗根类上，不能放在 .box 里
-.forward-rule-dialog {
-  .forward-rule-body {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .forward-rule-tip {
-    font-size: 12px;
-    color: var(--regular-text-color);
-  }
-}
-
-:deep(.forward-rule-dialog.el-dialog) {
+:deep(.sidebar-dialog.el-dialog) {
   width: 500px !important;
   @media (max-width: 540px) {
     width: calc(100% - 40px) !important;

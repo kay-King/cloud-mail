@@ -667,5 +667,9 @@ const zh = {
     sidebarShow: '显示',
     sidebarShowIfUnread: '有未读时显示',
     sidebarHide: '隐藏',
+    sidebarSettings: '设置侧边栏',
+    sidebarSummaryAll: '全部显示',
+    sidebarSummaryHidden: '已隐藏 {count} 项',
+    sidebarSummaryUnread: '{count} 项有未读时显示',
 }
 export default zh

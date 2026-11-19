@@ -105,6 +105,13 @@ export const useSidebarStore = defineStore('sidebar', {
       })()
       return this.unreadPromise
     },
+    // 弹窗保存时用：把草稿一次性写进 state（先 normalize），再由 save() 提交服务器
+    applyConfig(config) {
+      const { hidden, order, showIfUnread } = normalize(config)
+      this.hidden = hidden
+      this.order = order
+      this.showIfUnread = showIfUnread
+    },
     // 保存当前 hidden/order/showIfUnread 到服务器；失败时抛错，调用方负责提示与回滚
     async save() {
       const data = await setSidebarConfig({ hidden: this.hidden, order: this.order, showIfUnread: this.showIfUnread })

@@ -667,6 +667,10 @@ const en = {
     sidebarShow: 'Show',
     sidebarShowIfUnread: 'Show if unread',
     sidebarHide: 'Hide',
+    sidebarSettings: 'Manage sidebar',
+    sidebarSummaryAll: 'All shown',
+    sidebarSummaryHidden: '{count} hidden',
+    sidebarSummaryUnread: '{count} show if unread',
 }
 
 export default en
