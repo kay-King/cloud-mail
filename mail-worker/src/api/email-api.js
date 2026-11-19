@@ -50,6 +50,21 @@ app.put('/email/restore', async (c) => {
 	return c.json(result.ok());
 });
 
+app.put('/email/spam', async (c) => {
+	await emailService.markSpam(c, await c.req.json(), userContext.getUserId(c));
+	return c.json(result.ok());
+});
+
+app.put('/email/unspam', async (c) => {
+	await emailService.unmarkSpam(c, await c.req.json(), userContext.getUserId(c));
+	return c.json(result.ok());
+});
+
+app.delete('/email/clear-spam', async (c) => {
+	await emailService.clearSpam(c, c.req.query(), userContext.getUserId(c));
+	return c.json(result.ok());
+});
+
 app.delete('/email/physics-delete', async (c) => {
 	await emailService.physicsDeleteByUser(c, c.req.query(), userContext.getUserId(c));
 	return c.json(result.ok());

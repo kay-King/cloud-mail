@@ -10,6 +10,12 @@
       <el-tooltip effect="dark" :content="$t('restore')">
         <Icon v-if="emailStore.contentData.delType === 'trash'" v-perm="'email:delete'" class="icon" icon="mdi:restore" width="20" height="20" @click="handleRestore"/>
       </el-tooltip>
+      <el-tooltip effect="dark" :content="$t('markSpam')">
+        <Icon v-if="emailStore.contentData.showSpam" v-perm="'email:delete'" class="icon" icon="mdi:email-alert" width="20" height="20" @click="handleMarkSpam"/>
+      </el-tooltip>
+      <el-tooltip effect="dark" :content="$t('notSpam')">
+        <Icon v-if="emailStore.contentData.delType === 'spam'" v-perm="'email:delete'" class="icon" icon="mdi:restore" width="20" height="20" @click="handleUnspam"/>
+      </el-tooltip>
       <span class="star" v-if="emailStore.contentData.showStar">
         <el-tooltip v-if="email.isStar" effect="dark" :content="$t('unstar')">
           <Icon class="icon" @click="changeStar" icon="fluent-color:star-16" width="20" height="20"/>
@@ -117,7 +123,7 @@ import deleteNotifyDialog from "@/components/delete-notify-dialog/index.vue"
 import {computed, reactive, ref, watch, onMounted, onUnmounted, nextTick} from "vue";
 import {useRouter} from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import {emailDelete, emailRead, emailRestore, emailPhysicsDelete, emailExport, downloadExport} from "@/request/email.js";
+import {emailDelete, emailRead, emailRestore, emailPhysicsDelete, emailExport, downloadExport, emailMarkSpam, emailUnmarkSpam} from "@/request/email.js";
 import {Icon} from "@iconify/vue";
 import {useEmailStore} from "@/store/email.js";
 import {useUserStore} from "@/store/user.js";
@@ -362,7 +368,7 @@ const handleExport = () => {
 
 const handleDelete = () => {
   const delType = emailStore.contentData.delType
-  if (delType !== 'logic' && delType !== 'trash') {
+  if (delType !== 'logic' && delType !== 'trash' && delType !== 'spam') {
     const v = settingStore.settings.adminDelNotify
     const enabled = v === undefined || v === null || v !== 0
     const myEmail = (userStore.user.email || '').toLowerCase()
@@ -382,7 +388,7 @@ const handleDelete = () => {
     cancelButtonText: t('cancel'),
     type: 'warning'
   }).then(() => {
-    if (emailStore.contentData.delType === 'logic') {
+    if (emailStore.contentData.delType === 'logic' || emailStore.contentData.delType === 'spam') {
       emailDelete(email.value.emailId).then(() => {
         ElMessage({
           message: t('delSuccessMsg'),
@@ -421,6 +427,30 @@ const handleRestore = () => {
   emailRestore([email.value.emailId]).then(() => {
     ElMessage({
       message: t('restoreSuccessMsg'),
+      type: 'success',
+      plain: true,
+    })
+    emailStore.deleteIds = [email.value.emailId]
+    router.back()
+  })
+}
+
+const handleMarkSpam = () => {
+  emailMarkSpam([email.value.emailId]).then(() => {
+    ElMessage({
+      message: t('markSpamSuccessMsg'),
+      type: 'success',
+      plain: true,
+    })
+    emailStore.deleteIds = [email.value.emailId]
+    router.back()
+  })
+}
+
+const handleUnspam = () => {
+  emailUnmarkSpam([email.value.emailId]).then(() => {
+    ElMessage({
+      message: t('unspamSuccessMsg'),
       type: 'success',
       plain: true,
     })

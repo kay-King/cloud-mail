@@ -4,6 +4,7 @@
                :star-success="addStar"
                :getEmailList="getEmailList"
                :emailDelete="emailDelete"
+               :email-spam="markSpamEmails"
                :star-add="starAdd"
                :star-cancel="starCancel"
                :email-read="emailRead"
@@ -13,6 +14,13 @@
                @jump="jumpContent"
                @refresh-success="onRefreshSuccess"
   >
+    <template #first>
+      <el-tooltip effect="dark" :content="$t('markSpamSelected')">
+        <Icon v-perm="'email:delete'" class="icon" icon="mdi:email-alert" width="20" height="20"
+              v-if="selectedIds.length > 0"
+              @click="handleMarkSpamSelected"/>
+      </el-tooltip>
+    </template>
   </emailScroll>
 </template>
 
@@ -21,9 +29,12 @@ import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
 import {useSettingStore} from "@/store/setting.js";
 import emailScroll from "@/components/email-scroll/index.vue"
-import {emailList, emailDelete, emailLatest, emailRead} from "@/request/email.js";
+import {Icon} from "@iconify/vue";
+import {emailList, emailDelete, emailLatest, emailRead, emailMarkSpam} from "@/request/email.js";
 import {starAdd, starCancel} from "@/request/star.js";
-import {defineOptions, onBeforeUnmount, onMounted, ref, watch} from "vue";
+import {defineOptions, onBeforeUnmount, onMounted, ref, watch, computed} from "vue";
+import {ElMessage} from "element-plus";
+import {useI18n} from "vue-i18n";
 import {sleep} from "@/utils/time-utils.js";
 import router from "@/router/index.js";
 import {
@@ -38,6 +49,7 @@ defineOptions({
 const emailStore = useEmailStore();
 const accountStore = useAccountStore();
 const settingStore = useSettingStore();
+const {t} = useI18n()
 const scroll = ref({})
 const existIds = new Set();
 let pullTimer = null
@@ -87,7 +99,31 @@ function jumpContent(email) {
   emailStore.contentData.showUnread = true
   emailStore.contentData.showStar = true
   emailStore.contentData.showReply = true
+  emailStore.contentData.showSpam = true
   router.push({name: 'content', params: {mailbox: 'inbox'}})
+}
+
+const selectedIds = computed(() => {
+  const list = scroll.value?.emailList || []
+  return list.filter(e => e.checked).map(e => e.emailId)
+})
+
+function markSpamEmails(emailIds) {
+  return emailMarkSpam(emailIds).then(() => {
+    ElMessage({
+      message: t('markSpamSuccessMsg'),
+      type: 'success',
+      plain: true
+    })
+    emailStore.deleteIds = Array.isArray(emailIds) ? emailIds : [emailIds];
+  })
+}
+
+function handleMarkSpamSelected() {
+  const emailIds = selectedIds.value
+  if (emailIds.length > 0) {
+    markSpamEmails(emailIds)
+  }
 }
 
 // 推送到达：非「全部收取」时忽略其它账号的信。

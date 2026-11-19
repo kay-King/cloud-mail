@@ -47,6 +47,7 @@ const emailService = {
 			startDate,
 			endDate,
 			del,
+			spam,
 		} = params;
 
 		size = Number(size);
@@ -58,6 +59,8 @@ const emailService = {
 		full = Number(full);
 		// del=1 时只查已删除的邮件（回收站用）
 		del = Number(del) === 1;
+		// spam=1 时只查垃圾邮件（垃圾箱用）；其余视图默认排除垃圾
+		spam = Number(spam) === 1;
 
 		if (isNaN(type)) {
 			type = 0;
@@ -98,6 +101,7 @@ const emailService = {
 			startDate,
 			endDate,
 			del,
+			spam,
 		});
 		const countFilters = this.emailListFilters({
 			userId,
@@ -110,6 +114,7 @@ const emailService = {
 			startDate,
 			endDate,
 			del,
+			spam,
 		});
 		const columns = full ? emailListColumns : emailBriefColumns;
 
@@ -269,12 +274,15 @@ const emailService = {
 		startDate,
 		endDate,
 		del = false,
+		spam = false,
 	}) {
 		const conditions = [
 			eq(email.userId, userId),
 			// type=-1 表示收发都查（回收站用）
 			type === -1 ? undefined : eq(email.type, type),
 			eq(email.isDel, del ? isDel.DELETE : isDel.NORMAL),
+			// 回收站不过滤垃圾（已删的垃圾也要在回收站里看得到）；其余视图按 spam 查垃圾或排除垃圾
+			del ? undefined : eq(email.isSpam, spam ? 1 : 0),
 			eq(account.isDel, isDel.NORMAL),
 		];
 		if (!allReceive) {
@@ -321,7 +329,9 @@ const emailService = {
 
 	allEmailListFilters({ emailId, name, subject, accountEmail, userEmail, type, timeSort, withCursor = true, text, searchType, startDate, endDate }) {
 		const conditions = [
-			ne(email.status, emailConst.status.SAVING)
+			ne(email.status, emailConst.status.SAVING),
+			// 全部邮件不含垃圾（跟 Gmail 的全部邮件一样，垃圾只在垃圾箱里看）
+			eq(email.isSpam, 0)
 		];
 
 		if (type === 'send') {
@@ -438,6 +448,60 @@ const emailService = {
 				eq(email.userId, userId),
 				inArray(email.emailId, emailIdList))
 		).run();
+	},
+
+	// 标记为垃圾：只标记自己的邮件
+	async markSpam(c, params, userId) {
+		const { emailIds } = params;
+		const emailIdList = (Array.isArray(emailIds) ? emailIds : String(emailIds).split(',')).map(Number);
+		await orm(c).update(email).set({ isSpam: 1 }).where(
+			and(
+				eq(email.userId, userId),
+				inArray(email.emailId, emailIdList))
+		).run();
+	},
+
+	// 不是垃圾，移回收件箱：只处理自己的邮件
+	async unmarkSpam(c, params, userId) {
+		const { emailIds } = params;
+		const emailIdList = (Array.isArray(emailIds) ? emailIds : String(emailIds).split(',')).map(Number);
+		await orm(c).update(email).set({ isSpam: 0 }).where(
+			and(
+				eq(email.userId, userId),
+				inArray(email.emailId, emailIdList))
+		).run();
+	},
+
+	// 清空垃圾箱：彻底删除当前用户当前邮箱里的全部垃圾邮件（附件按去重规则连带删除）
+	async clearSpam(c, params, userId) {
+		let { accountId, allReceive } = params;
+		accountId = Number(accountId);
+		allReceive = Number(allReceive);
+		if (isNaN(allReceive)) {
+			const accountRow = await accountService.selectById(c, accountId);
+			allReceive = accountRow?.allReceive || 0;
+		}
+		const batchSize = 95;
+		while (true) {
+			const rows = await orm(c)
+				.select({ emailId: email.emailId })
+				.from(email)
+				.where(and(
+					eq(email.userId, userId),
+					eq(email.isSpam, 1),
+					eq(email.isDel, isDel.NORMAL),
+					allReceive ? undefined : eq(email.accountId, accountId),
+				))
+				.limit(batchSize)
+				.all();
+			if (!rows.length) {
+				break;
+			}
+			await this.physicsDelete(c, { emailIds: rows.map(row => row.emailId).join(',') });
+			if (rows.length < batchSize) {
+				break;
+			}
+		}
 	},
 
 	// 回收站彻底删除：只删自己的邮件，附件按去重规则连带删除
@@ -1694,6 +1758,7 @@ const emailService = {
 					gt(email.emailId, emailId),
 					eq(email.userId, userId),
 					eq(email.isDel, isDel.NORMAL),
+					eq(email.isSpam, 0),
 					eq(account.isDel, isDel.NORMAL),
 					allReceive ? undefined : eq(email.accountId, accountId),
 					eq(email.type, emailConst.type.RECEIVE)
@@ -1762,6 +1827,8 @@ const emailService = {
 				inArray(email.userId, userIds),
 				eq(email.type, type),
 				eq(email.isDel, del),
+				// 正常计数排除垃圾；回收站计数不过滤（已删的垃圾也算在回收站里）
+				del === isDel.NORMAL ? eq(email.isSpam, 0) : undefined,
 				ne(email.status, emailConst.status.SAVING),
 			))
 			.groupBy(email.userId);
@@ -1987,6 +2054,31 @@ const emailService = {
 			const emailIds = rows.map(row => row.emailId);
 			await this.physicsDelete(c, { emailIds: emailIds.join(',') });
 
+			if (rows.length < batchSize) {
+				break;
+			}
+		}
+	},
+
+	// 垃圾箱自动清理（跟 Gmail 一样）：垃圾箱里超过 30 天的邮件彻底删除；定时任务每小时跑一次
+	async cleanSpam(c) {
+		const cutoff = dayjs().subtract(30, 'day').format('YYYY-MM-DD HH:mm:ss');
+		const batchSize = 95;
+		while (true) {
+			const rows = await orm(c)
+				.select({ emailId: email.emailId })
+				.from(email)
+				.where(and(
+					eq(email.isSpam, 1),
+					eq(email.isDel, isDel.NORMAL),
+					lt(email.createTime, cutoff),
+				))
+				.limit(batchSize)
+				.all();
+			if (!rows.length) {
+				break;
+			}
+			await this.physicsDelete(c, { emailIds: rows.map(row => row.emailId).join(',') });
 			if (rows.length < batchSize) {
 				break;
 			}

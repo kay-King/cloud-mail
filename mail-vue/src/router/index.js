@@ -22,7 +22,7 @@ const routes = [
                 }
             },
             {
-                path: '/:mailbox(inbox|starred|sent|all-mail|trash)/messages',
+                path: '/:mailbox(inbox|starred|sent|all-mail|trash|spam)/messages',
                 name: 'content',
                 component: () => import('@/views/content/index.vue'),
                 meta: {
@@ -58,6 +58,16 @@ const routes = [
                 meta: {
                     title: 'trash',
                     name: 'trash',
+                    menu: true
+                }
+            },
+            {
+                path: '/spam',
+                name: 'spam',
+                component: () => import('@/views/spam/index.vue'),
+                meta: {
+                    title: 'spam',
+                    name: 'spam',
                     menu: true
                 }
             },

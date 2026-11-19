@@ -220,6 +220,14 @@
               </div>
             </template>
           </el-dropdown-item>
+          <el-dropdown-item v-if="['email'].includes(props.type)" @click="rightSpam(rightClickEmail.emailId)">
+            <template #default>
+              <div class="right-dropdown-item">
+                <Icon icon="mdi:email-alert" width="19" height="19" />
+                <span>{{t('markSpam')}}</span>
+              </div>
+            </template>
+          </el-dropdown-item>
           <el-dropdown-item v-if="props.type === 'all-email'" @click="handleSearch('user', rightClickEmail.userEmail)">
             <template #default>
               <div class="right-dropdown-item">
@@ -249,6 +257,14 @@
               <div class="right-dropdown-item">
                 <Icon icon="mdi:restore" width="19" height="19" />
                 <span>{{t('restore')}}</span>
+              </div>
+            </template>
+          </el-dropdown-item>
+          <el-dropdown-item v-if="props.type === 'spam'" @click="rightRestore(rightClickEmail.emailId)">
+            <template #default>
+              <div class="right-dropdown-item">
+                <Icon icon="mdi:restore" width="19" height="19" />
+                <span>{{t('notSpam')}}</span>
               </div>
             </template>
           </el-dropdown-item>
@@ -298,6 +314,7 @@ const props = defineProps({
   getEmailList: Function,
   emailDelete: Function,
   emailRestore: Function,
+  emailSpam: Function,
   emailRead: Function,
   starAdd: Function,
   starCancel: Function,
@@ -727,6 +744,13 @@ function rightRestore(emailId) {
     return;
   }
   props.emailRestore([emailId])
+}
+
+function rightSpam(emailId) {
+  if (!props.emailSpam) {
+    return;
+  }
+  props.emailSpam([emailId])
 }
 
 function doExport(emailIds) {

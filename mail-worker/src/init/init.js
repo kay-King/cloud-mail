@@ -35,7 +35,7 @@ const dbInit = {
 			text TEXT,
 			create_time DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			is_del INTEGER DEFAULT 0 NOT NULL
-		  , status INTEGER NOT NULL DEFAULT 0, type INTEGER NOT NULL DEFAULT 0, resend_email_id TEXT, message TEXT, message_id TEXT NOT NULL DEFAULT '', relation TEXT NOT NULL DEFAULT '', in_reply_to TEXT NOT NULL DEFAULT '', bcc TEXT NOT NULL DEFAULT '[]', cc TEXT NOT NULL DEFAULT '[]', recipient TEXT NOT NULL DEFAULT '[]', to_email TEXT NOT NULL DEFAULT '', to_name TEXT NOT NULL DEFAULT '', unread INTEGER NOT NULL DEFAULT 0, code TEXT NOT NULL DEFAULT '', sender_email TEXT NOT NULL DEFAULT '')
+		  , status INTEGER NOT NULL DEFAULT 0, type INTEGER NOT NULL DEFAULT 0, resend_email_id TEXT, message TEXT, message_id TEXT NOT NULL DEFAULT '', relation TEXT NOT NULL DEFAULT '', in_reply_to TEXT NOT NULL DEFAULT '', bcc TEXT NOT NULL DEFAULT '[]', cc TEXT NOT NULL DEFAULT '[]', recipient TEXT NOT NULL DEFAULT '[]', to_email TEXT NOT NULL DEFAULT '', to_name TEXT NOT NULL DEFAULT '', unread INTEGER NOT NULL DEFAULT 0, code TEXT NOT NULL DEFAULT '', sender_email TEXT NOT NULL DEFAULT '', is_spam INTEGER NOT NULL DEFAULT 0)
 		`).run();
 		await c.env.db.prepare(`
 		  CREATE TABLE IF NOT EXISTS star (

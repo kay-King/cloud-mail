@@ -49,12 +49,8 @@ export async function email(message, env, ctx) {
 		const email = await PostalMime.parse(content);
 
 
+		// 黑名单命中不再直接拒收，改为进垃圾箱（拒收会丢信、误伤找不回来；进垃圾箱还能在里面翻出来）
 		const blockFlag = checkBlock(blackSubject, blackContent, blackFrom, email);
-
-		if (blockFlag) {
-			message.setReject('Message rejected');
-			return;
-		}
 
 		let account = await accountService.selectByEmailIncludeDel({ env: env }, message.to);
 
@@ -120,6 +116,7 @@ export async function email(message, env, ctx) {
 			userId: account ? account.userId : 0,
 			accountId: account ? account.accountId : 0,
 			isDel: isDel.DELETE,
+			isSpam: blockFlag ? 1 : 0,
 			status: emailConst.status.SAVING
 		};
 
@@ -157,8 +154,11 @@ export async function email(message, env, ctx) {
 
 		emailRow = await emailService.completeReceive({ env }, account ? emailConst.status.RECEIVE : emailConst.status.NOONE, emailRow.emailId);
 
-		// 有账号才推个人收件箱；无人收件（无 account / userId=0）只推全部邮件。
-		notifyMailWs(env, ctx, emailRow);
+		// 垃圾邮件不推收件箱、不转发、不推 TG/Webhook，只静静进垃圾箱
+		if (!blockFlag) {
+			// 有账号才推个人收件箱；无人收件（无 account / userId=0）只推全部邮件。
+			notifyMailWs(env, ctx, emailRow);
+		}
 
 		// 转发规则影响全局转发、TG 与 Webhook 推送；按账号转发用各自的发件人/主题规则，不受此规则限制。
 		// 名单匹配方式：mailbox=跟收件邮箱地址比（默认），user=跟收件邮箱所属用户的登录邮箱比。
@@ -170,21 +170,21 @@ export async function email(message, env, ctx) {
 		});
 
 		//转发到TG
-		if (ruleMatched && tgBotStatus === settingConst.tgBotStatus.OPEN && tgChatId) {
+		if (!blockFlag && ruleMatched && tgBotStatus === settingConst.tgBotStatus.OPEN && tgChatId) {
 			await telegramService.sendEmailToBot({ env }, emailRow)
 		}
 
 		//按收件账号转发与全局转发并存：两边各算各的目标，合在一起去重后各发一份；
 		//同一封邮件发到同一个目标只发一次（全局管的范围更大，不因账号转发接手了就不转）
 		const accountTargets = [];
-		if (account && account.forwardStatus === settingConst.forwardStatus.OPEN && account.forwardEmail
+		if (!blockFlag && account && account.forwardStatus === settingConst.forwardStatus.OPEN && account.forwardEmail
 			&& matchesForwardRule(account, { from: emailRow.sendEmail, subject: emailRow.subject })) {
 			account.forwardEmail.split(',').map(e => e.trim()).filter(Boolean)
 				.forEach(email => accountTargets.push({ email, accountId: account.accountId, source: '账号' }));
 		}
 
 		const globalTargets = [];
-		if (forwardStatus === settingConst.forwardStatus.OPEN && forwardEmail && ruleMatched) {
+		if (!blockFlag && forwardStatus === settingConst.forwardStatus.OPEN && forwardEmail && ruleMatched) {
 			forwardEmail.split(',').map(e => e.trim()).filter(Boolean)
 				.forEach(email => globalTargets.push({ email, accountId: undefined, source: '全局' }));
 		}
@@ -201,7 +201,7 @@ export async function email(message, env, ctx) {
 		}));
 
 		//转发到 Webhook
-		if (ruleMatched && webhookStatus === settingConst.webhookStatus.OPEN && webhookUrl) {
+		if (!blockFlag && ruleMatched && webhookStatus === settingConst.webhookStatus.OPEN && webhookUrl) {
 			await webhookService.sendEmail({ env }, emailRow, webhookUrl, webhookRetry, webhookSecret);
 		}
 
