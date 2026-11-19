@@ -76,7 +76,7 @@
               <div v-if="!showStar"></div>
               <div class="title" :class="accountShow ? 'title-column' : 'title-column'">
 
-                <div class="email-sender" :style=" (showStatus ? 'gap: 10px;' : '') + ((item.unread === EmailUnreadEnum.UNREAD && showUnread)  ? 'font-weight: bold' : '')">
+                <div class="email-sender" :style=" (showStatus ? 'gap: 10px;' : '') + (isUnreadRow(item) ? 'font-weight: bold' : '')">
                   <div class="email-status" v-if="showStatus">
                     <el-tooltip v-if="item.statusIcon" effect="dark" :content="item.statusIcon.content">
                       <Icon :icon="item.statusIcon.icon" :style="`color: ${item.statusIcon.color}`" width="20" height="20"/>
@@ -90,7 +90,7 @@
                   <div v-else></div>
                   <span class="name">
                     <span>
-                      <div class="unread" v-if="isMobile && (item.unread === EmailUnreadEnum.UNREAD && showUnread) "/>
+                      <div class="unread" v-if="isMobile && isUnreadRow(item)"/>
                       <slot name="name" :email="item"><span v-html="item.nameHtml"></span></slot>
                     </span>
                     <span>
@@ -101,8 +101,8 @@
                 </div>
                 <div>
                   <div class="email-text">
-                    <span class="email-subject" :style="(item.unread === EmailUnreadEnum.UNREAD && showUnread)  ? 'font-weight: bold' : ''">
-                      <div class="unread" v-if="!isMobile && (item.unread === EmailUnreadEnum.UNREAD && showUnread) "/>
+                    <span class="email-subject" :style="isUnreadRow(item) ? 'font-weight: bold' : ''">
+                      <div class="unread" v-if="!isMobile && isUnreadRow(item)"/>
                       <span v-if="item.code" class="code-tag" @click.stop="copyCode(item.code)">[{{ t('codeLabel') }}{{ item.code }}]</span>
                       <span class="subject-text">
                         <slot name="subject" :email="item" >
@@ -138,7 +138,7 @@
                 </div>
               </div>
               <div class="email-right" :style="showUserInfo ? 'align-self: start;':''">
-                <span class="email-time" :style="(item.unread === EmailUnreadEnum.UNREAD && showUnread) ? 'font-weight: bold' : ''">{{ item.formatCreateTime }}</span>
+                <span class="email-time" :style="isUnreadRow(item) ? 'font-weight: bold' : ''">{{ item.formatCreateTime }}</span>
               </div>
             </div>
             <skeletonBlock v-else-if="item.expand === 'loading'"
@@ -764,6 +764,12 @@ function localUnread(emailIds) {
       emailList[index].checked = false;
     }
   })
+}
+
+// 未读样式（加粗 + 蓝点）只给收到的邮件：发件份在库里 unread 也是 0（保存时没置已读），
+// 只看 unread 会把已发邮件错标成未读——全部邮件视图同时有收发两份时尤其明显
+function isUnreadRow(item) {
+  return props.showUnread && item.unread === EmailUnreadEnum.UNREAD && item.type === 0
 }
 
 function rightRestore(emailId) {
