@@ -154,11 +154,13 @@
         <div v-for="key in sidebarDraftOrder" :key="key" class="sidebar-row">
           <Icon icon="mdi:drag-vertical" width="20" height="20" class="sidebar-drag-handle" />
           <span class="sidebar-row-name">{{ sidebarItemLabel(key) }}</span>
-          <el-select v-if="isSidebarUnreadKey(key)" :model-value="sidebarDraftVisibility(key)" size="small" class="sidebar-visibility-select" @change="onSidebarDraftVisibility(key, $event)">
-            <el-option :label="$t('sidebarShow')" value="show" />
-            <el-option :label="$t('sidebarShowIfUnread')" value="unread" />
-            <el-option :label="$t('sidebarHide')" value="hide" />
-          </el-select>
+          <div v-if="isSidebarUnreadKey(key)" class="sidebar-visibility-options">
+            <span class="sidebar-visibility-option" :class="{ active: sidebarDraftVisibility(key) === 'show' }" @click="onSidebarDraftVisibility(key, 'show')">{{ $t('sidebarShow') }}</span>
+            <span class="sidebar-visibility-sep">/</span>
+            <span class="sidebar-visibility-option" :class="{ active: sidebarDraftVisibility(key) === 'unread' }" @click="onSidebarDraftVisibility(key, 'unread')">{{ $t('sidebarShowIfUnread') }}</span>
+            <span class="sidebar-visibility-sep">/</span>
+            <span class="sidebar-visibility-option" :class="{ active: sidebarDraftVisibility(key) === 'hide' }" @click="onSidebarDraftVisibility(key, 'hide')">{{ $t('sidebarHide') }}</span>
+          </div>
           <el-switch v-else :model-value="!sidebarDraftHidden.includes(key)" @change="onSidebarDraftToggle(key, $event)" />
         </div>
       </div>
@@ -832,8 +834,30 @@ function submitPwd() {
     min-width: 0;
   }
 
-  .sidebar-visibility-select {
-    width: 128px;
+  .sidebar-visibility-options {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .sidebar-visibility-option {
+    cursor: pointer;
+    color: var(--regular-text-color);
+  }
+
+  .sidebar-visibility-option:hover {
+    color: var(--el-color-primary);
+  }
+
+  .sidebar-visibility-option.active {
+    color: var(--el-color-primary);
+    font-weight: 600;
+  }
+
+  .sidebar-visibility-sep {
+    color: var(--el-border-color);
   }
 
   .sidebar-drag-ghost {
