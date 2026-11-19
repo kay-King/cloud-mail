@@ -91,18 +91,10 @@
       <div style="color: var(--regular-text-color);">
         {{$t('blackListDesc')}}{{$t('personalBlackListTip')}}
       </div>
-      <el-form>
-        <el-form-item :label="t('blackFromDesc')" label-position="top">
-          <el-input-tag v-model="personalBlackList.blackFrom"/>
-        </el-form-item>
-        <el-form-item :label="t('blackSubjectDesc')" label-position="top">
-          <el-input-tag v-model="personalBlackList.blackSubject"/>
-        </el-form-item>
-        <el-form-item :label="t('blackContentDesc')" label-position="top">
-          <el-input-tag v-model="personalBlackList.blackContent"/>
-        </el-form-item>
-      </el-form>
-      <el-button type="primary" :loading="blackListLoading" @click="savePersonalBlackList">{{$t('save')}}</el-button>
+      <div class="forward-rule-summary">
+        <span class="forward-rule-summary-text">{{ blackListSummary }}</span>
+        <el-button @click="openBlackList">{{ $t('blackListSettings') }}</el-button>
+      </div>
     </div>
     <div class="del-email" v-perm="'my:delete'">
       <div class="title">{{$t('deleteUser')}}</div>
@@ -130,6 +122,23 @@
       <template #footer>
         <el-button @click="forwardRuleShow = false">{{$t('cancel')}}</el-button>
         <el-button type="primary" :loading="forwardLoading" @click="saveForwardRule">{{$t('save')}}</el-button>
+      </template>
+    </el-dialog>
+    <el-dialog v-model="blackListShow" class="forward-rule-dialog" :title="$t('blackList')">
+      <el-form>
+        <el-form-item :label="t('blackFromDesc')" label-position="top">
+          <el-input-tag v-model="blackListDraft.blackFrom"/>
+        </el-form-item>
+        <el-form-item :label="t('blackSubjectDesc')" label-position="top">
+          <el-input-tag v-model="blackListDraft.blackSubject"/>
+        </el-form-item>
+        <el-form-item :label="t('blackContentDesc')" label-position="top">
+          <el-input-tag v-model="blackListDraft.blackContent"/>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="blackListShow = false">{{$t('cancel')}}</el-button>
+        <el-button type="primary" :loading="blackListLoading" @click="savePersonalBlackList">{{$t('save')}}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -203,8 +212,15 @@ const forwardApplyAll = ref(false)
 const forwardLoading = ref(false)
 
 // 个人黑名单：针对当前登录用户（所有邮箱通用），与系统黑名单任一命中都进垃圾箱
+// 行内只留摘要，三个输入框收进弹窗（跟转发规则一个做法）
 const personalBlackList = ref({ blackFrom: [], blackSubject: [], blackContent: [] })
 const blackListLoading = ref(false)
+const blackListShow = ref(false)
+const blackListDraft = ref({ blackFrom: [], blackSubject: [], blackContent: [] })
+const blackListSummary = computed(() => {
+  const total = personalBlackList.value.blackFrom.length + personalBlackList.value.blackSubject.length + personalBlackList.value.blackContent.length
+  return total === 0 ? t('blackListEmpty') : t('blackListCount', { count: total })
+})
 
 onMounted(() => {
   getSpamBlocklist().then(data => {
@@ -216,13 +232,28 @@ onMounted(() => {
   })
 })
 
+function openBlackList() {
+  blackListDraft.value = {
+    blackFrom: [...personalBlackList.value.blackFrom],
+    blackSubject: [...personalBlackList.value.blackSubject],
+    blackContent: [...personalBlackList.value.blackContent]
+  }
+  blackListShow.value = true
+}
+
 function savePersonalBlackList() {
   blackListLoading.value = true
   setSpamBlocklist({
-    blackFrom: personalBlackList.value.blackFrom + '',
-    blackSubject: personalBlackList.value.blackSubject + '',
-    blackContent: personalBlackList.value.blackContent + ''
+    blackFrom: blackListDraft.value.blackFrom + '',
+    blackSubject: blackListDraft.value.blackSubject + '',
+    blackContent: blackListDraft.value.blackContent + ''
   }).then(() => {
+    personalBlackList.value = {
+      blackFrom: [...blackListDraft.value.blackFrom],
+      blackSubject: [...blackListDraft.value.blackSubject],
+      blackContent: [...blackListDraft.value.blackContent]
+    }
+    blackListShow.value = false
     ElMessage({ message: t('setSuccess'), type: 'success', plain: true })
   }).finally(() => {
     blackListLoading.value = false
