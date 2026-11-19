@@ -19,10 +19,8 @@ export const setting = sqliteTable('setting', {
 	tgBotToken: text('tg_bot_token').default('').notNull(),
 	tgChatId: text('tg_chat_id').default('').notNull(),
 	tgBotStatus: integer('tg_bot_status').default(1).notNull(),
-	forwardEmail: text('forward_email').default('').notNull(),
-	forwardStatus: integer('forward_status').default(1).notNull(),
-	ruleEmail: text('rule_email').default('').notNull(),
-	ruleType: integer('rule_type').default(0).notNull(),
+	// 全局转发 4 项打包进一个 JSON 列（forwardEmail/forwardStatus/ruleEmail/ruleType），4 列变 1 列腾 3 个空位；规则与 TG/Webhook 推送共用
+	globalForward: text('global_forward').default('{}').notNull(),
 	loginOpacity: integer('login_opacity').default(0.88),
 	resendTokens: text('resend_tokens').default("{}").notNull(),
 	sendkitTokens: text('sendkit_tokens').default("{}").notNull(),

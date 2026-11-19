@@ -1479,7 +1479,9 @@ const emailService = {
 	//站内邮件不经过 email 事件，在这里按转发规则推送
 	async forwardOnSiteEmail(c, emailRowList, { sendParams }) {
 
-		const { tgBotStatus, tgChatId, webhookStatus, webhookUrl, webhookRetry, webhookSecret, ruleEmail, ruleType } = await settingService.query(c);
+		const setting = await settingService.query(c);
+		const { tgBotStatus, tgChatId, webhookStatus, webhookUrl, webhookRetry, webhookSecret } = setting;
+		const { ruleEmail, ruleType } = settingService.globalForward(setting);
 
 		// 转发规则只影响 TG 与 Webhook 推送
 		let notifyRows = emailRowList;

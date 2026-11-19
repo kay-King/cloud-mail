@@ -284,7 +284,7 @@
               <div class="setting-item">
                 <div><span>{{ $t('globalForward') }}</span></div>
                 <div class="forward">
-                  <span>{{ setting.forwardStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
+                  <span>{{ setting.globalForward?.forwardStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
                   <el-button class="opt-button" size="small" type="primary" @click="openGlobalForward">
                     <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
                   </el-button>
@@ -1626,6 +1626,14 @@ function getSettings() {
       forwardFailNotify: f.forwardFailNotify ?? settingData.forwardFailNotify ?? 1,
       backupFailNotify: f.backupFailNotify ?? settingData.backupFailNotify ?? 1
     }
+    // 全局转发默认值兜底：globalForward 是打包后的 JSON 对象；缓存是旧版时只有平铺字段，两边都兜底
+    const g = settingData.globalForward || {}
+    settingData.globalForward = {
+      forwardEmail: g.forwardEmail ?? settingData.forwardEmail ?? '',
+      forwardStatus: g.forwardStatus ?? settingData.forwardStatus ?? 1,
+      ruleEmail: g.ruleEmail ?? settingData.ruleEmail ?? '',
+      ruleType: g.ruleType ?? settingData.ruleType ?? 0
+    }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
@@ -2035,10 +2043,11 @@ function webhookSave() {
 }
 
 function openGlobalForward() {
-  globalForwardEmail.value = setting.value.forwardEmail || ''
-  globalForwardStatus.value = setting.value.forwardStatus ?? 1
-  globalRuleType.value = setting.value.ruleType ?? 0
-  globalRuleEmail.value = setting.value.ruleEmail || ''
+  const g = setting.value.globalForward || {}
+  globalForwardEmail.value = g.forwardEmail ?? setting.value.forwardEmail || ''
+  globalForwardStatus.value = g.forwardStatus ?? setting.value.forwardStatus ?? 1
+  globalRuleType.value = g.ruleType ?? setting.value.ruleType ?? 0
+  globalRuleEmail.value = g.ruleEmail ?? setting.value.ruleEmail || ''
   globalForwardShow.value = true
 }
 

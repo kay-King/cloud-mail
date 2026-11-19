@@ -19,6 +19,7 @@ const settingService = {
 		settingRow.sendkitTokens = JSON.parse(settingRow.sendkitTokens || '{}');
 		settingRow.brevoTokens = JSON.parse(settingRow.brevoTokens || '{}');
 		settingRow.notifyFlags = JSON.parse(settingRow.notifyFlags || '{}');
+		settingRow.globalForward = JSON.parse(settingRow.globalForward || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -35,6 +36,23 @@ const settingService = {
 			return setting[key];
 		}
 		return key === 'notifyStatus' ? 0 : 1;
+	},
+
+	// 全局转发配置读值（global_forward 打包后）：新格式是 setting.globalForward 对象里的字段；
+	// 旧缓存里是平铺字段，两边都兜底；都没有时按默认（关闭、规则全部）。forwardStatus：0=开、1=关；ruleType：0=全部、1=按规则。
+	globalForward(setting) {
+		const g = setting?.globalForward;
+		const pick = (key, def) => {
+			if (g && typeof g === 'object' && g[key] !== undefined && g[key] !== null) return g[key];
+			if (setting && setting[key] !== undefined && setting[key] !== null) return setting[key];
+			return def;
+		};
+		return {
+			forwardEmail: pick('forwardEmail', ''),
+			forwardStatus: pick('forwardStatus', 1),
+			ruleEmail: pick('ruleEmail', ''),
+			ruleType: pick('ruleType', 0)
+		};
 	},
 
 	async query(c) {
@@ -171,17 +189,26 @@ const settingService = {
 		if (params.notifyFlags && typeof params.notifyFlags === 'object') {
 			notifyFlags = { ...notifyFlags, ...params.notifyFlags };
 		}
+		let globalForward = { ...(settingData.globalForward || {}) };
+		if (params.globalForward && typeof params.globalForward === 'object') {
+			globalForward = { ...globalForward, ...params.globalForward };
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
 		params.brevoTokens = JSON.stringify(brevoTokens);
 		params.notifyFlags = JSON.stringify(notifyFlags);
+		params.globalForward = JSON.stringify(globalForward);
 
-		// 旧版平铺的 4 个通知开关列已打包进 notify_flags，旧客户端可能还带这些字段，删掉避免写不存在的列
+		// 旧版平铺的通知开关与全局转发列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
 		delete params.adminDelNotify;
 		delete params.forwardFailNotify;
 		delete params.backupFailNotify;
+		delete params.forwardEmail;
+		delete params.forwardStatus;
+		delete params.ruleEmail;
+		delete params.ruleType;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);

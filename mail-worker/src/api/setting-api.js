@@ -41,10 +41,12 @@ app.put('/setting/setGlobalForward', async (c) => {
 		}
 	}
 	const values = {
-		forwardEmail: status === settingConst.forwardStatus.OPEN ? targets.join(',') : '',
-		forwardStatus: status,
-		ruleType: type,
-		ruleEmail: rules.join(',')
+		globalForward: {
+			forwardEmail: status === settingConst.forwardStatus.OPEN ? targets.join(',') : '',
+			forwardStatus: status,
+			ruleType: type,
+			ruleEmail: rules.join(',')
+		}
 	};
 	const before = await settingService.query(c);
 	await settingService.set(c, values);

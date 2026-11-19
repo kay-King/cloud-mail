@@ -46,6 +46,7 @@ const dbInit = {
 		await this.v3_14DB(c);
 		await this.v3_15DB(c);
 		await this.v3_16DB(c);
+		await this.v3_17DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -107,6 +108,44 @@ const dbInit = {
 		if (flags) {
 			try {
 				await c.env.db.prepare(`UPDATE setting SET notify_flags = ?`).bind(JSON.stringify(flags)).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+	},
+
+	async v3_17DB(c) {
+		// 全局转发 4 项打包进 global_forward JSON 列（4 列变 1 列，腾 3 个空位）。
+		// 顺序：先读出现有值 → 删 4 个旧列 → 加 global_forward 列 → 把值写回去。各步独立 try/catch，重复跑也不怕。
+		let config = null;
+		try {
+			const row = await c.env.db.prepare(`SELECT forward_email, forward_status, rule_email, rule_type FROM setting`).first();
+			if (row) {
+				config = {
+					forwardEmail: row.forward_email ?? '',
+					forwardStatus: row.forward_status ?? 1,
+					ruleEmail: row.rule_email ?? '',
+					ruleType: row.rule_type ?? 0
+				};
+			}
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		for (const col of ['forward_email', 'forward_status', 'rule_email', 'rule_type']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN ${col};`).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN global_forward TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		if (config) {
+			try {
+				await c.env.db.prepare(`UPDATE setting SET global_forward = ?`).bind(JSON.stringify(config)).run();
 			} catch (e) {
 				console.warn(`跳过字段：${e.message}`);
 			}

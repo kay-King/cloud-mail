@@ -19,6 +19,7 @@ export async function email(message, env, ctx) {
 
 	try {
 
+		const setting = await settingService.query({ env });
 		const {
 			receive,
 			tgChatId,
@@ -27,10 +28,6 @@ export async function email(message, env, ctx) {
 			webhookUrl,
 			webhookRetry,
 			webhookSecret,
-			ruleEmail,
-			ruleType,
-			forwardEmail,
-			forwardStatus,
 			r2Domain,
 			noRecipient,
 			blackSubject,
@@ -38,7 +35,8 @@ export async function email(message, env, ctx) {
 			blackFrom,
 			aiCode,
 			aiCodeFilter
-		} = await settingService.query({ env });
+		} = setting;
+		const { ruleEmail, ruleType, forwardEmail, forwardStatus } = settingService.globalForward(setting);
 
 		if (receive === settingConst.receive.CLOSE) {
 			message.setReject('Service suspended');
