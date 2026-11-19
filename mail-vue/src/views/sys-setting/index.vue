@@ -293,7 +293,7 @@
               <div class="setting-item">
                 <div><span>{{ $t('notifyEmail') }}</span></div>
                 <div class="forward">
-                  <span>{{ setting.notifyStatus === 1 ? $t('disabled') : $t('enabled') }}</span>
+                  <span>{{ setting.notifyFlags?.notifyStatus === 1 ? $t('disabled') : $t('enabled') }}</span>
                   <el-button class="opt-button" size="small" type="primary" @click="openNotifySetting">
                     <Icon icon="fluent:settings-48-regular" width="18" height="18"/>
                   </el-button>
@@ -381,7 +381,7 @@
                 </div>
                 <div>
                   <el-switch @change="change" :active-value="1" :inactive-value="0"
-                             v-model="setting.forwardFailNotify"/>
+                             v-model="setting.notifyFlags.forwardFailNotify"/>
                 </div>
               </div>
               <div class="setting-item">
@@ -393,7 +393,7 @@
                 </div>
                 <div>
                   <el-switch @change="change" :active-value="1" :inactive-value="0"
-                             v-model="setting.backupFailNotify"/>
+                             v-model="setting.notifyFlags.backupFailNotify"/>
                 </div>
               </div>
               <div class="setting-item">
@@ -405,7 +405,7 @@
                 </div>
                 <div>
                   <el-switch @change="change" :active-value="1" :inactive-value="0"
-                             v-model="setting.adminDelNotify"/>
+                             v-model="setting.notifyFlags.adminDelNotify"/>
                 </div>
               </div>
             </div>
@@ -1618,10 +1618,14 @@ function maskSiteKey(value) {
 function getSettings() {
   settingReady.value = false
   settingQuery().then(settingData => {
-    // 通知开关默认值兜底：设置缓存是旧版时新字段不存在，缺值按默认开处理，避免开关误显示关闭
-    settingData.forwardFailNotify ??= 1
-    settingData.backupFailNotify ??= 1
-    settingData.notifyStatus ??= 0
+    // 通知开关默认值兜底：notifyFlags 是打包后的 JSON 对象；缓存是旧版时只有平铺字段，两边都兜底，缺值按默认开处理，避免开关误显示关闭
+    const f = settingData.notifyFlags || {}
+    settingData.notifyFlags = {
+      notifyStatus: f.notifyStatus ?? settingData.notifyStatus ?? 0,
+      adminDelNotify: f.adminDelNotify ?? settingData.adminDelNotify ?? 1,
+      forwardFailNotify: f.forwardFailNotify ?? settingData.forwardFailNotify ?? 1,
+      backupFailNotify: f.backupFailNotify ?? settingData.backupFailNotify ?? 1
+    }
     setting.value = settingData
     settingStore.domainList = settingData.domainList;
     resendTokenForm.domain = setting.value.domainList[0]
@@ -1804,7 +1808,7 @@ function openTgSetting() {
 
 function openNotifySetting() {
   notifyEmailInput.value = setting.value.notifyEmail || ''
-  notifyStatusInput.value = setting.value.notifyStatus ?? 0
+  notifyStatusInput.value = setting.value.notifyFlags?.notifyStatus ?? 0
   notifySettingShow.value = true
 }
 
@@ -1814,7 +1818,7 @@ function notifySave() {
     ElMessage({message: t('forwardEmailInvalid'), type: 'error', plain: true});
     return
   }
-  editSetting({notifyEmail: email, notifyStatus: notifyStatusInput.value})
+  editSetting({notifyEmail: email, notifyFlags: {...setting.value.notifyFlags, notifyStatus: notifyStatusInput.value}})
 }
 
 function openNoticePopupSetting() {

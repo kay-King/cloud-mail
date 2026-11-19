@@ -1366,7 +1366,7 @@ const emailService = {
 		const setting = await settingService.query(c).catch(() => null);
 		// 系统通知总开关（默认开）：关了之后转发失败、备份失败、管理员删除三类提醒都不发；
 		// 三类提醒都走这里取发件人，返回 null 即全部停发
-		if (setting?.notifyStatus === settingConst.notifyStatus.CLOSE) return null;
+		if (settingService.notifyFlag(setting, 'notifyStatus') === settingConst.notifyStatus.CLOSE) return null;
 		const notifyEmail = setting?.notifyEmail?.trim();
 		if (notifyEmail) {
 			const notify = await orm(c).select().from(account).where(eq(account.email, notifyEmail)).get();
@@ -1379,13 +1379,13 @@ const emailService = {
 	// 转发失败提醒开关（默认开，1=开、0=关，与管理员删除通知开关同约定）：只停这一类，总开关另在 getNotifySender 里管
 	async isForwardFailNotifyEnabled(c) {
 		const setting = await settingService.query(c).catch(() => null);
-		return setting?.forwardFailNotify !== 0;
+		return settingService.notifyFlag(setting, 'forwardFailNotify') !== 0;
 	},
 
 	// 备份失败提醒开关（默认开，1=开、0=关）：只停这一类，总开关另在 getNotifySender 里管
 	async isBackupFailNotifyEnabled(c) {
 		const setting = await settingService.query(c).catch(() => null);
-		return setting?.backupFailNotify !== 0;
+		return settingService.notifyFlag(setting, 'backupFailNotify') !== 0;
 	},
 
 	async notifyForwardFailed(c, { address, rows, error, accountId }) {

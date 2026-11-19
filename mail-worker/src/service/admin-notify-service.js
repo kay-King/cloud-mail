@@ -73,7 +73,7 @@ const adminNotifyService = {
 	// 设置开关（默认开）：关掉后管理员删除时不弹通知选项，也不发通知
 	async isEnabled(c) {
 		const setting = await settingService.query(c);
-		return !setting || setting.adminDelNotify === undefined || setting.adminDelNotify === null || setting.adminDelNotify !== 0;
+		return settingService.notifyFlag(setting, 'adminDelNotify') !== 0;
 	},
 
 	// 发件账号：优先用系统设置里的通知邮箱，找不到时退回管理员账号

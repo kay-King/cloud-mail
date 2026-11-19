@@ -18,9 +18,23 @@ const settingService = {
 		settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
 		settingRow.sendkitTokens = JSON.parse(settingRow.sendkitTokens || '{}');
 		settingRow.brevoTokens = JSON.parse(settingRow.brevoTokens || '{}');
+		settingRow.notifyFlags = JSON.parse(settingRow.notifyFlags || '{}');
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
+	},
+
+	// 通知开关读值（notify_flags 打包后）：新格式是 setting.notifyFlags 对象里的字段；
+	// 旧缓存里是平铺字段，两者都兜底；都没有时按默认开。notifyStatus：0=开、1=关；其余三项：1=开、0=关。
+	notifyFlag(setting, key) {
+		const flags = setting?.notifyFlags;
+		if (flags && typeof flags === 'object' && flags[key] !== undefined && flags[key] !== null) {
+			return flags[key];
+		}
+		if (setting && setting[key] !== undefined && setting[key] !== null) {
+			return setting[key];
+		}
+		return key === 'notifyStatus' ? 0 : 1;
 	},
 
 	async query(c) {
@@ -153,9 +167,21 @@ const settingService = {
 			params.webhookUrl = domainUtils.toOssDomain(params.webhookUrl) || '';
 		}
 
+		let notifyFlags = { ...(settingData.notifyFlags || {}) };
+		if (params.notifyFlags && typeof params.notifyFlags === 'object') {
+			notifyFlags = { ...notifyFlags, ...params.notifyFlags };
+		}
+
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
 		params.brevoTokens = JSON.stringify(brevoTokens);
+		params.notifyFlags = JSON.stringify(notifyFlags);
+
+		// 旧版平铺的 4 个通知开关列已打包进 notify_flags，旧客户端可能还带这些字段，删掉避免写不存在的列
+		delete params.notifyStatus;
+		delete params.adminDelNotify;
+		delete params.forwardFailNotify;
+		delete params.backupFailNotify;
 
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);
@@ -254,7 +280,7 @@ const settingService = {
 			googleSwitch: settingRow.googleSwitch,
 			minEmailPrefix: settingRow.minEmailPrefix,
 			projectLink: settingRow.projectLink,
-			adminDelNotify: settingRow.adminDelNotify,
+			adminDelNotify: this.notifyFlag(settingRow, 'adminDelNotify'),
 			autoBackup: settingRow.autoBackup
 		};
 	},

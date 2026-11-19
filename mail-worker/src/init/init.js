@@ -45,6 +45,7 @@ const dbInit = {
 		await this.v3_13DB(c);
 		await this.v3_14DB(c);
 		await this.v3_15DB(c);
+		await this.v3_16DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -70,6 +71,45 @@ const dbInit = {
 			]);
 		} catch (e) {
 			console.warn(`跳过字段：${e.message}`);
+		}
+	},
+
+	async v3_16DB(c) {
+		// 通知 4 开关打包进 notify_flags JSON 列（4 列变 1 列，腾 3 个空位；D1 单表最多 100 列）。
+		// 顺序：先读出现有值 → 删 4 个旧列（表已满 100 列，必须先删后加）→ 加 notify_flags 列 → 把值写回去。
+		// 各步独立 try/catch，重复跑也不怕：旧列读不到说明已迁过，直接跳过。
+		let flags = null;
+		try {
+			const row = await c.env.db.prepare(`SELECT notify_status, admin_del_notify, forward_fail_notify, backup_fail_notify FROM setting`).first();
+			if (row) {
+				flags = {
+					notifyStatus: row.notify_status ?? 0,
+					adminDelNotify: row.admin_del_notify ?? 1,
+					forwardFailNotify: row.forward_fail_notify ?? 1,
+					backupFailNotify: row.backup_fail_notify ?? 1
+				};
+			}
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		for (const col of ['notify_status', 'admin_del_notify', 'forward_fail_notify', 'backup_fail_notify']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting DROP COLUMN ${col};`).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
+		}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN notify_flags TEXT NOT NULL DEFAULT '{}';`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+		if (flags) {
+			try {
+				await c.env.db.prepare(`UPDATE setting SET notify_flags = ?`).bind(JSON.stringify(flags)).run();
+			} catch (e) {
+				console.warn(`跳过字段：${e.message}`);
+			}
 		}
 	},
 

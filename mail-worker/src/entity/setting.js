@@ -80,11 +80,9 @@ export const setting = sqliteTable('setting', {
 	webhookRetry: integer('webhook_retry').default(0).notNull(),
 	webhookSecret: text('webhook_secret').default('').notNull(),
 	attEncrypt: integer('att_encrypt').default(1).notNull(),
-	adminDelNotify: integer('admin_del_notify').default(1).notNull(),
-	forwardFailNotify: integer('forward_fail_notify').default(1).notNull(),
-	backupFailNotify: integer('backup_fail_notify').default(1).notNull(),
+	// 通知 4 开关打包进一个 JSON 列（notifyStatus/adminDelNotify/forwardFailNotify/backupFailNotify），4 列变 1 列腾 3 个空位
+	notifyFlags: text('notify_flags').default('{}').notNull(),
 	notifyEmail: text('notify_email').default('').notNull(),
-	notifyStatus: integer('notify_status').default(0).notNull(),
 	autoBackup: integer('auto_backup').default(1).notNull(),
 	backupType: text('backup_type').default('s3').notNull(),
 	backupBucket: text('backup_bucket').default('').notNull(),
