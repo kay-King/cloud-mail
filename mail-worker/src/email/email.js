@@ -50,7 +50,7 @@ export async function email(message, env, ctx) {
 
 
 		// 黑名单命中不再直接拒收，改为进垃圾箱（拒收会丢信、误伤找不回来；进垃圾箱还能在里面翻出来）
-		const blockFlag = checkBlock(blackSubject, blackContent, blackFrom, email);
+		let blockFlag = checkBlock(blackSubject, blackContent, blackFrom, email);
 
 		let account = await accountService.selectByEmailIncludeDel({ env: env }, message.to);
 
@@ -70,6 +70,17 @@ export async function email(message, env, ctx) {
 
 		if (account) {
 			 userRow = await userService.selectByIdIncludeDel({ env: env }, account.userId);
+		}
+
+		// 个人黑名单（收件人自己在个人设置里管的）：与全局黑名单任一命中都进垃圾箱
+		if (account && userRow.spamBlocklist && !blockFlag) {
+			let personal = {};
+			try {
+				personal = JSON.parse(userRow.spamBlocklist);
+			} catch {
+				personal = {};
+			}
+			blockFlag = checkBlock(personal.blackSubject || '', personal.blackContent || '', personal.blackFrom || '', email);
 		}
 
 		if (account && userRow.email !== env.admin) {

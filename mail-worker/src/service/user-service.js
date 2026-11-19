@@ -81,6 +81,30 @@ const userService = {
 		await c.env.kv.put(KvConst.AUTH_INFO + userId, JSON.stringify(authInfo), { expirationTtl: constant.TOKEN_EXPIRE });
 	},
 
+	// 个人黑名单读值：与全局黑名单同一套三字段（发件人/标题/内容，逗号分隔关键词）
+	async getSpamBlocklist(c, userId) {
+		const row = await this.selectById(c, userId);
+		let parsed = {};
+		try {
+			parsed = JSON.parse(row?.spamBlocklist || '{}');
+		} catch {
+			parsed = {};
+		}
+		return {
+			blackFrom: parsed.blackFrom || '',
+			blackSubject: parsed.blackSubject || '',
+			blackContent: parsed.blackContent || ''
+		};
+	},
+
+	// 个人黑名单保存：只改自己的，三字段全量替换
+	async setSpamBlocklist(c, params, userId) {
+		const { blackFrom = '', blackSubject = '', blackContent = '' } = params || {};
+		await orm(c).update(user).set({
+			spamBlocklist: JSON.stringify({ blackFrom, blackSubject, blackContent })
+		}).where(eq(user.userId, userId)).run();
+	},
+
 	selectByEmail(c, email) {
 		return orm(c).select().from(user).where(
 			and(

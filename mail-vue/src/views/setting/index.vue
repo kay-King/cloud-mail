@@ -86,6 +86,24 @@
         <el-button @click="openForwardRule">{{ $t('forwardRuleSettings') }}</el-button>
       </div>
     </div>
+    <div class="preference-item">
+      <div class="title">{{$t('blackList')}}</div>
+      <div style="color: var(--regular-text-color);">
+        {{$t('blackListDesc')}}{{$t('personalBlackListTip')}}
+      </div>
+      <el-form>
+        <el-form-item :label="t('blackFromDesc')" label-position="top">
+          <el-input-tag v-model="personalBlackList.blackFrom"/>
+        </el-form-item>
+        <el-form-item :label="t('blackSubjectDesc')" label-position="top">
+          <el-input-tag v-model="personalBlackList.blackSubject"/>
+        </el-form-item>
+        <el-form-item :label="t('blackContentDesc')" label-position="top">
+          <el-input-tag v-model="personalBlackList.blackContent"/>
+        </el-form-item>
+      </el-form>
+      <el-button type="primary" :loading="blackListLoading" @click="savePersonalBlackList">{{$t('save')}}</el-button>
+    </div>
     <div class="del-email" v-perm="'my:delete'">
       <div class="title">{{$t('deleteUser')}}</div>
       <div style="color: var(--regular-text-color);">
@@ -119,8 +137,8 @@
   </div>
 </template>
 <script setup>
-import {reactive, ref, computed, defineOptions, watch} from 'vue'
-import {resetPassword, userDelete} from "@/request/my.js";
+import {reactive, ref, computed, defineOptions, watch, onMounted} from 'vue'
+import {resetPassword, userDelete, getSpamBlocklist, setSpamBlocklist} from "@/request/my.js";
 import {useUserStore} from "@/store/user.js";
 import router from "@/router/index.js";
 import {accountSetName, accountSetForward} from "@/request/account.js";
@@ -183,6 +201,33 @@ const forwardRuleFrom = ref('')
 const forwardRuleSubject = ref('')
 const forwardApplyAll = ref(false)
 const forwardLoading = ref(false)
+
+// 个人黑名单：针对当前登录用户（所有邮箱通用），与系统黑名单任一命中都进垃圾箱
+const personalBlackList = ref({ blackFrom: [], blackSubject: [], blackContent: [] })
+const blackListLoading = ref(false)
+
+onMounted(() => {
+  getSpamBlocklist().then(data => {
+    personalBlackList.value = {
+      blackFrom: data.blackFrom ? data.blackFrom.split(',').filter(Boolean) : [],
+      blackSubject: data.blackSubject ? data.blackSubject.split(',').filter(Boolean) : [],
+      blackContent: data.blackContent ? data.blackContent.split(',').filter(Boolean) : []
+    }
+  })
+})
+
+function savePersonalBlackList() {
+  blackListLoading.value = true
+  setSpamBlocklist({
+    blackFrom: personalBlackList.value.blackFrom + '',
+    blackSubject: personalBlackList.value.blackSubject + '',
+    blackContent: personalBlackList.value.blackContent + ''
+  }).then(() => {
+    ElMessage({ message: t('setSuccess'), type: 'success', plain: true })
+  }).finally(() => {
+    blackListLoading.value = false
+  })
+}
 
 // 转发规则弹窗：弹窗里改草稿，点保存才写回并提交；取消则丢弃
 const forwardRuleShow = ref(false)

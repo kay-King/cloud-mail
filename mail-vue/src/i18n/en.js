@@ -622,6 +622,7 @@ const en = {
     blackFromDesc: 'Sender or domain',
     senderRules: 'Sender address or domain',
     blackListDesc: 'Messages matching the following go to Spam automatically',
+    personalBlackListTip: ' (Only applies to your own mailboxes)',
     setSuccess: 'Settings saved successfully',
     details: 'Details',
     userDetails: 'User details',

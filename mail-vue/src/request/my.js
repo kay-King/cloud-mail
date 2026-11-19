@@ -12,3 +12,11 @@ export function userDelete() {
     return http.delete('/my/delete')
 }
 
+export function getSpamBlocklist() {
+    return http.get('/my/spam-blocklist')
+}
+
+export function setSpamBlocklist(form) {
+    return http.put('/my/spam-blocklist', form)
+}
+

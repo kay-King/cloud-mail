@@ -622,6 +622,7 @@ const zh = {
     blackFromDesc: '发件人邮箱或域名',
     senderRules: '发件人邮箱或域名',
     blackListDesc: '命中以下信息的邮件会自动进入垃圾箱',
+    personalBlackListTip: '（只对你自己的邮箱生效）',
     setSuccess: '设置成功',
     details: '详情',
     userDetails: '用户详情',
