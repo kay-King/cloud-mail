@@ -33,6 +33,11 @@ app.put('/my/sidebar-config', async (c) => {
 	return c.json(result.ok(data));
 });
 
+app.get('/my/sidebar-unread', async (c) => {
+	const data = await userService.getSidebarUnread(c, userContext.getUserId(c));
+	return c.json(result.ok(data));
+});
+
 app.delete('/my/delete', async (c) => {
 	await userService.delete(c, userContext.getUserId(c));
 	return c.json(result.ok());

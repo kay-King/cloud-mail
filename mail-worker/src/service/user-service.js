@@ -2,6 +2,8 @@ import BizError from '../error/biz-error';
 import accountService from './account-service';
 import orm from '../entity/orm';
 import user from '../entity/user';
+import email from '../entity/email';
+import { star } from '../entity/star';
 import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import { emailConst, isDel, roleConst, settingConst, userConst } from '../const/entity-const';
 import kvConst from '../const/kv-const';
@@ -106,15 +108,21 @@ const userService = {
 	},
 
 	// 侧边栏自定义：个人区 9 个条目，收件箱与设置必须显示，其余 7 个可隐藏，9 个都能调顺序
-	// 配置存 user.sidebar_config：{ hidden: [...], order: [...] }
+	// 星标与垃圾箱还可以选「有未读时显示」（只有这两个视图有未读概念）
+	// 配置存 user.sidebar_config：{ hidden: [...], order: [...], showIfUnread: [...] }
 	sidebarDefaultOrder: ['email', 'send', 'draft', 'star', 'spam', 'trash', 'attachments', 'contacts', 'setting'],
 	sidebarHideable: ['send', 'draft', 'star', 'spam', 'trash', 'attachments', 'contacts'],
+	sidebarUnreadKeys: ['star', 'spam'],
 
 	normalizeSidebarConfig(config) {
 		const parsed = config || {};
-		// hidden 只认可隐藏的 7 个，收件箱/设置写进来也强制踢掉
+		// 有未读时显示只认星标与垃圾箱
+		const showIfUnread = Array.isArray(parsed.showIfUnread)
+			? [...new Set(parsed.showIfUnread)].filter(key => this.sidebarUnreadKeys.includes(key))
+			: [];
+		// hidden 只认可隐藏的 7 个，收件箱/设置写进来也强制踢掉；与 showIfUnread 互斥
 		const hidden = Array.isArray(parsed.hidden)
-			? [...new Set(parsed.hidden)].filter(key => this.sidebarHideable.includes(key))
+			? [...new Set(parsed.hidden)].filter(key => this.sidebarHideable.includes(key) && !showIfUnread.includes(key))
 			: [];
 		// order 只认 9 个已知条目，缺的按默认顺序补到末尾（以后新增条目也不会丢）
 		const order = [];
@@ -130,7 +138,26 @@ const userService = {
 				order.push(key);
 			}
 		}
-		return { hidden, order };
+		return { hidden, order, showIfUnread };
+	},
+
+	// 侧边栏「有未读时显示」用的未读数（按用户汇总，不分邮箱；星标计数与星标列表同一套过滤：未删、非垃圾）
+	async getSidebarUnread(c, userId) {
+		const spamRow = await orm(c).select({ count: count() }).from(email).where(and(
+			eq(email.userId, userId),
+			eq(email.isDel, isDel.NORMAL),
+			eq(email.isSpam, 1),
+			eq(email.unread, emailConst.unread.UNREAD)
+		)).get();
+		const starRow = await orm(c).select({ count: count() }).from(email)
+			.innerJoin(star, and(eq(star.emailId, email.emailId), eq(star.userId, userId)))
+			.where(and(
+				eq(email.userId, userId),
+				eq(email.isDel, isDel.NORMAL),
+				eq(email.isSpam, 0),
+				eq(email.unread, emailConst.unread.UNREAD)
+			)).get();
+		return { star: starRow?.count || 0, spam: spamRow?.count || 0 };
 	},
 
 	async getSidebarConfig(c, userId) {

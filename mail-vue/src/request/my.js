@@ -28,3 +28,7 @@ export function setSidebarConfig(config) {
     return http.put('/my/sidebar-config', config)
 }
 
+export function getSidebarUnread() {
+    return http.get('/my/sidebar-unread')
+}
+

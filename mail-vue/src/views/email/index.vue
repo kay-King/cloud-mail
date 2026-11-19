@@ -5,9 +5,9 @@
                :getEmailList="getEmailList"
                :emailDelete="emailDelete"
                :email-spam="markSpamEmails"
-               :star-add="starAdd"
-               :star-cancel="starCancel"
-               :email-read="emailRead"
+               :star-add="handleStarAdd"
+               :star-cancel="handleStarCancel"
+               :email-read="handleListRead"
                :show-unread="true"
                :highlight-text="emailStore.searchParams.text"
                actionLeft="4px"
@@ -28,6 +28,7 @@
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
 import {useSettingStore} from "@/store/setting.js";
+import {useSidebarStore} from "@/store/sidebar.js";
 import emailScroll from "@/components/email-scroll/index.vue"
 import {Icon} from "@iconify/vue";
 import {emailList, emailDelete, emailLatest, emailRead, emailMarkSpam} from "@/request/email.js";
@@ -49,6 +50,7 @@ defineOptions({
 const emailStore = useEmailStore();
 const accountStore = useAccountStore();
 const settingStore = useSettingStore();
+const sidebarStore = useSidebarStore();
 const {t} = useI18n()
 const scroll = ref({})
 const existIds = new Set();
@@ -116,6 +118,27 @@ function markSpamEmails(emailIds) {
       plain: true
     })
     emailStore.deleteIds = Array.isArray(emailIds) ? emailIds : [emailIds];
+    // 标垃圾会改变垃圾箱未读数，「有未读时显示」的垃圾箱靠它决定显隐
+    sidebarStore.refreshUnread()
+  })
+}
+
+// 列表里的标已读 / 星标切换：成功后刷新侧边栏未读数
+function handleListRead(emailIds) {
+  return emailRead(emailIds).then(() => {
+    sidebarStore.refreshUnread()
+  })
+}
+
+function handleStarAdd(emailId) {
+  return starAdd(emailId).then(() => {
+    sidebarStore.refreshUnread()
+  })
+}
+
+function handleStarCancel(emailId) {
+  return starCancel(emailId).then(() => {
+    sidebarStore.refreshUnread()
   })
 }
 
@@ -128,6 +151,8 @@ function handleMarkSpamSelected() {
 
 // 推送到达：非「全部收取」时忽略其它账号的信。
 function onWsMessage(event) {
+  // 新邮件到达可能改变星标/垃圾箱未读数（未读数是按用户汇总的，不分当前账号）
+  sidebarStore.refreshUnread()
   const allReceive = accountStore.currentAccount.allReceive
   if (!allReceive && event?.accountId != null && Number(event.accountId) !== Number(accountStore.currentAccountId)) {
     return

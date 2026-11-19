@@ -1,16 +1,22 @@
 import { defineStore } from 'pinia'
-import { getSidebarConfig, setSidebarConfig } from '@/request/my.js'
+import { getSidebarConfig, setSidebarConfig, getSidebarUnread } from '@/request/my.js'
 
 // 侧边栏自定义（个人区 9 个条目）：收件箱与设置必须显示，其余 7 个可隐藏，9 个都能调顺序
-// 配置存在服务器 user.sidebar_config：{ hidden: [...], order: [...] }，换设备同步
+// 星标与垃圾箱还可以选「有未读时显示」（只有这两个视图有未读概念）
+// 配置存在服务器 user.sidebar_config：{ hidden: [...], order: [...], showIfUnread: [...] }，换设备同步
 export const SIDEBAR_DEFAULT_ORDER = ['email', 'send', 'draft', 'star', 'spam', 'trash', 'attachments', 'contacts', 'setting']
 export const SIDEBAR_HIDEABLE = ['send', 'draft', 'star', 'spam', 'trash', 'attachments', 'contacts']
+export const SIDEBAR_UNREAD_KEYS = ['star', 'spam']
 
 function normalize(config) {
   const parsed = config || {}
-  // hidden 只认可可隐藏的 7 个，收件箱/设置写进来也强制踢掉
+  // 有未读时显示只认星标与垃圾箱
+  const showIfUnread = Array.isArray(parsed.showIfUnread)
+    ? [...new Set(parsed.showIfUnread)].filter(key => SIDEBAR_UNREAD_KEYS.includes(key))
+    : []
+  // hidden 只认可可隐藏的 7 个，收件箱/设置写进来也强制踢掉；与 showIfUnread 互斥
   const hidden = Array.isArray(parsed.hidden)
-    ? [...new Set(parsed.hidden)].filter(key => SIDEBAR_HIDEABLE.includes(key))
+    ? [...new Set(parsed.hidden)].filter(key => SIDEBAR_HIDEABLE.includes(key) && !showIfUnread.includes(key))
     : []
   // order 只认 9 个已知条目，缺的按默认顺序补到末尾（以后新增条目也不会丢）
   const order = []
@@ -26,19 +32,30 @@ function normalize(config) {
       order.push(key)
     }
   }
-  return { hidden, order }
+  return { hidden, order, showIfUnread }
 }
 
 export const useSidebarStore = defineStore('sidebar', {
   state: () => ({
     hidden: [],
     order: [...SIDEBAR_DEFAULT_ORDER],
+    showIfUnread: [],
+    // 「有未读时显示」用的未读数（只统计星标与垃圾箱）
+    unread: { star: 0, spam: 0 },
     loaded: false,
     loading: false
   }),
   getters: {
-    // 侧边栏实际显示的条目（按顺序、去掉隐藏的）
-    visibleKeys: (state) => state.order.filter(key => !state.hidden.includes(key))
+    // 侧边栏实际显示的条目：隐藏的不显示；「有未读时显示」的只有未读数 > 0 才显示
+    visibleKeys: (state) => state.order.filter(key => {
+      if (state.hidden.includes(key)) {
+        return false
+      }
+      if (state.showIfUnread.includes(key)) {
+        return (state.unread[key] || 0) > 0
+      }
+      return true
+    })
   },
   actions: {
     async load(force = false) {
@@ -54,10 +71,12 @@ export const useSidebarStore = defineStore('sidebar', {
       this.loading = true
       this.loadPromise = (async () => {
         try {
-          const data = await getSidebarConfig()
-          const { hidden, order } = normalize(data)
+          const [data, unread] = await Promise.all([getSidebarConfig(), getSidebarUnread()])
+          const { hidden, order, showIfUnread } = normalize(data)
           this.hidden = hidden
           this.order = order
+          this.showIfUnread = showIfUnread
+          this.unread = { star: unread?.star || 0, spam: unread?.spam || 0 }
           this.loaded = true
         } catch (e) {
           // 加载失败就用默认（全显示、默认顺序），不要让侧边栏空白
@@ -69,20 +88,45 @@ export const useSidebarStore = defineStore('sidebar', {
       })()
       return this.loadPromise
     },
-    // 保存当前 hidden/order 到服务器；失败时抛错，调用方负责提示与回滚
+    // 只刷新未读数（新邮件到达、标已读、星标/垃圾切换后调）；进行中时复用同一个请求
+    async refreshUnread() {
+      if (this.unreadPromise) {
+        return this.unreadPromise
+      }
+      this.unreadPromise = (async () => {
+        try {
+          const unread = await getSidebarUnread()
+          this.unread = { star: unread?.star || 0, spam: unread?.spam || 0 }
+        } catch (e) {
+          console.error('refresh sidebar unread failed', e)
+        } finally {
+          this.unreadPromise = null
+        }
+      })()
+      return this.unreadPromise
+    },
+    // 保存当前 hidden/order/showIfUnread 到服务器；失败时抛错，调用方负责提示与回滚
     async save() {
-      const data = await setSidebarConfig({ hidden: this.hidden, order: this.order })
-      const { hidden, order } = normalize(data)
+      const data = await setSidebarConfig({ hidden: this.hidden, order: this.order, showIfUnread: this.showIfUnread })
+      const { hidden, order, showIfUnread } = normalize(data)
       this.hidden = hidden
       this.order = order
+      this.showIfUnread = showIfUnread
     },
-    setHidden(key, hide) {
+    // 三段显隐：show 显示 / hide 隐藏 / unread 有未读时显示（仅星标与垃圾箱）
+    setVisibility(key, mode) {
       if (!SIDEBAR_HIDEABLE.includes(key)) {
         return
       }
-      this.hidden = hide
+      if (mode === 'unread' && !SIDEBAR_UNREAD_KEYS.includes(key)) {
+        return
+      }
+      this.hidden = mode === 'hide'
         ? [...new Set([...this.hidden, key])]
         : this.hidden.filter(k => k !== key)
+      this.showIfUnread = mode === 'unread'
+        ? [...new Set([...this.showIfUnread, key])]
+        : this.showIfUnread.filter(k => k !== key)
     }
   }
 })

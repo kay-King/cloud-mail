@@ -661,8 +661,11 @@ const zh = {
     clientSecret: '客户端密钥',
     notOwner: '基础邮箱不属于您',
     interfaceDisplay: '界面与显示',
-    sidebarTip: '拖动条目可以调整侧边栏顺序，关闭开关可以在侧边栏隐藏该条目（只是不显示，功能不受影响）',
+    sidebarTip: '拖动条目可以调整侧边栏顺序，关闭开关可以在侧边栏隐藏该条目（只是不显示，功能不受影响）；星标和垃圾箱还可以选「有未读时显示」，有未读邮件时自动出现',
     mustShow: '必须显示',
     saveFailed: '保存失败，请重试',
+    sidebarShow: '显示',
+    sidebarShowIfUnread: '有未读时显示',
+    sidebarHide: '隐藏',
 }
 export default zh

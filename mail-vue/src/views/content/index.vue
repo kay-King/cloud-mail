@@ -126,6 +126,7 @@ import {ElMessage, ElMessageBox} from 'element-plus'
 import {emailDelete, emailRead, emailRestore, emailPhysicsDelete, emailExport, downloadExport, emailMarkSpam, emailUnmarkSpam} from "@/request/email.js";
 import {Icon} from "@iconify/vue";
 import {useEmailStore} from "@/store/email.js";
+import {useSidebarStore} from "@/store/sidebar.js";
 import {useUserStore} from "@/store/user.js";
 import {useAccountStore} from "@/store/account.js";
 import {formatDetailDate} from "@/utils/day.js";
@@ -145,6 +146,7 @@ const uiStore = useUiStore();
 const settingStore = useSettingStore();
 const accountStore = useAccountStore();
 const emailStore = useEmailStore();
+const sidebarStore = useSidebarStore();
 const userStore = useUserStore();
 const router = useRouter()
 
@@ -246,6 +248,8 @@ function tryMarkRead() {
   emailStore.markListRead(emailId)
   emailRead([emailId]).finally(() => {
     readRequesting = false
+    // 点开邮件即标已读，未读数变了，「有未读时显示」的条目靠它决定显隐
+    sidebarStore.refreshUnread()
   })
 }
 
@@ -334,6 +338,7 @@ function changeStar() {
       emailStore.cancelStarEmailId = email.value.emailId
       setTimeout(() => emailStore.cancelStarEmailId = 0)
       emailStore.starScroll?.deleteEmail([email.value.emailId])
+      sidebarStore.refreshUnread()
     }).catch((e) => {
       console.error(e)
       email.value.isStar = 1;
@@ -345,6 +350,7 @@ function changeStar() {
       emailStore.addStarEmailId = email.value.emailId
       setTimeout(() => emailStore.addStarEmailId = 0)
       emailStore.starScroll?.addItem(email.value)
+      sidebarStore.refreshUnread()
     }).catch((e) => {
       console.error(e)
       email.value.isStar = 0;

@@ -106,6 +106,11 @@
           <Icon icon="mdi:drag-vertical" width="20" height="20" class="sidebar-drag-handle" />
           <span class="sidebar-row-name">{{ sidebarItemLabel(key) }}</span>
           <span v-if="!isSidebarHideable(key)" class="sidebar-must-show">{{ $t('mustShow') }}</span>
+          <el-select v-else-if="isSidebarUnreadKey(key)" :model-value="sidebarVisibility(key)" size="small" class="sidebar-visibility-select" @change="onSidebarVisibility(key, $event)">
+            <el-option :label="$t('sidebarShow')" value="show" />
+            <el-option :label="$t('sidebarShowIfUnread')" value="unread" />
+            <el-option :label="$t('sidebarHide')" value="hide" />
+          </el-select>
           <el-switch v-else :model-value="!sidebarStore.hidden.includes(key)" @change="onSidebarToggle(key, $event)" />
         </div>
       </div>
@@ -174,7 +179,7 @@ import {emailImport} from "@/request/email.js";
 import {useEmailStore} from "@/store/email.js";
 import {Icon} from "@iconify/vue";
 import Sortable from "@/assets/sortable.esm.js";
-import {useSidebarStore, SIDEBAR_DEFAULT_ORDER, SIDEBAR_HIDEABLE} from "@/store/sidebar.js";
+import {useSidebarStore, SIDEBAR_DEFAULT_ORDER, SIDEBAR_HIDEABLE, SIDEBAR_UNREAD_KEYS} from "@/store/sidebar.js";
 
 const { t } = useI18n()
 const accountStore = useAccountStore()
@@ -293,6 +298,23 @@ function sidebarItemLabel(key) {
 function isSidebarHideable(key) {
   return SIDEBAR_HIDEABLE.includes(key)
 }
+function isSidebarUnreadKey(key) {
+  return SIDEBAR_UNREAD_KEYS.includes(key)
+}
+// 星标/垃圾箱的三段显隐：show 显示 / unread 有未读时显示 / hide 隐藏
+function sidebarVisibility(key) {
+  if (sidebarStore.hidden.includes(key)) {
+    return 'hide'
+  }
+  if (sidebarStore.showIfUnread.includes(key)) {
+    return 'unread'
+  }
+  return 'show'
+}
+function onSidebarVisibility(key, mode) {
+  sidebarStore.setVisibility(key, mode)
+  sidebarStore.save().catch(revertSidebarConfig)
+}
 // 保存失败：提示并从服务器重载，把本地与侧边栏都恢复成服务器的样子
 function revertSidebarConfig() {
   ElMessage({ message: t('saveFailed'), type: 'error', plain: true })
@@ -301,7 +323,7 @@ function revertSidebarConfig() {
   })
 }
 function onSidebarToggle(key, show) {
-  sidebarStore.setHidden(key, !show)
+  sidebarStore.setVisibility(key, show ? 'show' : 'hide')
   sidebarStore.save().catch(revertSidebarConfig)
 }
 function onSidebarDragEnd(evt) {
@@ -731,6 +753,10 @@ function submitPwd() {
   .sidebar-must-show {
     font-size: 12px;
     color: var(--regular-text-color);
+  }
+
+  .sidebar-visibility-select {
+    width: 128px;
   }
 
   .sidebar-drag-ghost {

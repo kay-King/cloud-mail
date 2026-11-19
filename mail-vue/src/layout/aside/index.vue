@@ -67,7 +67,7 @@
 
 <script setup>
 import router from "@/router/index.js";
-import {computed, onMounted} from "vue";
+import {computed, onMounted, watch} from "vue";
 import { useRoute } from "vue-router";
 import {Icon} from "@iconify/vue";
 import {useSettingStore} from "@/store/setting.js";
@@ -102,6 +102,12 @@ const visiblePersonalItems = computed(() => {
 
 onMounted(() => {
   sidebarStore.load()
+})
+
+// 每次切页面都刷新一次未读数：「有未读时显示」的条目靠它决定显隐，
+// 标已读、星标/垃圾切换这些操作做完切页面时，未读数跟着更新
+watch(() => route.fullPath, () => {
+  sidebarStore.refreshUnread()
 })
 const logoUrl = computed(() => {
   // Logo 跟随品牌主题：默认用 mail.png，各品牌用对应的 SVG 信封
