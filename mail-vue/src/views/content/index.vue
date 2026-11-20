@@ -2,40 +2,74 @@
   <div class="box" :class="{ pane: props.pane }">
     <div class="header-actions">
       <el-tooltip v-if="!props.pane" effect="dark" :content="$t('back')">
-        <Icon class="icon" icon="material-symbols-light:arrow-back-ios-new" width="20" height="20" @click="handleBack"/>
+        <Icon class="icon" icon="fluent:chevron-left-20-regular" width="20" height="20" @click="handleBack"/>
       </el-tooltip>
       <el-tooltip effect="dark" :content="emailStore.contentData.delType === 'trash' ? $t('deleteForever') : $t('delete')">
-        <Icon v-perm="'email:delete'" class="icon" icon="uiw:delete" width="16" height="16" @click="handleDelete"/>
+        <Icon v-perm="'email:delete'" class="icon" icon="fluent:delete-20-regular" width="20" height="20" @click="handleDelete"/>
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('restore')">
-        <Icon v-if="emailStore.contentData.delType === 'trash'" v-perm="'email:delete'" class="icon" icon="mdi:restore" width="20" height="20" @click="handleRestore"/>
+        <Icon v-if="emailStore.contentData.delType === 'trash'" v-perm="'email:delete'" class="icon" icon="fluent:arrow-undo-20-regular" width="20" height="20" @click="handleRestore"/>
       </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('markSpam')">
+      <!-- 触屏上标垃圾/取消垃圾/标为未读/导出收进 ⋮ 菜单，电脑端保持直接显示 -->
+      <el-tooltip effect="dark" :content="$t('markSpam')" v-if="uiStore.finePointer">
         <Icon v-if="emailStore.contentData.showSpam" v-perm="'email:delete'" class="icon" icon="hugeicons:mail-block-01" width="20" height="20" @click="handleMarkSpam"/>
       </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('notSpam')">
-        <Icon v-if="emailStore.contentData.delType === 'spam'" v-perm="'email:delete'" class="icon" icon="mdi:restore" width="20" height="20" @click="handleUnspam"/>
+      <el-tooltip effect="dark" :content="$t('notSpam')" v-if="uiStore.finePointer">
+        <Icon v-if="emailStore.contentData.delType === 'spam'" v-perm="'email:delete'" class="icon" icon="fluent:arrow-undo-20-regular" width="20" height="20" @click="handleUnspam"/>
       </el-tooltip>
       <span class="star" v-if="emailStore.contentData.showStar">
         <el-tooltip v-if="email.isStar" effect="dark" :content="$t('unstar')">
           <Icon class="icon" @click="changeStar" icon="fluent-color:star-16" width="20" height="20"/>
         </el-tooltip>
         <el-tooltip v-else effect="dark" :content="$t('starIt')">
-          <Icon class="icon" @click="changeStar" icon="solar:star-line-duotone" width="18.5" height="18.5"/>
+          <Icon class="icon" @click="changeStar" icon="fluent:star-20-regular" width="20" height="20"/>
         </el-tooltip>
       </span>
-      <el-tooltip effect="dark" :content="$t('markAsUnread')">
+      <el-tooltip effect="dark" :content="$t('markAsUnread')" v-if="uiStore.finePointer">
         <Icon class="icon" v-if="['logic', 'spam'].includes(emailStore.contentData.delType) && email.unread === EmailUnreadEnum.READ" @click="handleMarkUnread" icon="fluent:mail-unread-20-regular" width="20" height="20" />
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('reply')">
-        <Icon class="icon" v-if="emailStore.contentData.showReply" v-perm="'email:send'"  @click="openReply" icon="fluent-mdl2:reply" width="19" height="19" />
+        <Icon class="icon" v-if="emailStore.contentData.showReply" v-perm="'email:send'"  @click="openReply" icon="fluent:arrow-reply-20-regular" width="20" height="20" />
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('forward')">
-        <Icon class="icon" v-if="emailStore.contentData.showReply" v-perm="'email:send'"  @click="openForward" icon="iconoir:arrow-up-right" width="20" height="20" />
+        <Icon class="icon" v-if="emailStore.contentData.showReply" v-perm="'email:send'"  @click="openForward" icon="fluent:arrow-forward-20-regular" width="20" height="20" />
       </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('exportMail')">
-        <Icon class="icon" @click="handleExport" icon="system-uicons:push-down" width="22" height="22" />
+      <el-tooltip effect="dark" :content="$t('exportMail')" v-if="uiStore.finePointer">
+        <Icon class="icon" @click="handleExport" icon="fluent:arrow-download-20-regular" width="20" height="20" />
       </el-tooltip>
+      <!-- 触屏详情页 ⋮ 菜单：标为未读/标垃圾（或取消垃圾）/导出；导出始终显示，菜单不会为空；
+           bottom-end：⋮ 在顶栏最右端，菜单右缘对齐触发器，不会超出屏幕右缘 -->
+      <el-dropdown v-if="!uiStore.finePointer" trigger="click" placement="bottom-end">
+        <Icon class="icon" icon="fluent:more-vertical-20-regular" width="20" height="20" />
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item v-if="['logic', 'spam'].includes(emailStore.contentData.delType) && email.unread === EmailUnreadEnum.READ" @click="handleMarkUnread">
+              <div class="more-menu-item">
+                <Icon icon="fluent:mail-unread-20-regular" width="20" height="20" />
+                <span>{{ $t('markAsUnread') }}</span>
+              </div>
+            </el-dropdown-item>
+            <el-dropdown-item v-if="emailStore.contentData.showSpam" v-perm="'email:delete'" @click="handleMarkSpam">
+              <div class="more-menu-item">
+                <Icon icon="hugeicons:mail-block-01" width="20" height="20" />
+                <span>{{ $t('markSpam') }}</span>
+              </div>
+            </el-dropdown-item>
+            <el-dropdown-item v-if="emailStore.contentData.delType === 'spam'" v-perm="'email:delete'" @click="handleUnspam">
+              <div class="more-menu-item">
+                <Icon icon="fluent:arrow-undo-20-regular" width="20" height="20" />
+                <span>{{ $t('notSpam') }}</span>
+              </div>
+            </el-dropdown-item>
+            <el-dropdown-item @click="handleExport">
+              <div class="more-menu-item">
+                <Icon icon="fluent:arrow-download-20-regular" width="20" height="20" />
+                <span>{{ $t('exportMail') }}</span>
+              </div>
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
     <div></div>
     <el-scrollbar class="scrollbar">
@@ -125,7 +159,7 @@
                   </el-tooltip>
                   <el-tooltip effect="dark" :content="$t('download')">
                     <a :href="cvtR2Url(att.key)" download>
-                      <Icon icon="system-uicons:push-down" width="22" height="22"/>
+                      <Icon icon="fluent:arrow-download-20-regular" width="20" height="20"/>
                     </a>
                   </el-tooltip>
                 </div>
@@ -596,6 +630,13 @@ const handleUnspam = () => {
   .icon {
     cursor: pointer;
   }
+}
+
+/* ⋮ 菜单项：图标 + 文字横排（跟列表右键菜单的 right-dropdown-item 一个样子） */
+.more-menu-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 

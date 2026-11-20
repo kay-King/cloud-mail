@@ -15,17 +15,17 @@
 
         <!-- 勾选时收起刷新：选中时刷新用不到，还容易误触丢了勾选 -->
         <el-tooltip effect="dark" :hide-after="0" :content="$t('refresh')" v-if="checkedEmailCount === 0">
-          <Icon class="icon reload" icon="ion:reload" width="20" height="20" @click="refresh"/>
+          <Icon class="icon reload" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="refresh"/>
         </el-tooltip>
         <slot name="first"></slot>
         <el-tooltip effect="dark" :hide-after="0" :content="props.type === 'trash' ? $t('deleteForeverSelected') : $t('deleteSelected')">
-          <Icon v-perm="'email:delete'" class="icon delete" icon="uiw:delete" width="18" height="18"
+          <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:delete-20-regular" width="20" height="20"
                 v-if="getSelectedMailsIds().length > 0"
                 @click="handleDelete"/>
         </el-tooltip>
         <!-- 触屏上导出/标已读/标未读收进 ⋮ 菜单，电脑端保持直接显示 -->
         <el-tooltip effect="dark" :hide-after="0" :content="$t('exportSelected')" v-if="uiStore.finePointer">
-          <Icon class="icon" icon="system-uicons:push-down" width="22" height="22"
+          <Icon class="icon" icon="fluent:arrow-download-20-regular" width="20" height="20"
                 v-if="getSelectedMailsIds().length > 0 && props.type !== 'draft'"
                 @click="handleExport"/>
         </el-tooltip>
@@ -40,14 +40,15 @@
                 @click="handleUnread"/>
         </el-tooltip>
         <!-- 触屏勾选时的 ⋮ 更多菜单：导出/标已读/标未读收进来，顶栏只留删除 + slot + ⋮；
-             草稿视图三项条件都不满足、菜单会是空的，不显示 ⋮；电脑端不出现 -->
-        <el-dropdown v-if="!uiStore.finePointer && checkedEmailCount > 0 && props.type !== 'draft'" trigger="click">
-          <Icon class="icon" icon="mdi:dots-vertical" width="20" height="20" />
+             草稿视图三项条件都不满足、菜单会是空的，不显示 ⋮；电脑端不出现；
+             bottom-start：⋮ 在顶栏左侧，菜单左缘对齐触发器，不会超出屏幕左缘 -->
+        <el-dropdown v-if="!uiStore.finePointer && checkedEmailCount > 0 && props.type !== 'draft'" trigger="click" placement="bottom-start">
+          <Icon class="icon" icon="fluent:more-vertical-20-regular" width="20" height="20" />
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item v-if="props.type !== 'draft'" @click="handleExport">
                 <div class="right-dropdown-item">
-                  <Icon icon="system-uicons:push-down" width="20" height="20" />
+                  <Icon icon="fluent:arrow-download-20-regular" width="20" height="20" />
                   <span>{{ $t('exportSelected') }}</span>
                 </div>
               </el-dropdown-item>
