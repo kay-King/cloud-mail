@@ -5,7 +5,7 @@
       <el-input v-model="keyword" :placeholder="$t('searchContacts')" clearable class="contacts-search"
                 @keyup.enter="onSearch" @clear="onSearch">
         <template #prefix>
-          <Icon icon="bytesize:search" width="16" height="16"/>
+          <Icon icon="fluent:search-20-regular" width="16" height="16"/>
         </template>
       </el-input>
       <el-button type="primary" @click="openAdd">{{ $t('addContact') }}</el-button>

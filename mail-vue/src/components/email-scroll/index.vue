@@ -119,9 +119,11 @@
                   <Icon icon="mdi:check" width="22" height="22" />
                 </div>
                 <div v-else class="sender-avatar" :class="{ 'brand-avatar': showBrandImg(item) }" :style="showBrandImg(item) ? {} : { background: item.avatarColor }">
-                  <img v-if="item.avatarBrand && !item.brandFailed" :src="'/brand/' + item.avatarBrand + '.svg'" @error="item.brandFailed = true" :alt="item.avatarLetter">
-                  <img v-else-if="item.avatarBrandDomain && !item.brandFailed" :src="'/api/brand-icon?domain=' + item.avatarBrandDomain" @error="item.brandFailed = true" :alt="item.avatarLetter">
+                  <img v-if="item.avatarBrand && !item.brandFailed" :src="'/brand/' + item.avatarBrand + '.svg'" @load="item.brandLoaded = true" @error="item.brandFailed = true" :alt="item.avatarLetter" v-show="item.brandLoaded">
+                  <img v-else-if="item.avatarBrandDomain && !item.brandFailed" :src="'/api/brand-icon?domain=' + item.avatarBrandDomain" @load="item.brandLoaded = true" @error="item.brandFailed = true" :alt="item.avatarLetter" v-show="item.brandLoaded">
                   <template v-else>{{ item.avatarLetter }}</template>
+                  <!-- 品牌 logo 还没到之前先显示首字母占位（白底上用头像色字母），不再是空白白圈；图片一到就藏掉 -->
+                  <span v-if="showBrandImg(item) && !item.brandLoaded" :style="{ color: item.avatarColor }">{{ item.avatarLetter }}</span>
                 </div>
               </div>
               <el-checkbox v-if="uiStore.finePointer" :class=" props.type === 'all-email' ? 'all-email-checkbox' : 'checkbox'"
@@ -2122,9 +2124,13 @@ function renderHighlight(value) {
     }
   }
 
-  &:hover {
-    background-color: var(--email-hover-background);
-    z-index: 0;
+  /* 悬停底色只在真正有悬停能力的设备上生效：触屏上 :hover 点按后会粘住不消失，
+     取消勾选后行还留着选中一样的底色；勾选态底色是真实状态，不受影响 */
+  @media (hover: hover) {
+    &:hover {
+      background-color: var(--email-hover-background);
+      z-index: 0;
+    }
   }
 
   &.right-checked,
@@ -2180,6 +2186,13 @@ function renderHighlight(value) {
   gap: 15px;
   padding: 8px 15px;
   box-shadow: var(--header-actions-border);
+
+  /* 全选框：Element Plus 默认高 32px 还带 30px 右边距，勾选时一出现就把顶栏撑高；
+     压到图标高度 20px、右边距清零（grid gap 已提供间距），勾选与未勾选顶栏等高 */
+  .el-checkbox {
+    height: 20px;
+    margin-right: 0;
+  }
 
   /* 触屏端间距收紧：勾选时顶栏按钮多，省出空间防换行；电脑端不动 */
   @media (pointer: coarse) {
