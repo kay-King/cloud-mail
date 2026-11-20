@@ -37,61 +37,15 @@ export const useEmailStore = defineStore('email', {
             }
         },
         fetchList(request) {
-            // 预览先出；全文预取等预览回来 + 浏览器空闲后再拉，不跟列表抢带宽
-            //（慢网上并行拉全文会把列表本身拖慢；点开还没预取到的邮件时，
-            // toContentEmail 会立即触发待处理的预取，不用等空闲）
-            const brief = request(0)
-            brief.then(() => {
-                this.schedulePrefetch(request)
-            }).catch(() => {
-                // 预览失败时不预取
-            })
-            return brief
-        },
-        // 安排一次全文预取（每页各记一条，互不取消；点开邮件时可立即触发全部）
-        schedulePrefetch(request) {
-            if (!this._pendingPrefetches) {
-                this._pendingPrefetches = []
-            }
-            const entry = { request, timer: null, idle: false }
-            const run = () => this.runPrefetch(entry)
-            if (typeof window.requestIdleCallback === 'function') {
-                entry.idle = true
-                entry.timer = window.requestIdleCallback(run, { timeout: 3000 })
-            } else {
-                entry.timer = setTimeout(run, 2000)
-            }
-            this._pendingPrefetches.push(entry)
-        },
-        runPrefetch(entry) {
-            const list = this._pendingPrefetches
-            if (list) {
-                const i = list.indexOf(entry)
-                if (i >= 0) list.splice(i, 1)
-            }
-            entry.request(1).then(fullData => {
-                const fullList = Array.isArray(fullData) ? fullData : fullData?.list
-                this.applyFullList(fullList)
+            // 预览与完整列表并行拉取：以前是串行（等预览回来才发完整请求），慢网上等于两倍延迟；
+            // 两者互不依赖，并行后列表照样先出，详情预取也更快到；完整请求失败只记日志，不影响列表显示
+            request(1).then(fullData => {
+                const list = Array.isArray(fullData) ? fullData : fullData?.list
+                this.applyFullList(list)
             }).catch(e => {
                 console.error(e)
             })
-        },
-        // 点开邮件时调用：把所有待处理的预取立刻发出去，不等空闲
-        flushPrefetches() {
-            const list = this._pendingPrefetches
-            if (!list?.length) return
-            const pending = list.splice(0, list.length)
-            for (const entry of pending) {
-                if (entry.timer != null) {
-                    if (entry.idle && typeof window.cancelIdleCallback === 'function') {
-                        window.cancelIdleCallback(entry.timer)
-                    } else {
-                        clearTimeout(entry.timer)
-                    }
-                    entry.timer = null
-                }
-                this.runPrefetch(entry)
-            }
+            return request(0)
         },
         applyFullList(list) {
             if (!list?.length) return
@@ -118,9 +72,6 @@ export const useEmailStore = defineStore('email', {
             if (id && this.detailMap[id]) {
                 return this.detailMap[id]
             }
-            // 详情还没预取到：立即触发待处理的预取，不等空闲；
-            // 预取回来后 applyFullList 会把当前打开的详情填上
-            this.flushPrefetches()
             return {
                 ...email,
                 emailId: id || 0,

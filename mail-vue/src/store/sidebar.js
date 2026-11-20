@@ -115,18 +115,6 @@ export const useSidebarStore = defineStore('sidebar', {
       })()
       return this.loadPromise
     },
-    // 启动合并接口带回来的侧边栏数据：直接写进 state 并标已加载，
-    // 之后 layout 调 load() 会因 loaded=true 跳过，不再发请求；
-    // 没带回来（某段失败）时不调它，load() 照旧自己去拉
-    seed(config, unread) {
-      const { hidden, order, showIfUnread } = normalize(config)
-      this.hidden = hidden
-      this.order = order
-      this.showIfUnread = showIfUnread
-      this.unread = { star: unread?.star || 0, spam: unread?.spam || 0, inbox: unread?.inbox || 0 }
-      this.loaded = true
-      saveCached({ hidden, order, showIfUnread })
-    },
     // 只刷新未读数（新邮件到达、标已读、星标/垃圾切换后调）；进行中时复用同一个请求
     async refreshUnread() {
       if (this.unreadPromise) {
