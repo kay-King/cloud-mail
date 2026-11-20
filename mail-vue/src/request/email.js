@@ -56,7 +56,7 @@ export function emailSend(form,progress) {
 }
 
 export function emailExport(emailIds) {
-    return http.get('/email/export?emailIds=' + emailIds, {responseType: 'blob', raw: true, timeout: 120 * 1000})
+    return http.get('/email/export?emailIds=' + emailIds, {responseType: 'blob', raw: true, noMsg: true, timeout: 120 * 1000})
 }
 
 export function emailImport(accountId, files) {

@@ -10,6 +10,7 @@ import backupStorageService from './backup-storage-service';
 import emailService from './email-service';
 import attCrypto from './att-crypto';
 import constant from '../const/constant';
+import KvConst from '../const/kv-const';
 import BizError from '../error/biz-error';
 
 const LAST_RUN_KEY = 'backup:last-run:';
@@ -49,6 +50,18 @@ function buildBackupFailNotice(error, manual) {
 	};
 }
 
+// 部分备份提醒：有表读不出来时备份仍会存（缺表），与“备份失败”不同——文件存下来了，只是不完整
+function buildBackupPartialNotice(skippedTables) {
+	const names = skippedTables.slice(0, 10).join('、');
+	const more = skippedTables.length > 10 ? ` 等 ${skippedTables.length} 张表` : '';
+	const now = nowCST();
+	return {
+		subject: '备份不完整提醒',
+		html: `<p>你好：</p><p>这次备份存下来了，但有表读不出来，备份是不完整的。</p><p>备份时间：${now}</p><p>跳过的表：${escapeHtml(names)}${escapeHtml(more)}</p><p>数据本身不受影响。这份备份恢复时缺表的部分不会被恢复，请检查这几张表是否损坏，下一次备份会自动重试。</p>`,
+		text: `你好：\n\n这次备份存下来了，但有表读不出来，备份是不完整的。\n\n备份时间：${now}\n跳过的表：${names}${more}\n\n数据本身不受影响。这份备份恢复时缺表的部分不会被恢复，请检查这几张表是否损坏，下一次备份会自动重试。`
+	};
+}
+
 const backupService = {
 
 	async isEnabled(c) {
@@ -62,6 +75,7 @@ const backupService = {
 			"SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
 		).all();
 		const tables = [];
+		const skippedTables = [];
 		for (const t of (tablesRes.results || [])) {
 			// 跳过 Cloudflare 内部表（如 _cf_KV）：D1 禁止用户读取，读了会抛 SQLITE_AUTH
 			if (String(t.name).startsWith('_cf_')) continue;
@@ -70,13 +84,14 @@ const backupService = {
 				const rowsRes = await db.prepare(`SELECT * FROM "${String(t.name).replace(/"/g, '""')}"`).all();
 				rows = rowsRes.results || [];
 			} catch (e) {
-				// 单张表读失败不中断整个备份，记日志后跳过
+				// 单张表读失败不中断整个备份，但要记下来：调用方据此把状态标成 partial 并提醒
 				console.error('Backup skipped unreadable table', t.name, e);
+				skippedTables.push(t.name);
 				continue;
 			}
 			tables.push({ name: t.name, sql: t.sql, rows });
 		}
-		return { tables };
+		return { tables, skippedTables };
 	},
 
 	async dumpKv(c) {
@@ -128,7 +143,8 @@ const backupService = {
 
 	// 执行一次备份。force=true 为手动导出（不受开关与间隔限制）；
 	// force=false 为定时触发（开关关、未配服务商、20 小时内已备过都跳过）。
-	// 返回 {status, key, size, uploaded, uploadError, time, data}
+	// 返回 {status, key, size, uploaded, uploadError, time, data, skippedTables}；
+	// 有表读不出来时 status 为 'partial'（备份仍会存，只是不完整），并会发不完整提醒。
 	async runBackup(c, { force = false } = {}) {
 		if (!force && !await this.isEnabled(c)) {
 			return { status: 'disabled' };
@@ -144,6 +160,7 @@ const backupService = {
 			}
 		}
 		const backup = await this.buildBackup(c);
+		const skippedTables = backup.d1.skippedTables || [];
 		// 下载用的永远是全量；往服务商存的副本按目的地决定（KV 只存 D1 + 钥匙）
 		const plain = new TextEncoder().encode(JSON.stringify(backup));
 		const now = new Date();
@@ -182,7 +199,11 @@ const backupService = {
 				await this.notifyBackupFailed(c, uploadError, { manual: force });
 			}
 		}
-		return { status: 'done', key, size: plain.length, uploaded, uploadError, time: now.getTime(), data: plain };
+		// 有表跳过时提醒管理员备份不完整（上传失败的提醒已先发过时，同 24 小时节流会拦下这封，失败提醒优先）
+		if (skippedTables.length > 0) {
+			await this.notifyBackupFailed(c, null, { partial: true, skippedTables });
+		}
+		return { status: skippedTables.length > 0 ? 'partial' : 'done', key, size: plain.length, uploaded, uploadError, time: now.getTime(), data: plain, skippedTables };
 	},
 
 	async getStatus(c) {
@@ -203,7 +224,8 @@ const backupService = {
 
 	// 备份失败提醒：发给管理员（发件走系统通知邮箱），24 小时内只提醒一次。
 	// 提醒本身绝不能抛错影响备份流程，全程 try/catch，只记日志。
-	async notifyBackupFailed(c, error, { manual = false } = {}) {
+	// partial=true 是不完整提醒（备份存下来了但缺表），文案与失败提醒不同。
+	async notifyBackupFailed(c, error, { manual = false, partial = false, skippedTables = [] } = {}) {
 		try {
 			if (!await emailService.isBackupFailNotifyEnabled(c)) return;
 			const sender = await emailService.getNotifySender(c);
@@ -218,7 +240,9 @@ const backupService = {
 					console.error('备份失败提醒节流读写失败：', e);
 				}
 			}
-			const notice = buildBackupFailNotice(error, manual);
+			const notice = partial
+				? buildBackupPartialNotice(skippedTables)
+				: buildBackupFailNotice(error, manual);
 			await emailService.send(c, {
 				accountId: sender.accountId,
 				name: '系统通知',
@@ -318,11 +342,18 @@ const backupService = {
 		} catch (e) {
 			console.error('Restore: failed to reset sqlite_sequence', e);
 		}
-		// KV 写回（跳过空值与备份自身元数据）
+		// KV 写回：跳过空值、备份自身元数据，以及会话/临时类键——
+		// 旧登录 token（auth-uid:、public_key:）写回会让已注销/已轮换的登录复活；
+		// 旧配额计数（send_day_count:）与图表缓存（analysis_echarts:）写回是过期数据；
+		// 备份失败提醒的节流标记（backup-fail-notify-last:）写回会吞掉当天的失败提醒。
+		// 附件加密钥匙（att-current-key:/att-key-history:）必须保留：KV 里唯一不可再生的东西；
+		// setting: 缓存也保留（恢复末尾 refresh() 会按恢复后的设置表重写它）。
+		const skipKvPrefixes = [KvConst.AUTH_INFO, KvConst.PUBLIC_KEY, KvConst.SEND_DAY_COUNT, KvConst.ANALYSIS_ECHARTS];
 		let kvCount = 0;
 		for (const [key, value] of Object.entries(backup.kv)) {
 			if (value === null || value === undefined) continue;
-			if (key === LAST_RUN_KEY || key === LIST_KEY) continue;
+			if (key === LAST_RUN_KEY || key === LIST_KEY || key === FAIL_NOTIFY_KEY) continue;
+			if (skipKvPrefixes.some(p => key.startsWith(p))) continue;
 			await c.env.kv.put(key, String(value));
 			kvCount++;
 		}

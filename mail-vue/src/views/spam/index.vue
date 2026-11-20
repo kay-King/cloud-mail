@@ -33,7 +33,8 @@ import {useUiStore} from "@/store/ui.js";
 import {useSidebarStore} from "@/store/sidebar.js";
 import emailScroll from "@/components/email-scroll/index.vue"
 import {Icon} from "@iconify/vue";
-import {emailList, emailDelete, emailUnmarkSpam, emailClearSpam, emailRead, emailUnread} from "@/request/email.js";
+import {emailList, emailDelete, emailUnmarkSpam, emailClearSpam} from "@/request/email.js";
+import {useListHandlers, useSelectedIds} from "@/composables/useListHandlers.js";
 import {defineOptions, onMounted, ref, watch, computed} from "vue";
 import router from "@/router/index.js";
 import {ElMessage, ElMessageBox} from "element-plus";
@@ -51,23 +52,10 @@ const sidebarStore = useSidebarStore();
 const scroll = ref({})
 
 // 列表里的标已读：成功后刷新侧边栏未读数
-function handleListRead(emailIds) {
-  return emailRead(emailIds).then(() => {
-    sidebarStore.refreshUnread()
-  })
-}
+// 列表里的标已读 / 标为未读：成功后刷新侧边栏未读数（与收件箱/星标视图共用）
+const {handleListRead, handleListUnread} = useListHandlers()
 
-// 列表里的标为未读：handleListRead 的镜像
-function handleListUnread(emailIds) {
-  return emailUnread(emailIds).then(() => {
-    sidebarStore.refreshUnread()
-  })
-}
-
-const selectedIds = computed(() => {
-  const list = scroll.value?.emailList || []
-  return list.filter(e => e.checked).map(e => e.emailId)
-})
+const selectedIds = useSelectedIds(scroll)
 
 const spamCount = computed(() => {
   return (scroll.value?.emailList || []).length

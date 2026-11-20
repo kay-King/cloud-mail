@@ -1,8 +1,8 @@
 <template>
   <div v-for="item in rows" style="background: var(--el-bg-color)">
     <div :class="'email-row ' + type ">
-      <!-- 移动端头像占位（与正式行的头像位置一致，防加载完跳动）；只在窄屏触屏设备显示 -->
-      <div v-if="isMobile && !finePointer" class="avatar-slot">
+      <!-- 移动端头像占位（与正式行的头像位置一致，防加载完跳动）；粗指针设备都显示 -->
+      <div v-if="!finePointer" class="avatar-slot">
         <el-skeleton animated>
           <template #template>
             <el-skeleton-item variant="circle" style="width: 40px; height: 40px;"/>
@@ -108,12 +108,8 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  isMobile: {
-    type: Boolean,
-    default: false
-  },
-  // 与正式行同一套分流标准：头像只在“窄屏 + 触屏”时显示，复选框只在鼠标设备显示；
-  // 只按宽度分流会在 1366px 笔记本等设备上与正式行不一致，加载完跳动
+  // 与正式行同一套分流标准：头像只在粗指针设备显示，复选框只在细指针设备显示；
+  // 不按宽度分流，否则宽屏触屏设备上头像与复选框都消失、加载完还会跳动
   finePointer: {
     type: Boolean,
     default: false

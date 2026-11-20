@@ -11,28 +11,34 @@ import verifyRecordService from './verify-record-service';
 import userContext from '../security/user-context';
 import domainUtils from '../utils/domain-uitls';
 
+// 打包成 JSON 存的设置列（refresh 时逐个解析；新增打包组时这里、get() 的脱敏清单、
+// set() 的 delete 清单三处都要同步——见 mail-worker/scripts/check-setting-groups.mjs）
+const JSON_COLUMNS = [
+	'resendTokens', 'sendkitTokens', 'brevoTokens', 'mailjetConfig', 'notifyFlags',
+	'globalForward', 'backupConfig', 'attStorage', 'oauthConfig', 'noticeConfig',
+	'tgConfig', 'verifyConfig', 'webhookConfig', 'blacklistConfig', 'autoCleanConfig',
+	'aiCodeConfig', 'emailPrefixConfig', 'loginVerifyConfig'
+];
+
+// 解析打包的 JSON 设置列：空值按 {} 处理；损坏的 JSON 记日志后按 {} 处理，
+// 不让某一列损坏拖垮整个 refresh（refresh 失败会导致设置缓存写不进 KV）
+function safeJsonParse(value, column) {
+	if (!value) return {};
+	try {
+		return JSON.parse(value);
+	} catch (e) {
+		console.error(`[setting] 打包列 ${column} 的 JSON 已损坏，按空对象处理:`, e.message);
+		return {};
+	}
+}
+
 const settingService = {
 
 	async refresh(c) {
 		const settingRow = await orm(c).select().from(setting).get();
-		settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
-		settingRow.sendkitTokens = JSON.parse(settingRow.sendkitTokens || '{}');
-		settingRow.brevoTokens = JSON.parse(settingRow.brevoTokens || '{}');
-		settingRow.mailjetConfig = JSON.parse(settingRow.mailjetConfig || '{}');
-		settingRow.notifyFlags = JSON.parse(settingRow.notifyFlags || '{}');
-		settingRow.globalForward = JSON.parse(settingRow.globalForward || '{}');
-		settingRow.backupConfig = JSON.parse(settingRow.backupConfig || '{}');
-		settingRow.attStorage = JSON.parse(settingRow.attStorage || '{}');
-		settingRow.oauthConfig = JSON.parse(settingRow.oauthConfig || '{}');
-		settingRow.noticeConfig = JSON.parse(settingRow.noticeConfig || '{}');
-		settingRow.tgConfig = JSON.parse(settingRow.tgConfig || '{}');
-		settingRow.verifyConfig = JSON.parse(settingRow.verifyConfig || '{}');
-		settingRow.webhookConfig = JSON.parse(settingRow.webhookConfig || '{}');
-		settingRow.blacklistConfig = JSON.parse(settingRow.blacklistConfig || '{}');
-		settingRow.autoCleanConfig = JSON.parse(settingRow.autoCleanConfig || '{}');
-		settingRow.aiCodeConfig = JSON.parse(settingRow.aiCodeConfig || '{}');
-		settingRow.emailPrefixConfig = JSON.parse(settingRow.emailPrefixConfig || '{}');
-		settingRow.loginVerifyConfig = JSON.parse(settingRow.loginVerifyConfig || '{}');
+		for (const col of JSON_COLUMNS) {
+			settingRow[col] = safeJsonParse(settingRow[col], col);
+		}
 		settingRow.r2Domain = '';
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));

@@ -46,6 +46,7 @@ const en = {
 	emptyRegKey: 'Invite code cannot be empty',
 	notExistRegKey: 'Invite code does not exist',
 	notExistContact: 'Contact does not exist',
+	contactEmailExists: 'This email already exists in contacts',
 	noRegKeyTotal: 'Invite code usage limit reached',
 	noRegKeyCount: 'Invite code has no remaining uses',
 	regKeyExpire: 'Invite code has expired',

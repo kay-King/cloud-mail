@@ -204,7 +204,7 @@ router.afterEach((to) => {
 
     const uiStore = useUiStore()
     if (to.meta.menu) {
-        if (['content', 'email', 'send', 'trash'].includes(to.meta.name)) {
+        if (['content', 'email', 'send', 'trash', 'spam'].includes(to.meta.name)) {
             uiStore.accountShow = window.innerWidth > 767;
         } else {
             uiStore.accountShow = false
@@ -264,7 +264,11 @@ router.onError((error) => {
     }
     if (record.count >= 2) return
     record.count++
-    sessionStorage.setItem(CHUNK_RELOAD_KEY, JSON.stringify(record))
+    // 写也包 try/catch（照 index.html 自救的写法）：存储不可用时抛错会拦住后面的刷新
+    try {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, JSON.stringify(record))
+    } catch (e) {
+    }
     if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
         navigator.serviceWorker.getRegistrations()
             .then(rs => Promise.all(rs.map(r => r.unregister())))

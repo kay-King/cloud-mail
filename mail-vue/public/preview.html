@@ -54,7 +54,8 @@
   var name = params.get('name') || '';
   var view = document.getElementById('view');
   var TEXT_MAX = 512 * 1024;
-  var IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico', 'avif'];
+  // 扩展名名单与应用内 src/utils/preview-types.js 是同一份的副本，改那边时同步改这里
+  var IMAGE_EXTS = ['jpg', 'jpeg', 'jfif', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico', 'avif'];
   var TEXT_EXTS = ['txt', 'md', 'log', 'ini', 'conf', 'json', 'xml', 'csv', 'yaml', 'yml'];
   var AUDIO_EXTS = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'oga', 'm4a', 'opus'];
   var VIDEO_EXTS = ['mp4', 'webm', 'm4v', 'ogv'];
@@ -200,8 +201,9 @@
     // process，不垫一个会抛错、全局对象挂不上
     if (typeof window.process === 'undefined') window.process = { env: { NODE_ENV: 'production' } };
     else if (!window.process.env) window.process.env = { NODE_ENV: 'production' };
-    // 独立页面没有 Vue 运行时，从 CDN 取 Vue 3.5.13 全局构建（与应用版本一致）
-    loadScript('https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js').then(function () {
+    // 独立页面没有 Vue 运行时，用本地 vendored 的 Vue 全局构建（与应用版本一致，
+    // 升级 Vue 时同步重拷 node_modules/vue/dist/vue.global.prod.js 并改文件名版本号）
+    loadScript('preview-libs/vue.global.prod-3.5.20.js').then(function () {
       window.VueDemi = Object.assign({}, window.Vue, { isVue2: false, isVue3: true });
       return loadScript('preview-libs/vue-office-pptx-1.0.1.umd.js');
     }).then(function () {

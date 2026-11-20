@@ -1,7 +1,7 @@
 <template>
   <div class="user-box">
     <div class="header-actions">
-      <el-tooltip effect="dark" :content="$t('addUser')">
+      <el-tooltip :hide-after="0" effect="dark" :content="$t('addUser')">
         <Icon class="icon" icon="ion:add-outline" width="23" height="23" @click="openAdd"/>
       </el-tooltip>
       <div class="search">
@@ -19,21 +19,21 @@
         <el-option :key="1" :label="$t('banned')" :value="1"/>
         <el-option :key="-2" :label="$t('deleted')" :value="-2"/>
       </el-select>
-      <el-tooltip effect="dark" :content="$t('search')">
+      <el-tooltip :hide-after="0" effect="dark" :content="$t('search')">
         <Icon class="icon" icon="iconoir:search" @click="search" width="20" height="20"/>
       </el-tooltip>
-      <el-tooltip v-if="params.timeSort === 1" effect="dark" :content="$t('sortByTime')">
+      <el-tooltip :hide-after="0" v-if="params.timeSort === 1" effect="dark" :content="$t('sortByTime')">
         <Icon class="icon" @click="changeTimeSort" icon="material-symbols-light:timer-arrow-down-outline"
               width="28" height="28"/>
       </el-tooltip>
-      <el-tooltip v-else effect="dark" :content="$t('sortByTime')">
+      <el-tooltip :hide-after="0" v-else effect="dark" :content="$t('sortByTime')">
         <Icon class="icon" @click="changeTimeSort" icon="material-symbols-light:timer-arrow-up-outline" width="28"
               height="28"/>
       </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('refresh')">
+      <el-tooltip :hide-after="0" effect="dark" :content="$t('refresh')">
         <Icon class="icon" icon="ion:reload" width="18" height="18" @click="refresh"/>
       </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('deleteSelectedUsers')">
+      <el-tooltip :hide-after="0" effect="dark" :content="$t('deleteSelectedUsers')">
         <Icon class="icon" icon="uiw:delete" width="16" height="16" @click="delUser"/>
       </el-tooltip>
     </div>

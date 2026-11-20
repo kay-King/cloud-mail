@@ -2,10 +2,10 @@ import { S3Client, PutObjectCommand, DeleteObjectsCommand, GetObjectCommand } fr
 import settingService from './setting-service';
 import domainUtils from '../utils/domain-uitls';
 import { settingConst } from '../const/entity-const';
-import { publicFileHeaders } from '../utils/att-headers';
+import { publicFileHeaders, buildContentDisposition } from '../utils/att-headers';
 
 // B2 的 S3 接口不接受 Content-Disposition 里的非 ASCII 文件名（中文名会报 invalid b2-content-disposition），
-// 非纯 ASCII 文件名改用 RFC 5987 编码，下载时浏览器能还原原名。
+// 非纯 ASCII 文件名改用 RFC 5987 编码，下载时浏览器能还原原名；编码核心与 r2-service 共用 buildContentDisposition
 function sanitizeContentDisposition(disposition) {
 	const match = disposition.match(/^(attachment|inline);\s*filename=(.*)$/i);
 	if (!match) return disposition;
@@ -14,11 +14,7 @@ function sanitizeContentDisposition(disposition) {
 	if (filename.startsWith('"') && filename.endsWith('"')) {
 		filename = filename.slice(1, -1);
 	}
-	if (/^[A-Za-z0-9._-]+$/.test(filename)) {
-		return `${type}; filename="${filename}"`;
-	}
-	const encoded = encodeURIComponent(filename).replace(/['()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
-	return `${type}; filename*=UTF-8''${encoded}`;
+	return buildContentDisposition(type, filename);
 }
 
 const s3Service = {

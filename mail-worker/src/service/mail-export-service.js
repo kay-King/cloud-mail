@@ -5,7 +5,7 @@ import { email } from '../entity/email';
 import { eq, inArray, and } from 'drizzle-orm';
 import attService from './att-service';
 import r2Service from './r2-service';
-import { attConst } from '../const/entity-const';
+import { attConst, emailConst } from '../const/entity-const';
 import { zipSync } from '../utils/fflate.js';
 
 export const MAX_EXPORT = 50;
@@ -116,6 +116,8 @@ const mailExportService = {
 
 		const toList = formatAddressList(row.recipient) || row.toEmail || '';
 		const ccList = formatAddressList(row.cc);
+		// 密送只在自己发的邮件上补：收到的邮件没有发件方的 Bcc 名单，bcc 列是空的
+		const bccList = row.type === emailConst.type.SEND ? formatAddressList(row.bcc) : '';
 		const boundaryMixed = '----=_CloudMail_Mixed_' + row.emailId + '_' + Date.now();
 		const boundaryAlt = '----=_CloudMail_Alt_' + row.emailId + '_' + Date.now();
 		const boundaryRelated = '----=_CloudMail_Related_' + row.emailId + '_' + Date.now();
@@ -125,6 +127,7 @@ const mailExportService = {
 		headers.push(`From: ${formatAddress(row.name, row.sendEmail)}`);
 		if (toList) headers.push(`To: ${toList}`);
 		if (ccList) headers.push(`Cc: ${ccList}`);
+		if (bccList) headers.push(`Bcc: ${bccList}`);
 		headers.push(`Subject: ${encodeWord(row.subject || '')}`);
 		headers.push(`Date: ${formatDate(row.createTime)}`);
 		headers.push(`Message-ID: ${messageId}`);

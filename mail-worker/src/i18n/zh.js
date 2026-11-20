@@ -46,6 +46,7 @@ const zh = {
 	emptyRegKey: '注册码不能为空',
 	notExistRegKey: '注册码不存在',
 	notExistContact: '联系人不存在',
+	contactEmailExists: '该邮箱已存在于通讯录',
 	noRegKeyTotal: '注册码使用次数已耗尽',
 	noRegKeyCount: '注册码剩余次数不足',
 	regKeyExpire: '注册码已过期',

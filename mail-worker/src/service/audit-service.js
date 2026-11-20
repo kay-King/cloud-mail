@@ -88,7 +88,11 @@ const auditService = {
 		const labels = [];
 		if (!before || !params) return labels;
 		for (const key of Object.keys(params)) {
-			if (!(key in before)) continue;
+			// before 里没有的键说明是新增的设置项，按有变化记（审计宁可多记不少记）
+			if (!(key in before)) {
+				labels.push(SETTING_LABELS[key] || key);
+				continue;
+			}
 			const pv = params[key], bv = before[key];
 			if (pv && typeof pv === 'object' && !Array.isArray(pv) && bv && typeof bv === 'object' && !Array.isArray(bv)) {
 				// JSON 打包列：只比较请求里带了的键，缺的键按未改处理（密钥类字段前端会删掉不发，整对象比会误报）

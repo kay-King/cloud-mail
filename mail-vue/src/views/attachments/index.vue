@@ -116,6 +116,7 @@ import {emailInfo} from "@/request/email.js";
 import {formatBytes, fileToBase64} from "@/utils/file-utils.js";
 import {getIconByName} from "@/utils/icon-utils.js";
 import {cvtR2Url} from "@/utils/convert.js";
+import {tzDayjs} from "@/utils/day.js";
 import {useEmailStore} from "@/store/email.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useUserStore} from "@/store/user.js";
@@ -218,11 +219,10 @@ function toggleSelect(row) {
 // 卡片第二行日期：库里存的是 UTC 时间，转本地后显示「M月D日」，往年加年份
 function formatCardDate(createTime) {
   if (!createTime) return ''
-  const d = new Date(String(createTime).replace(' ', 'T') + 'Z')
-  if (isNaN(d.getTime())) return ''
-  const now = new Date()
-  const md = `${d.getMonth() + 1}月${d.getDate()}日`
-  return d.getFullYear() === now.getFullYear() ? md : `${d.getFullYear()}年${md}`
+  const d = tzDayjs(createTime)
+  if (!d.isValid()) return ''
+  const md = d.format('M月D日')
+  return d.year() === tzDayjs().year() ? md : `${d.year()}年${md}`
 }
 
 // 卡片第三行：主题 | 发件人（管理区显示主题 | 所属邮箱）
@@ -269,6 +269,8 @@ function onPageScroll(e) {
 
 function reload() {
   params.num = 1
+  // 搜索/切分类后列表整体替换，旧勾选可能残留已不在列表里的行，先清空（与 switchTab 一致）
+  selected.value = []
   fetchList()
 }
 
@@ -404,10 +406,22 @@ async function jumpToEmail(row) {
   const full = await emailInfo(row.emailId)
   emailStore.applyFullList([full])
   emailStore.contentData.email = emailStore.toContentEmail(full)
+  if (full.isSpam) {
+    // 垃圾邮件的附件：走垃圾箱语义（与 spam 视图 jumpContent 一致），删除进回收站、顶栏显示「不是垃圾」
+    emailStore.contentData.delType = 'spam'
+    emailStore.contentData.showUnread = true
+    emailStore.contentData.showStar = false
+    emailStore.contentData.showReply = false
+    emailStore.contentData.showSpam = false
+    router.push({name: 'content', params: {mailbox: 'spam'}})
+    return
+  }
   emailStore.contentData.delType = 'logic'
   emailStore.contentData.showUnread = true
   emailStore.contentData.showStar = true
   emailStore.contentData.showReply = true
+  // 只有收到的邮件能标垃圾（与 inbox/sent 视图 jumpContent 一致）
+  emailStore.contentData.showSpam = row.emailType !== 1
   router.push({name: 'content', params: {mailbox: row.emailType === 1 ? 'sent' : 'inbox'}})
 }
 </script>

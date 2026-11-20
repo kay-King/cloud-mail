@@ -41,7 +41,7 @@
                         :range-separator="t('to')"
                         size="default"
         />
-        <template v-if="notifyEnabled()">
+        <template v-if="isAdminDelNotifyEnabled()">
           <el-checkbox v-model="clearParams.notify">{{ $t('notifyUser') }}</el-checkbox>
           <el-input v-if="clearParams.notify" v-model="clearParams.reason" type="textarea" :rows="2" :maxlength="200"
                     :placeholder="$t('deleteReason')"/>
@@ -77,6 +77,7 @@ import router from "@/router/index.js";
 import {useI18n} from 'vue-i18n';
 import {toUtc} from "@/utils/day.js";
 import {sleep} from "@/utils/time-utils.js";
+import {isAdminDelNotifyEnabled} from "@/utils/admin-notify.js";
 import {useSettingStore} from "@/store/setting.js";
 import {allEmailWs, isAutoRefreshEnabled} from "@/websocket/client.js";
 
@@ -135,11 +136,6 @@ const clearParams = reactive({
   notify: true,
   reason: '',
 })
-
-function notifyEnabled() {
-  const v = settingStore.settings.adminDelNotify
-  return v === undefined || v === null || v !== 0
-}
 
 function resetClearParams() {
   clearParams.subject = ''

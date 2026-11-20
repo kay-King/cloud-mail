@@ -25,10 +25,15 @@ async function loadWebsiteConfig() {
 }
 
 // 用户信息加载失败时重试一次；仍失败返回 null，由调用方降级处理
+// 401 不重试：拦截器已删 token 并跳登录页，再发一次只是无 token 的重复请求
 async function loadUserWithRetry(userStore) {
     try {
         return await loginUserInfo();
     } catch (e) {
+        if (e?.code === 401 || e?.response?.status === 401) {
+            userStore.loadFailed = true;
+            return null;
+        }
         console.error('用户信息加载失败，1.5 秒后重试', e);
     }
     await new Promise(resolve => setTimeout(resolve, 1500));

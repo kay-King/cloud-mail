@@ -481,12 +481,24 @@ function openForwardRule() {
 }
 
 function saveForwardRule() {
+  // 先快照旧值：saveForward() 请求体读的是正式 ref，草稿必须先写回才能发出去；
+  // 保存失败时恢复快照，避免未保存的新规则泄漏到行内摘要（成功时正式值即新值，与服务端一致）
+  const prevFrom = forwardRuleFrom.value
+  const prevSubject = forwardRuleSubject.value
+  const prevApplyAll = forwardApplyAll.value
   forwardRuleFrom.value = ruleDraftFrom.value.trim()
   forwardRuleSubject.value = ruleDraftSubject.value.trim()
   forwardApplyAll.value = ruleDraftApplyAll.value
+  const rollback = () => {
+    forwardRuleFrom.value = prevFrom
+    forwardRuleSubject.value = prevSubject
+    forwardApplyAll.value = prevApplyAll
+  }
   saveForward().then((ok) => {
     if (ok) forwardRuleShow.value = false
+    else rollback()
   }).catch(() => {
+    rollback()
   })
 }
 
@@ -507,8 +519,10 @@ function saveForward() {
     ElMessage({message: t('selectAccountFirst'), type: 'warning', plain: true});
     return Promise.resolve(false)
   }
-  const target = forwardTarget.value.trim()
-  if (forwardOn.value === 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target)) {
+  // 转发目标支持逗号分隔多地址（中英文逗号都接受，与后端 setForward 及转发循环一致）；存前统一成英文逗号
+  const target = forwardTarget.value.split(/[,，]/).map(s => s.trim()).filter(Boolean).join(',')
+  const targetList = target ? target.split(',') : []
+  if (forwardOn.value === 0 && (targetList.length === 0 || targetList.some(e => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)))) {
     ElMessage({message: t('forwardEmailInvalid'), type: 'error', plain: true});
     return Promise.resolve(false)
   }

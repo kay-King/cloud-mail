@@ -1,7 +1,7 @@
 import orm from '../entity/orm';
 import { contact } from '../entity/contact';
 import BizError from '../error/biz-error';
-import { and, asc, count, desc, eq, inArray, like, or } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, like, ne, or, sql } from 'drizzle-orm';
 import verifyUtils from '../utils/verify-utils';
 import { t } from '../i18n/i18n';
 
@@ -58,14 +58,15 @@ const contactService = {
 
 	async add(c, params, userId) {
 		const { name = '', email, remark = '' } = params;
-		if (!email || !verifyUtils.isEmail(email)) {
+		const cleanEmail = typeof email === 'string' ? email.trim() : '';
+		if (!cleanEmail || !verifyUtils.isEmail(cleanEmail)) {
 			throw new BizError(t('notEmail'));
 		}
-		// 同一用户下邮箱不重复：已有的直接返回，不建两条
+		// 同一用户下邮箱不重复（大小写不敏感）：已有的直接返回，不建两条
 		const exist = await orm(c).select().from(contact).where(
 			and(
 				eq(contact.userId, userId),
-				eq(contact.email, email)))
+				sql`lower(${contact.email}) = ${cleanEmail.toLowerCase()}`))
 			.get();
 		if (exist) {
 			return exist;
@@ -73,7 +74,7 @@ const contactService = {
 		const row = await orm(c).insert(contact).values({
 			userId,
 			name: String(name).trim(),
-			email: email.trim(),
+			email: cleanEmail,
 			remark: String(remark).trim()
 		}).returning().get();
 		return row;
@@ -81,7 +82,8 @@ const contactService = {
 
 	async update(c, params, userId) {
 		const { contactId, name = '', email, remark = '' } = params;
-		if (!email || !verifyUtils.isEmail(email)) {
+		const cleanEmail = typeof email === 'string' ? email.trim() : '';
+		if (!cleanEmail || !verifyUtils.isEmail(cleanEmail)) {
 			throw new BizError(t('notEmail'));
 		}
 		const row = await orm(c).select().from(contact).where(
@@ -92,9 +94,19 @@ const contactService = {
 		if (!row) {
 			throw new BizError(t('notExistContact'));
 		}
+		// 改邮箱时不能撞上自己的另一条联系人（大小写不敏感，排除自身）
+		const dup = await orm(c).select({ contactId: contact.contactId }).from(contact).where(
+			and(
+				eq(contact.userId, userId),
+				sql`lower(${contact.email}) = ${cleanEmail.toLowerCase()}`,
+				ne(contact.contactId, Number(contactId))))
+			.get();
+		if (dup) {
+			throw new BizError(t('contactEmailExists'));
+		}
 		await orm(c).update(contact).set({
 			name: String(name).trim(),
-			email: email.trim(),
+			email: cleanEmail,
 			remark: String(remark).trim()
 		}).where(eq(contact.contactId, Number(contactId))).run();
 	},

@@ -7,17 +7,7 @@ import orm from '../entity/orm';
 import { att } from '../entity/att';
 import { eq } from 'drizzle-orm';
 import { attConst, settingConst } from '../const/entity-const';
-import { publicFileHeaders } from '../utils/att-headers';
-
-// 从文件名拼 Content-Disposition：纯 ASCII 安全名用引号形式，其余用 RFC 5987 编码
-//（与 s3-service 的 sanitizeContentDisposition 同一套规则，避免非 ASCII 文件名被拒收）
-function buildContentDisposition(type, filename) {
-	if (/^[A-Za-z0-9._-]+$/.test(filename)) {
-		return `${type}; filename="${filename}"`;
-	}
-	const encoded = encodeURIComponent(filename).replace(/['()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
-	return `${type}; filename*=UTF-8''${encoded}`;
-}
+import { publicFileHeaders, buildContentDisposition } from '../utils/att-headers';
 
 const r2Service = {
 

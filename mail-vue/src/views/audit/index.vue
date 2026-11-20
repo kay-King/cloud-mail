@@ -123,6 +123,7 @@ import loading from "@/components/loading/index.vue";
 import {auditList, auditDelete, auditClear} from "@/request/audit.js";
 import {useAuditStore} from "@/store/audit.js";
 import {auditActionLabelKey} from "@/utils/audit-actions.js";
+import {tzDayjs} from "@/utils/day.js";
 
 const {t} = useI18n()
 const auditStore = useAuditStore()
@@ -202,19 +203,17 @@ watch(
 
 function formatDateTime(ms) {
   if (!ms) return ''
-  const d = new Date(Number(ms))
-  if (isNaN(d.getTime())) return ''
-  const p = n => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+  const d = tzDayjs(Number(ms))
+  if (!d.isValid()) return ''
+  return d.format('YYYY-MM-DD HH:mm:ss')
 }
 
 // 手机卡片上的时间：带年份，不带秒
 function formatCardTime(ms) {
   if (!ms) return ''
-  const d = new Date(Number(ms))
-  if (isNaN(d.getTime())) return ''
-  const p = n => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+  const d = tzDayjs(Number(ms))
+  if (!d.isValid()) return ''
+  return d.format('YYYY-MM-DD HH:mm')
 }
 
 function fetchList(append = false) {
@@ -326,7 +325,9 @@ function clearAll() {
   })
 }
 
-function openDetail(row) {
+function openDetail(row, column) {
+  // 点桌面端勾选框时 Element Plus 同样会触发 row-click；选框列不打开详情（手机卡片调 openDetail(row) 时 column 为空，不受影响）
+  if (column && column.type === 'selection') return
   currentRow.value = row
   detailShow.value = true
 }

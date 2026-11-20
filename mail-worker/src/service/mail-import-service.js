@@ -26,9 +26,12 @@ function toSqlTime(dateValue) {
 const mailImportService = {
 
 	// 导入一封 .eml，返回 imported / skipped(duplicate) / failed
+	// 注意：把原始 buffer 直接交给 PostalMime 解析，不要先 TextDecoder 成字符串——
+	// TextDecoder 默认按 UTF-8 解码，GBK 等 8bit 编码的邮件正文会先被替换成 U+FFFD 再被
+	// 按 GBK 二次解码，变成「锟斤拷」；PostalMime 按邮件声明的 charset 自己解码才正确
+	// （上游收信路径也是直接传 buffer）。已用手造 GBK 8bit 邮件本地实测验证。
 	async importEml(c, buffer, accountRow, userId) {
-		const text = new TextDecoder().decode(buffer);
-		const parsed = await PostalMime.parse(text);
+		const parsed = await PostalMime.parse(buffer);
 
 		const messageId = parsed.messageId || '';
 		if (messageId) {

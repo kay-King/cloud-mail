@@ -234,9 +234,11 @@ const accountService = {
 		}
 		const status = Number(forwardStatus) === settingConst.forwardStatus.OPEN
 			? settingConst.forwardStatus.OPEN : settingConst.forwardStatus.CLOSE;
-		let target = (forwardEmail || '').trim();
+		// 转发目标支持逗号分隔多地址（中英文逗号都接受，与前端及转发循环一致）；存前统一成英文逗号
+		const targets = (forwardEmail || '').split(/[,，]/).map(s => s.trim()).filter(Boolean);
+		let target = targets.join(',');
 		if (status === settingConst.forwardStatus.OPEN) {
-			if (!target || !verifyUtils.isEmail(target)) {
+			if (targets.length === 0 || targets.some(e => !verifyUtils.isEmail(e))) {
 				throw new BizError(t('notEmail'));
 			}
 		} else {

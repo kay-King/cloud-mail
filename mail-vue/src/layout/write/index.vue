@@ -186,7 +186,7 @@ import {h, nextTick, onMounted, onUnmounted, reactive, ref, toRaw, computed} fro
 import {Icon} from "@iconify/vue";
 import {useUserStore} from "@/store/user.js";
 import {emailSend} from "@/request/email.js";
-import {contactList as fetchContactList} from "@/request/contact.js";
+import {contactList as fetchContactList, contactSuggest} from "@/request/contact.js";
 import {isEmail} from "@/utils/verify-utils.js";
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
@@ -271,7 +271,7 @@ const suggestFieldMap = { receive: 'receiveEmail', cc: 'ccEmail', bcc: 'bccEmail
 
 const contacts = computed(() => writerStore.sendRecipientRecord.map(item => ({email: item})))
 
-// 通讯录（服务端存的联系人）：选联系人弹窗的「通讯录」页 + 收件人联想都用它
+// 通讯录（服务端存的联系人）：只供选联系人弹窗的「通讯录」页展示；收件人联想走服务端 contactSuggest，不走这里
 const contactTab = ref('book')
 const bookContacts = ref([])
 let bookContactsLoaded = false
@@ -279,8 +279,17 @@ const dialogContacts = computed(() => contactTab.value === 'book' ? bookContacts
 
 async function loadBookContacts() {
   try {
-    const data = await fetchContactList({page: 1, size: 200})
-    bookContacts.value = data.list || []
+    // 分页拉全：联系人超过 200 时一页装不下，循环拉到拉完；弹窗一次性展示，上限 1000 条
+    const all = []
+    let page = 1
+    for (;;) {
+      const data = await fetchContactList({page, size: 200})
+      const list = data.list || []
+      all.push(...list)
+      if (list.length < 200 || all.length >= 1000) break
+      page++
+    }
+    bookContacts.value = all.slice(0, 1000)
     bookContactsLoaded = true
   } catch {
     bookContacts.value = []
@@ -392,13 +401,12 @@ function suggestChange(target, value) {
 async function updateSuggest(target, value) {
   const field = suggestFieldMap[target]
   const seq = ++suggestSeq[target]
-  // 通讯录优先：姓名/邮箱包含匹配，显示成「姓名 <邮箱>」
+  // 通讯录优先：服务端按姓名/邮箱模糊匹配（不走本地缓存，联系人再多也搜得到），显示成「姓名 <邮箱>」
   let book = []
   if (value) {
-    if (!bookContactsLoaded) await loadBookContacts()
+    const matches = await contactSuggest(value).catch(() => [])
     if (seq !== suggestSeq[target]) return
-    const q = value.toLowerCase()
-    book = bookContacts.value.filter(c => !form[field].includes(c.email) && (c.email.toLowerCase().includes(q) || (c.name && c.name.toLowerCase().includes(q)))).slice(0, 10).map(c => ({label: c.name ? `${c.name} <${c.email}>` : c.email, value: c.email}))
+    book = matches.filter(c => !form[field].includes(c.email)).slice(0, 10).map(c => ({label: c.name ? `${c.name} <${c.email}>` : c.email, value: c.email}))
   }
   const recent = writerStore.sendRecipientRecord.filter(item => value && !form[field].includes(item) && item.startsWith(value)).map(email => ({label: email, value: email}))
   const seen = new Set()

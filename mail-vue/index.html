@@ -17,7 +17,9 @@
       const root = document.documentElement
       root.setAttribute('class', isDark ? 'dark' : '');
       // 界面主题（品牌风）：启动时先应用，防闪烁；非法值回落默认
-      const brand = ['default', 'gmail', 'outlook', 'qq', 'apple', '163', 'yahoo'].includes(uiStore.brand) ? uiStore.brand : 'default'
+      // 品牌名单唯一来源：存在 window.__BRANDS 供下方加载屏换图脚本共用，新增品牌只改这里
+      window.__BRANDS = ['default', 'gmail', 'outlook', 'qq', 'apple', '163', 'yahoo']
+      const brand = window.__BRANDS.includes(uiStore.brand) ? uiStore.brand : 'default'
       root.setAttribute('data-brand', brand);
     }
     const metaTag = document.getElementById('theme-color-meta');
@@ -161,19 +163,23 @@
     try {
       var ui = JSON.parse(localStorage.getItem('ui') || '{}');
       var brand = ui.brand;
-      if (['gmail', 'outlook', 'qq', 'apple', '163', 'yahoo'].indexOf(brand) !== -1) {
+      // 品牌名单与 head 启动脚本共用 window.__BRANDS；default 用默认图，不换
+      var brands = window.__BRANDS || [];
+      if (brand !== 'default' && brands.indexOf(brand) !== -1) {
         var img = document.querySelector('#loading-first .loading-image');
         if (img) img.src = '/mail-' + brand + '.svg';
       }
     } catch (e) {}
   })();
-  // 启动自救：如果主文件 25 秒内没开始执行（通常是离线缓存给了旧页面、旧文件已不存在，
-  // 服务器对不存在的文件返回首页 HTML，浏览器因类型不对拒绝执行，卡在信封启动屏），
-  // 注销离线缓存、清空全部缓存再刷新，拿新版。5 分钟内最多自救两次，防循环刷新。
+  // 启动自救：注销离线缓存、清空全部缓存再刷新，拿新版。5 分钟内最多自救两次，防循环刷新。
+  // 两层检查，共用一次计数：
+  // ① 25 秒查 __APP_BOOTED__：主文件没开始执行（通常是离线缓存给了旧页面、旧文件已不存在，
+  //    服务器对不存在的文件返回首页 HTML，浏览器因类型不对拒绝执行，卡在信封启动屏）；
+  // ② 150 秒查 __APP_MOUNTED__：主文件已执行但 init 挂起、一直没挂载（init 最长约 2 分钟，
+  //    150 秒还没挂载说明真卡住了；不等 25 秒那层，避免慢网下打断一次可能成功的 init）。
   (function () {
     var KEY = 'cloudmail-boot-reload';
-    setTimeout(function () {
-      if (window.__APP_BOOTED__) return;
+    function rescue() {
       var record = {count: 0, first: 0};
       try { record = JSON.parse(sessionStorage.getItem(KEY) || '{"count":0,"first":0}'); } catch (e) {}
       if (Date.now() - record.first > 300000) record = {count: 0, first: Date.now()};
@@ -192,7 +198,15 @@
         }).catch(function () {}));
       }
       Promise.all(jobs).then(function () { location.reload(); });
+    }
+    setTimeout(function () {
+      if (window.__APP_BOOTED__) return;
+      rescue();
     }, 25000);
+    setTimeout(function () {
+      if (window.__APP_MOUNTED__) return;
+      rescue();
+    }, 150000);
   })();
 </script>
 <script type="module" src="/src/main.js"></script>

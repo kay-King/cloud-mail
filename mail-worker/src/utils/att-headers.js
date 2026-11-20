@@ -63,3 +63,14 @@ function toAttachmentDisposition(disposition) {
 	}
 	return `attachment; ${value}`;
 }
+
+// 从文件名拼 Content-Disposition：纯 ASCII 安全名用引号形式，其余用 RFC 5987 编码
+// （B2 的 S3 接口不接受非 ASCII 文件名，中文名会报 invalid b2-content-disposition；
+//  r2-service 下载时与 s3-service 上传时共用这一套，下载时浏览器能还原原名）
+export function buildContentDisposition(type, filename) {
+	if (/^[A-Za-z0-9._-]+$/.test(filename)) {
+		return `${type}; filename="${filename}"`;
+	}
+	const encoded = encodeURIComponent(filename).replace(/['()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
+	return `${type}; filename*=UTF-8''${encoded}`;
+}

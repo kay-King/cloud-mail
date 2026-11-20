@@ -23,10 +23,12 @@
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
 import {useUiStore} from "@/store/ui.js";
+import {useSidebarStore} from "@/store/sidebar.js";
 import emailScroll from "@/components/email-scroll/index.vue"
 import {Icon} from "@iconify/vue";
 import {emailList, emailPhysicsDelete, emailRestore} from "@/request/email.js";
-import {defineOptions, onMounted, ref, watch, computed} from "vue";
+import {useSelectedIds} from "@/composables/useListHandlers.js";
+import {defineOptions, onMounted, ref, watch} from "vue";
 import router from "@/router/index.js";
 import {ElMessage} from "element-plus";
 import {useI18n} from "vue-i18n";
@@ -39,12 +41,10 @@ const {t} = useI18n()
 const emailStore = useEmailStore();
 const uiStore = useUiStore();
 const accountStore = useAccountStore();
+const sidebarStore = useSidebarStore();
 const scroll = ref({})
 
-const selectedIds = computed(() => {
-  const list = scroll.value?.emailList || []
-  return list.filter(e => e.checked).map(e => e.emailId)
-})
+const selectedIds = useSelectedIds(scroll)
 
 onMounted(() => {
   emailStore.trashScroll = scroll;
@@ -94,6 +94,7 @@ function restoreEmails(emailIds) {
       plain: true
     })
     emailStore.deleteIds = Array.isArray(emailIds) ? emailIds : [emailIds];
+    sidebarStore.refreshUnread()
   })
 }
 

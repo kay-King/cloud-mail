@@ -9,11 +9,11 @@
 | js-preview-docx-1.6.4.umd.js / .css | npm @js-preview/docx | 1.6.4 | docx 预览，底层 docx-preview |
 | js-preview-excel-1.7.14.umd.js / .css | npm @js-preview/excel | 1.7.14 | xls/xlsx 预览，底层 exceljs + xlsx |
 | vue-office-pptx-1.0.1.umd.js | npm @vue-office/pptx（v3 构建） | 1.0.1 | pptx 预览，Vue 3 组件 |
+| vue.global.prod-3.5.20.js | node_modules/vue/dist/vue.global.prod.js | 3.5.20 | Vue 全局构建，供 preview.html 的 pptx 预览用（独立页面没有 Vue 运行时）；升级 Vue 时同步重拷 |
 
 用法：
 - 应用内：`src/utils/office-preview.js` 按需加载（首次预览某类文件时才下载对应脚本）。
-- 新窗口：`public/preview.html` 直接引用这些文件；pptx 另外从 jsdelivr 加载 Vue 3.5.13
-  的全局构建（独立页面没有 Vue 运行时，应用内则用应用自带的 Vue）。
+- 新窗口：`public/preview.html` 直接引用这些文件（含 Vue 全局构建，不再走 CDN）。
 
 注意：docx 的 UMD 在浏览器全局分支下运行，`stream`/`buffer` 等 Node 内置模块
 的引用在浏览器里是 undefined，库内部不依赖它们（项目官方 demo-cdn 同样这样用）。

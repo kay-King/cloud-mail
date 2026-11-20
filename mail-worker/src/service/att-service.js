@@ -380,6 +380,9 @@ const attService = {
 	// 按实际存储去重：同一存储文件（相同 key）在收发双方各有一行，只显示一次，
 	// 代表行取 attId 最大的一行（最新一次出现）；总数按不同 key 计数。
 	// hasOtherOwner：同一文件是否还有别的用户的引用行（管理员删除时决定是否弹通知框）。
+	// 注意：这个查询依赖 SQLite 的裸列规则——查询里只有一个 MAX() 聚合函数时，裸列
+	// （filename、subject 等）取自 MAX(attId) 所在行的值，代表行才是正确的。
+	// 不要在这里加第二个聚合函数（会破坏该规则），也不要换成子查询 join（改动大、收益小）。
 	async listAllAdmin(c, params, userId) {
 
 		let { num, size, keyword, category } = params;

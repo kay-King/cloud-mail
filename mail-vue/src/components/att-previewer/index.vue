@@ -8,8 +8,8 @@
 <template>
   <el-image-viewer v-if="showImagePreview" :url-list="previewImageUrls" :initial-index="previewImageIndex"
                    show-progress @close="showImagePreview = false"/>
-  <!-- 桌面端双栏预览面板：悬浮居中，左侧附件列表，右侧展示区 -->
-  <div v-if="panel.visible" class="att-panel">
+  <!-- 桌面端双栏预览面板：悬浮居中，左侧附件列表，右侧展示区；点面板外空白处关闭 -->
+  <div v-if="panel.visible" class="att-panel" @click.self="closePanel">
     <div class="panel-box">
       <div class="panel-topbar">
         <span class="panel-title">{{ panelRow ? panelRow.filename : '' }}</span>
@@ -56,7 +56,7 @@
         <div class="panel-view">
           <template v-if="panelRow && !panel.error">
             <img v-if="panelType === 'image'" :src="panelUrl" class="panel-img" :alt="panelRow.filename"
-                 @click="openPanelImageViewer"/>
+                 @click="openPanelImageViewer" @error="panel.error = $t('fetchAttFailed')"/>
             <div v-else-if="panelType === 'pdf'" class="panel-pdf">
               <iframe :src="panelUrl" frameborder="0"></iframe>
             </div>
@@ -139,6 +139,7 @@ import {formatBytes, getExtName} from "@/utils/file-utils.js";
 import {getIconByName} from "@/utils/icon-utils.js";
 import {loadOfficeLib, openPreviewWindow} from "@/utils/office-preview.js";
 import {cvtR2Url} from "@/utils/convert.js";
+import {IMAGE_PREVIEW_EXTS, TEXT_PREVIEW_EXTS, AUDIO_PREVIEW_EXTS, VIDEO_PREVIEW_EXTS, TEXT_PREVIEW_MAX} from "@/utils/preview-types.js";
 
 const {t} = useI18n()
 
@@ -179,11 +180,7 @@ function downloadRow(row) {
 
 // ---- 点击预览 ----
 // 图片 / PDF / 纯文本 / 音频 / 视频 / Office（docx、xls/xlsx、pptx，浏览器本地解析）。
-const IMAGE_PREVIEW_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico', 'avif']
-const TEXT_PREVIEW_EXTS = ['txt', 'md', 'log', 'ini', 'conf', 'json', 'xml', 'csv', 'yaml', 'yml']
-const AUDIO_PREVIEW_EXTS = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'oga', 'm4a', 'opus']
-const VIDEO_PREVIEW_EXTS = ['mp4', 'webm', 'm4v', 'ogv']
-const TEXT_PREVIEW_MAX = 512 * 1024
+// 扩展名名单在 utils/preview-types.js，与详情页眼睛图标共用；preview.html 里另有一份副本，改名单时同步。
 
 const showImagePreview = ref(false)
 const previewImageUrls = ref([])
@@ -262,7 +259,14 @@ async function openDialog(row, type, url) {
   }
 }
 
-defineExpose({open})
+// 是否正打开着任一预览面（桌面面板 / 手机弹窗 / 手机图片查看器）；详情页 Esc 守卫用：
+// 预览开着时 Esc 只关预览，不触发详情页返回（面板自己的 Esc 监听与详情页的都在 window 上，
+// 详情页的先注册先执行，靠这个检查跳过返回，再由面板自己的监听关闭面板）
+function isOpen() {
+  return panel.visible || previewDialog.visible || showImagePreview.value
+}
+
+defineExpose({open, isOpen})
 
 // ---- 手机端弹窗里的 Office 预览 ----
 const dialogOfficeRef = ref(null)
@@ -463,7 +467,10 @@ async function renderPanel() {
       const res = await fetch(url)
       if (!res.ok) throw new Error('fetch failed')
       if (seq !== panelRenderSeq) return
-      panelText.value = await res.text()
+      const text = await res.text()
+      // 读 body 也可能耗时，再查一次 seq：期间切了文件就丢弃，避免旧文本盖新文件
+      if (seq !== panelRenderSeq) return
+      panelText.value = text
     } catch (e) {
       if (seq === panelRenderSeq) panel.error = t('fetchAttFailed')
     }
@@ -518,7 +525,13 @@ watch([() => panel.visible, () => panel.index], () => {
 
 async function toggleStar(row) {
   const next = row.isStar ? 0 : 1
-  await attStar([row.attId], next)
+  try {
+    await attStar([row.attId], next)
+  } catch (e) {
+    // 失败不改本地状态、不发 star-toggled，弹提示（照详情页星标的 catch：失败回滚本地状态）
+    ElMessage({message: t('starToggleFailed'), type: 'error', plain: true})
+    return
+  }
   row.isStar = next
   emit('star-toggled', row, next)
 }

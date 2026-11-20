@@ -62,7 +62,12 @@ export default {
 		await userService.resetDaySendCount({ env })
 		await emailService.completeReceiveAll({ env })
 		await emailService.autoClean({ env })
-		await emailService.cleanSpam({ env })
+		// 垃圾清理失败不能中断后续任务（备份在最后，被拦会整晚没备份）；失败只记日志，下小时再清
+		try {
+			await emailService.cleanSpam({ env })
+		} catch (e) {
+			console.error('Scheduled cleanSpam failed', e)
+		}
 		await auditService.cleanOld({ env })
 		await analysisService.refreshEchartsCache({ env })
 		await oauthService.clearNoBindOathUser({ env })

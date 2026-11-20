@@ -121,7 +121,7 @@
                 <div class="att-size">{{ formatBytes(att.size) }}</div>
                 <div class="opt-icon att-icon">
                   <el-tooltip effect="dark" :content="$t('view')">
-                    <Icon v-if="isImage(att.filename)" icon="hugeicons:view" width="22" height="22" @click="showImage(att)"/>
+                    <Icon v-if="isImage(att.filename)" icon="hugeicons:view" width="22" height="22" @click="previewerRef.open(email.attList, att)"/>
                   </el-tooltip>
                   <el-tooltip effect="dark" :content="$t('download')">
                     <a :href="cvtR2Url(att.key)" download>
@@ -135,12 +135,6 @@
         </div>
       </div>
     </el-scrollbar>
-    <el-image-viewer
-        v-if="showPreview"
-        :url-list="srcList"
-        show-progress
-        @close="showPreview = false"
-    />
     <delete-notify-dialog v-model="notifyDialog.visible" :message="notifyDialog.message"
                           :show-notify="notifyDialog.showNotify" :has-pair="notifyDialog.hasPair"
                           @confirm="onNotifyDialogConfirm"/>
@@ -163,7 +157,8 @@ import {useUserStore} from "@/store/user.js";
 import {useAccountStore} from "@/store/account.js";
 import {formatDetailDate} from "@/utils/day.js";
 import {starAdd, starCancel} from "@/request/star.js";
-import {getExtName, formatBytes} from "@/utils/file-utils.js";
+import {formatBytes} from "@/utils/file-utils.js";
+import {isImageFilename} from "@/utils/preview-types.js";
 import {cvtR2Url,toOssDomain} from "@/utils/convert.js";
 import {getIconByName} from "@/utils/icon-utils.js";
 import attPreviewer from "@/components/att-previewer/index.vue";
@@ -214,8 +209,6 @@ const sendNameRef = ref(null)
 const senderWrapped = ref(false)
 let senderResizeObserver = null
 
-const showPreview = ref(false)
-const srcList = reactive([])
 const previewerRef = ref(null)
 
 
@@ -385,7 +378,8 @@ onUnmounted(() => {
 
 function handleKeyDown(event) {
   if (event.key !== 'Escape') return;
-  if (showPreview.value) return;
+  // 预览器开着时 Esc 只关预览，不触发返回（预览器自己的 Esc 监听随后会关闭面板）
+  if (previewerRef.value?.isOpen?.()) return;
   if (document.querySelector('.el-message-box')) return;
   const writeBox = document.querySelector('.write-box');
   if (writeBox && writeBox.offsetParent !== null) return;
@@ -414,17 +408,8 @@ function formatImage(content) {
   return  content.replace(/{{domain}}/g, toOssDomain(domain) + '/');
 }
 
-function showImage(att) {
-  // 注意按文件名判图片：附件 key 是纯内容哈希、没有扩展名，按 key 判永远是假
-  if (!isImage(att.filename)) return;
-  const url = cvtR2Url(att.key)
-  srcList.length = 0
-  srcList.push(url)
-  showPreview.value = true
-}
-
 function isImage(filename) {
-  return ['png', 'jpg', 'jpeg', 'bmp', 'gif', 'jfif', 'webp', 'avif', 'svg', 'ico'].includes(getExtName(filename))
+  return isImageFilename(filename)
 }
 
 function formateReceive(recipient) {
@@ -547,6 +532,7 @@ const handleRestore = () => {
       plain: true,
     })
     emailStore.deleteIds = [email.value.emailId]
+    sidebarStore.refreshUnread()
     handleBack()
   })
 }
@@ -559,6 +545,7 @@ const handleMarkSpam = () => {
       plain: true,
     })
     emailStore.deleteIds = [email.value.emailId]
+    sidebarStore.refreshUnread()
     handleBack()
   })
 }
@@ -571,6 +558,7 @@ const handleUnspam = () => {
       plain: true,
     })
     emailStore.deleteIds = [email.value.emailId]
+    sidebarStore.refreshUnread()
     handleBack()
   })
 }

@@ -1,10 +1,10 @@
 <template>
   <div class="perm-box">
     <div class="header-actions">
-      <el-tooltip effect="dark" :content="$t('addRoleTitle')">
+      <el-tooltip :hide-after="0" effect="dark" :content="$t('addRoleTitle')">
         <Icon class="icon" icon="ion:add-outline" width="23" height="23" @click="openAddRole"/>
       </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('refresh')">
+      <el-tooltip :hide-after="0" effect="dark" :content="$t('refresh')">
         <Icon class="icon" icon="ion:reload" width="18" height="18" @click="refresh"/>
       </el-tooltip>
     </div>

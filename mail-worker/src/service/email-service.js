@@ -213,7 +213,9 @@ const emailService = {
 			)
 			.where(and(
 				eq(email.emailId, emailId),
-				eq(email.userId, userId)
+				eq(email.userId, userId),
+				// 已删的邮件不从这里读正文（附件页只列未删邮件的附件；已删的走回收站恢复）
+				eq(email.isDel, isDel.NORMAL)
 			)).get();
 
 		if (!row) {
@@ -352,6 +354,9 @@ const emailService = {
 
 		// 全部/回收站视图去重：发件份有对应收件份时只留收件份
 		// 配对 key：发件人 + 主题 + 创建时间（秒）+ 收件人名单
+		// 已知边界：create_time 是秒级精度，同一秒内同发件人同主题同收件人发两次会误判为一对
+		// （极少见，且只影响去重显示，不丢数据）。relation 列已被 References 线程占用，不能复用做配对；
+		// 真修需新增配对列 + 改发信路径，侵入性不合算，先记在这里。
 		if (type !== 'send' && type !== 'receive') {
 			conditions.push(sql`NOT (
 				${email.type} = ${emailConst.type.SEND}
@@ -856,10 +861,12 @@ const emailService = {
 		yield { emails };
 	},
 
-	// Sendkit 无批量接口：普通发送一次提交所有收件人，分开发送逐人调用单封接口。
-	async *sendSendkit(c, { separate, sendkitToken, sendParams, saveParams }) {
+	// 逐个提交型渠道（Sendkit/Brevo/Mailjet）的通用发信生成器：普通发送一次提交所有收件人，
+	// 分开发送逐人调用单封接口。Resend 不走这里——它用批量接口一次提交，返回结构不同。
+	// sendOne 由各家薄包装传入（已绑定好 token/配置），签名 (params) => Promise<{data?, error?}>。
+	async *sendViaProvider(c, { separate, limitKey, sendOne, sendParams, saveParams }) {
 		if (separate && sendParams.receiveEmail.length > 100) {
-			throw new BizError(t('sendkitRecipientLimit'));
+			throw new BizError(t(limitKey));
 		}
 		const recipientGroups = separate
 			? sendParams.receiveEmail.map(address => [address])
@@ -867,7 +874,7 @@ const emailService = {
 		for (const receiveEmail of recipientGroups) {
 			let result;
 			try {
-				result = await this.sendBySendkit(sendkitToken, { ...sendParams, receiveEmail });
+				result = await sendOne({ ...sendParams, receiveEmail });
 			} catch (error) {
 				if (!separate) throw error;
 				// 分开发送遇到渠道错误即停止，已成功的记录由入口汇总。
@@ -885,33 +892,22 @@ const emailService = {
 		}
 	},
 
+	// Sendkit 无批量接口：普通发送一次提交所有收件人，分开发送逐人调用单封接口。
+	async *sendSendkit(c, { separate, sendkitToken, sendParams, saveParams }) {
+		yield* this.sendViaProvider(c, {
+			separate, limitKey: 'sendkitRecipientLimit',
+			sendOne: (params) => this.sendBySendkit(sendkitToken, params),
+			sendParams, saveParams
+		});
+	},
+
 	// Brevo 支持一次提交多收件人：普通发送一次提交所有收件人，分开发送逐人调用单封接口。
 	async *sendBrevo(c, { separate, brevoToken, sendParams, saveParams }) {
-		if (separate && sendParams.receiveEmail.length > 100) {
-			throw new BizError(t('brevoRecipientLimit'));
-		}
-		const recipientGroups = separate
-			? sendParams.receiveEmail.map(address => [address])
-			: [sendParams.receiveEmail];
-		for (const receiveEmail of recipientGroups) {
-			let result;
-			try {
-				result = await this.sendByBrevo(brevoToken, { ...sendParams, receiveEmail });
-			} catch (error) {
-				if (!separate) throw error;
-				// 分开发送遇到渠道错误即停止，已成功的记录由入口汇总。
-				yield { error: { message: error.message } };
-				return;
-			}
-			if (result.error) {
-				yield { error: result.error };
-				return;
-			}
-			const emailResult = await this.saveSentEmail(c, {
-				...saveParams, receiveEmail, providerId: result.data?.id
-			});
-			yield { emails: [emailResult] };
-		}
+		yield* this.sendViaProvider(c, {
+			separate, limitKey: 'brevoRecipientLimit',
+			sendOne: (params) => this.sendByBrevo(brevoToken, params),
+			sendParams, saveParams
+		});
 	},
 
 	// Mailjet 支持一次提交多收件人：普通发送一次提交所有收件人，分开发送逐人调用单封接口。
@@ -920,31 +916,11 @@ const emailService = {
 		if (!mailjetConfig?.apiKey || !mailjetConfig?.secretKey) {
 			throw new BizError(t('mailjetNotConfigured'));
 		}
-		if (separate && sendParams.receiveEmail.length > 100) {
-			throw new BizError(t('mailjetRecipientLimit'));
-		}
-		const recipientGroups = separate
-			? sendParams.receiveEmail.map(address => [address])
-			: [sendParams.receiveEmail];
-		for (const receiveEmail of recipientGroups) {
-			let result;
-			try {
-				result = await this.sendByMailjet(mailjetConfig, { ...sendParams, receiveEmail });
-			} catch (error) {
-				if (!separate) throw error;
-				// 分开发送遇到渠道错误即停止，已成功的记录由入口汇总。
-				yield { error: { message: error.message } };
-				return;
-			}
-			if (result.error) {
-				yield { error: result.error };
-				return;
-			}
-			const emailResult = await this.saveSentEmail(c, {
-				...saveParams, receiveEmail, providerId: result.data?.id
-			});
-			yield { emails: [emailResult] };
-		}
+		yield* this.sendViaProvider(c, {
+			separate, limitKey: 'mailjetRecipientLimit',
+			sendOne: (params) => this.sendByMailjet(mailjetConfig, params),
+			sendParams, saveParams
+		});
 	},
 
 	// 各渠道共用的发件记录保存：恢复正文图片 URL、保存附件并更新发送计数。

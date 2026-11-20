@@ -52,7 +52,7 @@
               <div class="setting-item">
                 <div>
                   <span>{{ $t('multipleEmail') }}</span>
-                  <el-tooltip effect="dark" :content="$t('multipleEmailDesc')">
+                  <el-tooltip :hide-after="0" effect="dark" :content="$t('multipleEmailDesc')">
                     <Icon class="warning" icon="fe:warning" width="18" height="18"/>
                   </el-tooltip>
                 </div>
@@ -64,7 +64,7 @@
               <div class="setting-item">
                 <div>
                   <span>{{ $t('syncDelete') }}</span>
-                  <el-tooltip effect="dark" :content="$t('syncDeleteDesc')">
+                  <el-tooltip :hide-after="0" effect="dark" :content="$t('syncDeleteDesc')">
                     <Icon class="warning" icon="fe:warning" width="18" height="18"/>
                   </el-tooltip>
                 </div>
@@ -151,7 +151,7 @@
               <div class="setting-item">
                 <div>
                   <span>{{ $t('autoRefresh') }}</span>
-                  <el-tooltip effect="dark" :content="$t('autoRefreshDesc')">
+                  <el-tooltip :hide-after="0" effect="dark" :content="$t('autoRefreshDesc')">
                     <Icon class="warning" icon="fe:warning" width="18" height="18"/>
                   </el-tooltip>
                 </div>
@@ -170,7 +170,7 @@
               <div class="setting-item">
                 <div>
                   <span>{{ $t('noRecipientTitle') }}</span>
-                  <el-tooltip effect="dark" :content="$t('noRecipientDesc')">
+                  <el-tooltip :hide-after="0" effect="dark" :content="$t('noRecipientDesc')">
                     <Icon class="warning" icon="fe:warning" width="18" height="18"/>
                   </el-tooltip>
                 </div>
@@ -182,7 +182,7 @@
               <div class="setting-item">
                 <div>
                   <span>{{ $t('sendProvider') }}</span>
-                  <el-tooltip effect="dark" :content="$t('sendProviderDesc')">
+                  <el-tooltip :hide-after="0" effect="dark" :content="$t('sendProviderDesc')">
                     <Icon class="warning" icon="fe:warning" width="18" height="18"/>
                   </el-tooltip>
                 </div>
@@ -220,7 +220,7 @@
               <div class="setting-item">
                 <div>
                   <span>{{ $t('autoClean') }}</span>
-                  <el-tooltip effect="dark" :content="$t('autoCleanDesc')">
+                  <el-tooltip :hide-after="0" effect="dark" :content="$t('autoCleanDesc')">
                     <Icon class="warning" icon="fe:warning" width="18" height="18"/>
                   </el-tooltip>
                 </div>
@@ -235,7 +235,7 @@
               <div class="setting-item">
                 <div>
                   <span>{{ $t('auditClean') }}</span>
-                  <el-tooltip effect="dark" :content="$t('auditCleanDesc')">
+                  <el-tooltip :hide-after="0" effect="dark" :content="$t('auditCleanDesc')">
                     <Icon class="warning" icon="fe:warning" width="18" height="18"/>
                   </el-tooltip>
                 </div>
@@ -326,7 +326,7 @@
               <div class="setting-item">
                 <div>
                   <span>{{ $t('attEncrypt') }}</span>
-                  <el-tooltip effect="dark" :content="$t('attEncryptDesc')">
+                  <el-tooltip :hide-after="0" effect="dark" :content="$t('attEncryptDesc')">
                     <Icon class="warning" icon="fe:warning" width="18" height="18"/>
                   </el-tooltip>
                 </div>
@@ -365,7 +365,7 @@
               <div class="setting-item">
                 <div>
                   <span>{{ $t('forwardFailNotify') }}</span>
-                  <el-tooltip effect="dark" :content="$t('forwardFailNotifyDesc')">
+                  <el-tooltip :hide-after="0" effect="dark" :content="$t('forwardFailNotifyDesc')">
                     <Icon class="warning" icon="fe:warning" width="18" height="18"/>
                   </el-tooltip>
                 </div>
@@ -377,7 +377,7 @@
               <div class="setting-item">
                 <div>
                   <span>{{ $t('backupFailNotify') }}</span>
-                  <el-tooltip effect="dark" :content="$t('backupFailNotifyDesc')">
+                  <el-tooltip :hide-after="0" effect="dark" :content="$t('backupFailNotifyDesc')">
                     <Icon class="warning" icon="fe:warning" width="18" height="18"/>
                   </el-tooltip>
                 </div>
@@ -389,7 +389,7 @@
               <div class="setting-item">
                 <div>
                   <span>{{ $t('adminDelNotify') }}</span>
-                  <el-tooltip effect="dark" :content="$t('adminDelNotifyDesc')">
+                  <el-tooltip :hide-after="0" effect="dark" :content="$t('adminDelNotifyDesc')">
                     <Icon class="warning" icon="fe:warning" width="18" height="18"/>
                   </el-tooltip>
                 </div>
@@ -408,7 +408,7 @@
               <div class="setting-item">
                 <div>
                   <span>{{ $t('autoBackup') }}</span>
-                  <el-tooltip effect="dark" :content="$t('autoBackupDesc')">
+                  <el-tooltip :hide-after="0" effect="dark" :content="$t('autoBackupDesc')">
                     <Icon class="warning" icon="fe:warning" width="18" height="18"/>
                   </el-tooltip>
                 </div>
@@ -746,7 +746,7 @@
         <template #header>
           <span style="font-size: 18px">
             {{ $t('backgroundTitle') }}
-            <el-tooltip>
+            <el-tooltip :hide-after="0">
               <template #content>
                 <span>{{ $t('backgroundWarning') }}</span>
               </template>
@@ -796,7 +796,7 @@
         <template #header>
           <div class="forward-head">
             <span class="forward-set-title">{{ $t('tgBot') }}</span>
-            <el-tooltip effect="dark" :content="$t('tgBotDesc')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('tgBotDesc')">
               <Icon class="warning" icon="fe:warning" width="18" height="18"/>
             </el-tooltip>
           </div>
@@ -857,7 +857,7 @@
         <template #header>
           <div class="forward-head">
             <span class="forward-set-title">{{ $t('notifyEmail') }}</span>
-            <el-tooltip effect="dark" :content="$t('notifyEmailDesc')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('notifyEmailDesc')">
               <Icon class="warning" icon="fe:warning" width="18" height="18"/>
             </el-tooltip>
           </div>
@@ -884,7 +884,7 @@
         <template #header>
           <div class="forward-head">
             <span class="forward-set-title">{{ $t('webhook') }}</span>
-            <el-tooltip effect="dark" :content="$t('webhookDesc')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('webhookDesc')">
               <Icon class="warning" icon="fe:warning" width="18" height="18"/>
             </el-tooltip>
           </div>
@@ -925,7 +925,7 @@ Authorization: &lt;secret&gt;</pre>
         <template #header>
           <div class="forward-head">
             <span class="forward-set-title">{{ $t('globalForward') }}</span>
-            <el-tooltip effect="dark" :content="$t('globalForwardDesc')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('globalForwardDesc')">
               <Icon class="warning" icon="fe:warning" width="18" height="18"/>
             </el-tooltip>
           </div>
@@ -1090,28 +1090,28 @@ Authorization: &lt;secret&gt;</pre>
           <template v-if="s3.type === 's3'">
           <div class="backup-field-label">
             <span>{{ t('backupBucket') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupBucketHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupBucketHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
           <el-input class="dialog-input" type="text" placeholder="例如：muse-mail" v-model="s3.bucket" @keyup.enter="saveS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupEndpoint') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupEndpointHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupEndpointHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
           <el-input class="dialog-input" type="text" placeholder="例如：s3.us-east-005.backblazeb2.com" v-model="s3.endpoint" @keyup.enter="saveS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupRegion') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupRegionHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupRegionHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
           <el-input class="dialog-input" type="text" placeholder="例如：us-east-005" v-model="s3.region" @keyup.enter="saveS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupAccessKey') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupAccessKeyHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupAccessKeyHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
@@ -1119,7 +1119,7 @@ Authorization: &lt;secret&gt;</pre>
                     v-model="s3.s3AccessKey" @keyup.enter="saveS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupSecretKey') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupSecretKeyHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupSecretKeyHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
@@ -1127,7 +1127,7 @@ Authorization: &lt;secret&gt;</pre>
           <div class="force-path-style">
             <div class="force-path-style-left">
               <span>ForcePathStyle</span>
-              <el-tooltip effect="dark" :content="$t('forcePathStyleDesc')">
+              <el-tooltip :hide-after="0" effect="dark" :content="$t('forcePathStyleDesc')">
                 <Icon class="warning" icon="fe:warning" width="18" height="18"/>
               </el-tooltip>
             </div>
@@ -1138,21 +1138,21 @@ Authorization: &lt;secret&gt;</pre>
           <template v-else-if="s3.type === 'r2'">
           <div class="backup-field-label">
             <span>{{ t('r2AccountId') }}</span>
-            <el-tooltip effect="dark" :content="$t('r2AccountIdHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('r2AccountIdHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
           <el-input class="dialog-input" type="text" placeholder="例如：32 位十六进制字符" v-model="r2.accountId" @keyup.enter="saveS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupBucket') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupBucketHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupBucketHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
           <el-input class="dialog-input" type="text" placeholder="例如：cloud-mail-attachments" v-model="r2.bucket" @keyup.enter="saveS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupAccessKey') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupAccessKeyHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupAccessKeyHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
@@ -1160,7 +1160,7 @@ Authorization: &lt;secret&gt;</pre>
                     v-model="r2.accessKey" @keyup.enter="saveS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupSecretKey') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupSecretKeyHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupSecretKeyHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
@@ -1170,7 +1170,7 @@ Authorization: &lt;secret&gt;</pre>
           <template v-else-if="s3.type === 'webdav'">
           <div class="backup-field-label">
             <span>{{ t('webdavUrl') }}</span>
-            <el-tooltip effect="dark" :content="$t('webdavUrlHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('webdavUrlHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
@@ -1211,21 +1211,21 @@ Authorization: &lt;secret&gt;</pre>
           <template v-else-if="backupS3.type === 'r2'">
           <div class="backup-field-label">
             <span>{{ t('r2AccountId') }}</span>
-            <el-tooltip effect="dark" :content="$t('r2AccountIdHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('r2AccountIdHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
           <el-input class="dialog-input" type="text" placeholder="例如：32 位十六进制字符" v-model="backupR2.accountId" @keyup.enter="saveBackupS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupBucket') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupBucketHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupBucketHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
           <el-input class="dialog-input" type="text" placeholder="例如：cloud-mail-backups" v-model="backupR2.bucket" @keyup.enter="saveBackupS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupAccessKey') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupAccessKeyHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupAccessKeyHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
@@ -1233,7 +1233,7 @@ Authorization: &lt;secret&gt;</pre>
                     v-model="backupR2.accessKey" @keyup.enter="saveBackupS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupSecretKey') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupSecretKeyHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupSecretKeyHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
@@ -1243,7 +1243,7 @@ Authorization: &lt;secret&gt;</pre>
           <template v-else-if="backupS3.type === 'webdav'">
           <div class="backup-field-label">
             <span>{{ t('webdavUrl') }}</span>
-            <el-tooltip effect="dark" :content="$t('webdavUrlHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('webdavUrlHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
@@ -1261,28 +1261,28 @@ Authorization: &lt;secret&gt;</pre>
           <template v-else>
           <div class="backup-field-label">
             <span>{{ t('backupBucket') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupBucketHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupBucketHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
           <el-input class="dialog-input" type="text" placeholder="例如：muse-mail" v-model="backupS3.bucket" @keyup.enter="saveBackupS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupEndpoint') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupEndpointHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupEndpointHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
           <el-input class="dialog-input" type="text" placeholder="例如：s3.us-east-005.backblazeb2.com" v-model="backupS3.endpoint" @keyup.enter="saveBackupS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupRegion') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupRegionHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupRegionHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
           <el-input class="dialog-input" type="text" placeholder="例如：us-east-005" v-model="backupS3.region" @keyup.enter="saveBackupS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupAccessKey') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupAccessKeyHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupAccessKeyHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
@@ -1290,7 +1290,7 @@ Authorization: &lt;secret&gt;</pre>
                     v-model="backupS3.s3AccessKey" @keyup.enter="saveBackupS3"/>
           <div class="backup-field-label">
             <span>{{ t('backupSecretKey') }}</span>
-            <el-tooltip effect="dark" :content="$t('backupSecretKeyHint')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('backupSecretKeyHint')">
               <Icon class="warning" icon="fe:warning" width="16" height="16"/>
             </el-tooltip>
           </div>
@@ -1298,7 +1298,7 @@ Authorization: &lt;secret&gt;</pre>
           <div class="force-path-style">
             <div class="force-path-style-left">
               <span>ForcePathStyle</span>
-              <el-tooltip effect="dark" :content="$t('forcePathStyleDesc')">
+              <el-tooltip :hide-after="0" effect="dark" :content="$t('forcePathStyleDesc')">
                 <Icon class="warning" icon="fe:warning" width="18" height="18"/>
               </el-tooltip>
             </div>
@@ -1331,7 +1331,7 @@ Authorization: &lt;secret&gt;</pre>
         <template #header>
           <div class="forward-head">
             <span class="forward-set-title">{{ $t('blackList') }}</span>
-            <el-tooltip effect="dark" :content="$t('blackListDesc')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('blackListDesc')">
               <Icon class="warning" icon="fe:warning" width="18" height="18"/>
             </el-tooltip>
           </div>
@@ -1377,7 +1377,7 @@ Authorization: &lt;secret&gt;</pre>
         <template #header>
           <div class="forward-head">
             <span class="forward-set-title">{{ $t('codeRecognitionRules') }}</span>
-            <el-tooltip effect="dark" :content="$t('codeRecognitionRulesDesc')">
+            <el-tooltip :hide-after="0" effect="dark" :content="$t('codeRecognitionRulesDesc')">
               <Icon class="warning" icon="fe:warning" width="18" height="18"/>
             </el-tooltip>
           </div>
@@ -2227,14 +2227,15 @@ function openGlobalForward() {
 }
 
 function globalForwardSave() {
-  const targets = globalForwardEmail.value.split(',').map(s => s.trim()).filter(Boolean)
+  // 中英文逗号都接受（照上游 emailAddTag 的 /[,，]/ 切分）；存前统一成英文逗号
+  const targets = globalForwardEmail.value.split(/[,，]/).map(s => s.trim()).filter(Boolean)
   if (globalForwardStatus.value === 0 && (targets.length === 0 || targets.some(e => !isEmail(e)))) {
     ElMessage({message: t('forwardEmailInvalid'), type: 'error', plain: true})
     return
   }
-  const rules = globalRuleEmail.value.split(',').map(s => s.trim()).filter(Boolean)
+  const rules = globalRuleEmail.value.split(/[,，]/).map(s => s.trim()).filter(Boolean)
   if (globalRuleType.value === 1 && (rules.length === 0 || rules.some(e => !isEmail(e)))) {
-    ElMessage({message: t('forwardEmailInvalid'), type: 'error', plain: true})
+    ElMessage({message: t('ruleEmailInvalid'), type: 'error', plain: true})
     return
   }
   if (settingLoading.value) return

@@ -32,6 +32,16 @@ export const useUiStore = defineStore('ui', {
         previewNotice(data) {
             this.previewData = data
             this.changePreview ++
+        },
+        // finePointer 会话内也要跟着变（二合一设备接/拔鼠标、平板接键盘），否则复选框/三栏/头像的显示逻辑须刷新才生效
+        initPointerListener() {
+            const mq = window.matchMedia('(pointer: fine)')
+            const sync = () => { this.finePointer = mq.matches }
+            if (typeof mq.addEventListener === 'function') {
+                mq.addEventListener('change', sync)
+            } else if (typeof mq.addListener === 'function') {
+                mq.addListener(sync)
+            }
         }
     },
     persist: {

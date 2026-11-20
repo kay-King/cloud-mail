@@ -75,8 +75,8 @@
                  @touchend="onRowTouchEnd"
                  @touchcancel="onRowTouchEnd"
             >
-              <!-- 触屏端：头像与复选框共用一个位置，默认显示头像，长按进入选择模式后显示复选框 -->
-              <div v-if="isMobile && !uiStore.finePointer" class="avatar-slot">
+              <!-- 粗指针设备（触屏，窄屏/宽屏都一样）：头像与复选框共用一个位置，默认显示头像，长按进入选择模式后显示复选框 -->
+              <div v-if="!uiStore.finePointer" class="avatar-slot">
                 <!-- 选择模式下已勾选的行：头像位置显示浅蓝底圆圈 + 蓝色对勾；未勾选的行仍显示头像 -->
                 <div v-if="selectMode && item.checked" class="sender-avatar avatar-checked">
                   <Icon icon="mdi:check" width="22" height="22" />
@@ -171,7 +171,6 @@
             </div>
             <skeletonBlock v-else-if="item.expand === 'loading'"
                            :rows="1"
-                           :is-mobile="isMobile"
                            :fine-pointer="uiStore.finePointer"
                            :showStar="showStar"
                            :accountShow="accountShow"
@@ -185,7 +184,6 @@
         </UseVirtualList>
       <skeletonBlock v-if="firstLoad && showFirstLoading"
                        :rows="20"
-                       :is-mobile="isMobile"
                        :fine-pointer="uiStore.finePointer"
                        :showStar="showStar"
                        :accountShow="accountShow"
@@ -194,7 +192,6 @@
                        :type="type"/>
       <skeletonBlock v-if="loading"
                        :rows="skeletonRows"
-                       :is-mobile="isMobile"
                        :fine-pointer="uiStore.finePointer"
                        :showStar="showStar"
                        :accountShow="accountShow"
@@ -374,6 +371,7 @@ import {useRoute} from "vue-router";
 import ContentView from "@/views/content/index.vue";
 import {sleep} from "@/utils/time-utils.js"
 import {fromNow} from "@/utils/day.js";
+import {isAdminDelNotifyEnabled} from "@/utils/admin-notify.js";
 import {useI18n} from "vue-i18n";
 import {EmailUnreadEnum} from "@/enums/email-enum.js";
 import { UseVirtualList } from '@vueuse/components'
@@ -467,11 +465,6 @@ const notifyDialog = reactive({
   hasPair: false,
 })
 
-function notifyEnabled() {
-  const v = settingStore.settings.adminDelNotify
-  return v === undefined || v === null || v !== 0
-}
-
 function involvesOtherUser(emailIds) {
   const myEmail = (userStore.user.email || '').toLowerCase()
   return emailIds.some(id => {
@@ -499,16 +492,22 @@ function openNotifyDialog(emailIds, message, opts = {}) {
 function onNotifyDialogConfirm(opts) {
   const emailIds = notifyDialog.emailIds
   props.emailDelete(emailIds, opts).then((deletedIds) => {
-    ElMessage({
-      message: t('delSuccessMsg'),
-      type: 'success',
-      plain: true
-    })
     // 成对删除时后端返回实际删掉的全部 id（含副本），列表按它移除
-    emailStore.deleteIds = Array.isArray(deletedIds) && deletedIds.length ? deletedIds : emailIds;
-    // 删掉未读邮件会改变侧边栏未读数，立即刷新，不用等切页面
-    sidebarStore.refreshUnread()
+    afterDeleteSuccess(emailIds, deletedIds)
   })
+}
+
+// 删除成功后的公共收尾：提示 + 按实际删掉的 id 移除列表行 + 刷新侧边栏未读数
+// deletedIds 没返回或为空时用请求时的 emailIds
+function afterDeleteSuccess(emailIds, deletedIds) {
+  ElMessage({
+    message: t('delSuccessMsg'),
+    type: 'success',
+    plain: true
+  })
+  emailStore.deleteIds = Array.isArray(deletedIds) && deletedIds.length ? deletedIds : emailIds;
+  // 删掉未读邮件会改变侧边栏未读数，立即刷新，不用等切页面
+  sidebarStore.refreshUnread()
 }
 const loading = ref(false);
 const followLoading = ref(false);
@@ -934,7 +933,7 @@ function rightDelete(emailId) {
 
   if (props.type === 'all-email' || props.type === 'trash') {
     if (props.type === 'all-email') {
-      const showNotify = notifyEnabled() && involvesOtherUser([emailId])
+      const showNotify = isAdminDelNotifyEnabled() && involvesOtherUser([emailId])
       const hasPair = hasPairIds([emailId])
       if (showNotify || hasPair) {
         openNotifyDialog([emailId], t('delOneEmailConfirm'), {showNotify, hasPair})
@@ -992,7 +991,7 @@ async function copyCode(code) {
 function handleDelete() {
   if (props.type === 'all-email') {
     const emailIds = getSelectedMailsIds();
-    const showNotify = notifyEnabled() && involvesOtherUser(emailIds)
+    const showNotify = isAdminDelNotifyEnabled() && involvesOtherUser(emailIds)
     const hasPair = hasPairIds(emailIds)
     if (showNotify || hasPair) {
       openNotifyDialog(emailIds, t('delEmailsConfirm'), {showNotify, hasPair})
@@ -1013,14 +1012,7 @@ function handleDelete() {
 
     const emailIds = getSelectedMailsIds();
     props.emailDelete(emailIds).then(() => {
-      ElMessage({
-        message: t('delSuccessMsg'),
-        type: 'success',
-        plain: true
-      })
-      emailStore.deleteIds = emailIds;
-      // 删掉未读邮件会改变侧边栏未读数，立即刷新，不用等切页面
-      sidebarStore.refreshUnread()
+      afterDeleteSuccess(emailIds)
     })
   })
 }
@@ -1277,7 +1269,8 @@ let touchActive = false;
 let suppressClickUntil = 0;
 let pressingEmail = null;
 function onRowTouchStart(e, email) {
-  if (!isMobile.value) return;
+  // 细指针桌面端不启用长按（用复选框）；窄屏或粗指针设备都启用（宽屏触屏设备以前因 isMobile 门进不来长按）
+  if (!isMobile.value && uiStore.finePointer) return;
   touchActive = true;
   const t = e.touches[0];
   touchStartX = t.clientX;
