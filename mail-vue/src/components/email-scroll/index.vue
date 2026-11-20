@@ -79,7 +79,7 @@
       </div>
 
       <div class="header-right">
-        <span class="email-count" v-if="total">{{ checkedEmailCount > 0 ? $t('emailSelectedCount', {count: checkedEmailCount}) : $t('emailCount', {total: total}) }}</span>
+        <span class="email-count" v-if="displayTotal">{{ checkedEmailCount > 0 ? $t('emailSelectedCount', {count: checkedEmailCount}) : $t('emailCount', {total: displayTotal}) }}</span>
         <el-tooltip effect="dark" :hide-after="0" :content="threePane ? $t('switchToListMode') : $t('switchToReadingPane')">
           <Icon v-if="uiStore.finePointer && props.type !== 'draft'" class="more-icon icon" width="18" height="18"
                 :icon="threePane ? 'fluent:list-20-regular' : 'fluent:panel-right-20-regular'"
@@ -564,6 +564,11 @@ const noLoading = ref(false);
 const emailList = reactive([])
 const expandList = reactive([])
 const total = ref(0);
+// 顶栏显示的计数：数据全加载完且不在加载中时，直接数当前行数——
+// total 是另外单独维护的数字，恢复邮件后它曾跟列表漂移（列表 17 行、计数 16），
+// 找了一圈没定位到哪一步把它改回去的；显示层直接以行数为准，这类漂移就再也看不见了。
+// 没加载完（还有下一页）或正在加载时仍用服务端总数。
+const displayTotal = computed(() => (noLoading.value && !loading.value) ? emailList.length : total.value);
 const checkAll = ref(false);
 const isIndeterminate = ref(false);
 const scroll = ref(null)
