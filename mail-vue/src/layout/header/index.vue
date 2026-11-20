@@ -13,7 +13,7 @@
           @click="openSend"
         >
           <el-icon :size="23">
-            <Icon icon="hugeicons:quill-write-01"/>
+            <Icon class="icon-huge" icon="hugeicons:quill-write-01"/>
           </el-icon>
         </el-button>
       </el-tooltip>

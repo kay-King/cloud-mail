@@ -12,7 +12,7 @@
       </el-tooltip>
       <!-- 触屏上标垃圾/取消垃圾/标为未读/导出收进 ⋮ 菜单，电脑端保持直接显示 -->
       <el-tooltip effect="dark" :content="$t('markSpam')" v-if="uiStore.finePointer">
-        <Icon v-if="emailStore.contentData.showSpam" v-perm="'email:delete'" class="icon icon-huge" icon="hugeicons:mail-block-01" width="20" height="20" @click="handleMarkSpam"/>
+        <Icon v-if="emailStore.contentData.showSpam" v-perm="'email:delete'" class="icon icon-huge icon-spam-badge" icon="hugeicons:mail-block-01" width="20" height="20" @click="handleMarkSpam"/>
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('notSpam')" v-if="uiStore.finePointer">
         <Icon v-if="emailStore.contentData.delType === 'spam'" v-perm="'email:delete'" class="icon" icon="fluent:arrow-undo-20-regular" width="20" height="20" @click="handleUnspam"/>
@@ -51,7 +51,7 @@
             </el-dropdown-item>
             <el-dropdown-item v-if="emailStore.contentData.showSpam" v-perm="'email:delete'" @click="handleMarkSpam">
               <div class="more-menu-item">
-                <Icon icon="hugeicons:mail-block-01" class="icon-huge" width="20" height="20" />
+                <Icon icon="hugeicons:mail-block-01" class="icon-huge icon-spam-badge" width="20" height="20" />
                 <span>{{ $t('markSpam') }}</span>
               </div>
             </el-dropdown-item>

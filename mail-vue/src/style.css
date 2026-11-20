@@ -300,8 +300,9 @@ svg.icon-huge path {
 }
 
 /* mail-block-01 的禁止徽章是 <g> 里的最后一个 <path>（圆环 + 斜杠）：图形太小，抗锯齿让它看着比信封细，单独再加粗一点，并补圆角端点跟信封一致。
-   （目前只有 mail-block-01 用 .icon-huge；以后别的 HugeIcons 图标用这个类时要确认它的最后一个 path 是不是也需要加粗） */
-svg.icon-huge g path:last-child {
+   （这条规则只给标垃圾图标用，单独的 .icon-spam-badge 类，不挂在 .icon-huge 上：
+   别的 HugeIcons 图标（如羽毛笔）<g> 里最后一个 path 不是徽章，挂通用类会误伤） */
+svg.icon-spam-badge g path:last-child {
   stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;

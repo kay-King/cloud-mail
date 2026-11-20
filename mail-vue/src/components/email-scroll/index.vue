@@ -325,7 +325,7 @@
           <el-dropdown-item v-if="['email'].includes(props.type)" @click="rightSpam(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="hugeicons:mail-block-01" class="icon-huge" width="20" height="20" />
+                <Icon icon="hugeicons:mail-block-01" class="icon-huge icon-spam-badge" width="20" height="20" />
                 <span>{{t('markSpam')}}</span>
               </div>
             </template>

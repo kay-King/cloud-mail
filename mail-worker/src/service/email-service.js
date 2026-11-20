@@ -1249,10 +1249,12 @@ const emailService = {
 		// Mailjet MessageID 是 64 位整数，超过 JS 安全整数（2^53），response.json() 解析再 String() 会丢精度
 		// （实测：真实 1152921546932127606 存成 1152921546932127500，拿去查 v3 会 404）。
 		// 先从原始文本里用正则把第一个 MessageID（即 To[0] 的）抠成字符串，再解析其余字段。
-		const rawMessageId = rawText.match(/"MessageID"\s*:\s*(\d+)/)?.[1];
 		const result = (() => { try { return JSON.parse(rawText); } catch { return {}; } })();
 		const mjMessage = result.Messages?.[0];
 		const mjError = mjMessage?.Errors?.[0];
+		// 正则没抠到时回落解析值（可能丢精度，但总比存空强；正常返回正则一定能抠到）
+		const rawMessageId = rawText.match(/"MessageID"\s*:\s*(\d+)/)?.[1]
+			?? mjMessage?.To?.[0]?.MessageID;
 
 		if (!response.ok || mjMessage?.Status === 'error') {
 			return { error: { message: mjError?.ErrorMessage || result.ErrorMessage || result.message || `Mailjet error: ${response.status}` } };
