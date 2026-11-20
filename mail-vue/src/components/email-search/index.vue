@@ -300,6 +300,13 @@ onBeforeUnmount(() => {
   }
 }
 
+/* 顶栏通栏后：桌面端（≥1026px）侧边栏在文档流里占 260px，账号栏显示时搜索框要再往右挪一个侧边栏的宽度，对齐邮件列表左缘 */
+@media (min-width: 1026px) {
+  .email-search.account-show.aside-show {
+    left: 519px;
+  }
+}
+
 .search-placeholder {
   width: 100%;
   height: 36px;

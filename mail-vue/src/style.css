@@ -246,3 +246,23 @@ html[data-theme-to="light"]::view-transition-old(root) {
 .el-fade-in-linear-leave-active {
     transition: opacity 80ms linear !important;
 }
+
+/* 全站竖向滚动条收细：各页面原生滚动条统一 6px（el-scrollbar 本身已是 6px，不受影响） */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--el-text-color-placeholder);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--el-text-color-secondary);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--el-text-color-placeholder) transparent;
+}

@@ -147,7 +147,8 @@ const handleResize = () => {
 .main-box-show {
   display: grid;
   grid-template-columns: 260px  1fr;
-  height: calc(100% - 60px);
+  /* 顶栏已移到布局最上层（不在 Main 上面了），这里直接占满剩余高度 */
+  height: 100%;
   @media (max-width: 767px) {
     grid-template-columns: 1fr;
   }
@@ -156,7 +157,7 @@ const handleResize = () => {
 .main-box-hide {
   display: grid;
   grid-template-columns: 1fr;
-  height: calc(100% - 60px);
+  height: 100%;
 }
 
 

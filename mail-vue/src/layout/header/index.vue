@@ -22,7 +22,7 @@
       v-if="showInboxSearch"
       :store="emailStore"
       :search-options="inboxSearchOptions"
-      :class="{ 'account-show': accountPanelShow }"
+      :class="{ 'account-show': accountPanelShow, 'aside-show': uiStore.asideShow }"
       @search="returnToList('email')"
       @reset="returnToList('email')"
     />
@@ -30,13 +30,13 @@
       v-else-if="showSentSearch"
       :store="sendStore"
       :search-options="sentSearchOptions"
-      :class="{ 'account-show': accountPanelShow }"
+      :class="{ 'account-show': accountPanelShow, 'aside-show': uiStore.asideShow }"
       @search="returnToList('send')"
       @reset="returnToList('send')"
     />
     <all-email-search
       v-else-if="showAllMailSearch"
-      :class="{ 'account-show': accountPanelShow }"
+      :class="{ 'account-show': accountPanelShow, 'aside-show': uiStore.asideShow }"
       @search="returnToList('all-email')"
       @reset="returnToList('all-email')"
     />
