@@ -483,7 +483,8 @@ function chooseFile() {
 }
 
 async function onFilesSelected(e) {
-  const fileList = e.target.files;
+  // e.target.files 是活的 FileList，先拷成数组再清空 input，否则清空后列表也跟着空了
+  const fileList = Array.from(e.target.files || []);
   e.target.value = '';
   for (const file of fileList) {
     const size = file.size
