@@ -295,3 +295,11 @@ html[data-theme-to="light"]::view-transition-old(root) {
 svg.icon-huge g {
   stroke-width: 1.8;
 }
+
+/* mail-block-01 的禁止徽章是 <g> 里的最后一个 <path>（圆环 + 斜杠）：图形太小，抗锯齿让它看着比信封细，单独再加粗一点，并补圆角端点跟信封一致。
+   （目前只有 mail-block-01 用 .icon-huge；以后别的 HugeIcons 图标用这个类时要确认它的最后一个 path 是不是也需要加粗） */
+svg.icon-huge g path:last-child {
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

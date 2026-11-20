@@ -2263,6 +2263,22 @@ function renderHighlight(value) {
   }
 }
 
+/* 三栏阅读时列表列只有 380px 宽：顶栏常驻 6 个图标（刷新 + 5 个批量操作）+ 计数 + 两个切换，
+   按 20px 间距会溢出、标未读换到第二行，勾选后刷新一收又变回单行，顶栏高度来回跳；
+   三栏下收紧间距（与触屏同档），未勾选/勾选都是一行、等高。宽屏列表不受影响。 */
+.email-container.three-pane .header-actions {
+  gap: 10px;
+  padding: 8px 12px;
+
+  .header-left {
+    column-gap: 12px;
+  }
+
+  .more-icon {
+    margin-left: 10px;
+  }
+}
+
 .del-status {
   color: var(--el-color-info);
   display: flex;
