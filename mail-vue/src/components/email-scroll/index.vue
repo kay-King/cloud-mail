@@ -808,8 +808,8 @@ function visibleChange(e) {
 
 const handleContextmenu = (event, email) => {
 
-  // 触屏长按是用来进入选择模式的，不弹右键菜单；仍要 preventDefault 拦掉系统长按菜单
-  if (touchActive) {
+  // 触屏上不弹右键菜单（长按只进选择模式）；仍要 preventDefault 拦掉系统长按菜单
+  if (!uiStore.finePointer) {
     event.preventDefault();
     return;
   }
@@ -1346,7 +1346,6 @@ function showBrandImg(item) {
 // 移动端长按进入选择模式（Gmail 做法：默认无复选框，长按勾选）
 let longPressTimer = null;
 let touchStartX = 0, touchStartY = 0;
-let touchActive = false;
 let suppressClickUntil = 0;
 let pressingEmail = null;
 
@@ -1388,7 +1387,6 @@ function swipeToggleRead(email) {
 function onRowTouchStart(e, email) {
   // 细指针桌面端不启用长按（用复选框）；窄屏或粗指针设备都启用（宽屏触屏设备以前因 isMobile 门进不来长按）
   if (!isMobile.value && uiStore.finePointer) return;
-  touchActive = true;
   const t = e.touches[0];
   touchStartX = t.clientX;
   touchStartY = t.clientY;
@@ -1480,7 +1478,6 @@ function onRowTouchEnd() {
   }
   swipeEmail = null;
   swipeDecision = 'pending';
-  setTimeout(() => { touchActive = false; }, 500);
 }
 // 手势被浏览器接管时（竖滑滚动、系统打断）：只复位状态，不执行动作
 function onRowTouchCancel() {
@@ -1495,7 +1492,6 @@ function onRowTouchCancel() {
   swipeState.dragging = false;
   swipeEmail = null;
   swipeDecision = 'pending';
-  setTimeout(() => { touchActive = false; }, 500);
 }
 
 function handleList(list) {
