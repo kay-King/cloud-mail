@@ -346,6 +346,7 @@ onUnmounted(() => {
 <style scoped>
 .audit-box {
   width: 100%;
+  overflow-x: hidden;
   /* 高度必须用视口单位写死，不能用 height: 100%：祖先链里有 min-height: auto 的 flex 项，
      百分比高度在内容撑高时会被当成 auto，整个页面变高、滚动跑到外层容器去了，
      列表 div 自己不滚动、滚动条永远出不来（2026-11-18 实测） */
@@ -390,6 +391,9 @@ onUnmounted(() => {
 .scrollbar {
   flex: 1;
   overflow-y: auto;
+  /* 只许上下滑：overflow-y 设了 auto 后，overflow-x 会跟着变成 auto，
+     某条记录内容比屏幕宽 1px 就会冒出横向滚动条（2026-11-20 用户反馈），直接禁掉 */
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -405,7 +409,7 @@ onUnmounted(() => {
     scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
   }
   .scrollbar::-webkit-scrollbar {
-    width: 4px;
+    width: 3px;
   }
   .scrollbar::-webkit-scrollbar-track {
     background: transparent;

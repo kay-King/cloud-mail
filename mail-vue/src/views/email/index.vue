@@ -17,7 +17,7 @@
   >
     <template #first>
       <el-tooltip effect="dark" :content="$t('markSpamSelected')">
-        <Icon v-perm="'email:delete'" class="icon" icon="fluent:mail-prohibited-20-regular" width="20" height="20"
+        <Icon v-perm="'email:delete'" class="icon" icon="lucide:mail-x" width="20" height="20"
               v-if="selectedIds.length > 0"
               @click="handleMarkSpamSelected"/>
       </el-tooltip>
