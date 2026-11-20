@@ -237,3 +237,12 @@ html[data-theme-to="light"]::view-transition-old(root) {
 
 /* 登录背景壁纸库已移到组件 mail-vue/src/components/bg-preset/index.vue
    （DOM 元素 + 容器单位，登录页全屏与设置弹窗缩略图共用同一套渲染）。 */
+
+/* 悬浮提示消失更快：提示框本身不接收鼠标，鼠标一离开触发元素就消失，不会被提示框粘住 */
+.el-tooltip__popper {
+    pointer-events: none;
+}
+/* 悬浮提示（tooltip / popover）的淡出动画从 200ms 缩到 80ms，移开鼠标立刻消失 */
+.el-fade-in-linear-leave-active {
+    transition: opacity 80ms linear !important;
+}

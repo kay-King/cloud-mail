@@ -1,5 +1,6 @@
 <template>
-  <div class="email-container">
+  <div class="email-container" :class="{ 'three-pane': threePane }">
+    <div class="list-col">
     <div class="header-actions">
       <!-- 移动端默认不显示全选框，进入选择模式（长按勾选）后才出现 -->
       <el-checkbox
@@ -40,6 +41,11 @@
 
       <div class="header-right">
         <span class="email-count" v-if="total">{{ $t('emailCount', {total: total}) }}</span>
+        <el-tooltip effect="dark" :content="threePane ? $t('switchToListMode') : $t('switchToReadingPane')">
+          <Icon v-if="uiStore.finePointer && props.type !== 'draft'" class="more-icon icon" width="18" height="18"
+                :icon="threePane ? 'fluent:list-20-regular' : 'mdi:view-split-vertical'"
+                @click="toggleReadingPane"/>
+        </el-tooltip>
         <el-tooltip effect="dark" :content="$t('toggleAccountPanel')">
           <Icon v-if="showAccountIcon" class="more-icon icon" width="16" height="16" icon="akar-icons:dot-grid-fill"
                 @click="changeAccountShow"/>
@@ -58,7 +64,7 @@
                         :key="keyCount"
         >
           <template #default="{ data: item, index }" >
-            <div :class="['email-row', props.type, { 'right-checked': item.rightChecked, 'pressing': item.pressing }]"
+            <div :class="['email-row', props.type, { 'right-checked': item.rightChecked, 'pressing': item.pressing, 'selected': threePane && item.emailId === emailStore.contentData.email?.emailId }]"
                  :data-checked="item.checked"
                  @click="jumpDetails(item)"
                  v-if="!item.expand"
@@ -200,6 +206,15 @@
                        :type="type"/>
       <div class="empty" v-if="noLoading && emailList.length === 0 && !loading">
         <el-empty :image-size="isMobile ? 120 : null" :description="$t('noMessagesFound')"/>
+      </div>
+    </div>
+    </div>
+    <!-- 三栏阅读：列表右边直接看正文；只在邮件列表路由下渲染，离开列表路由时卸载，避免与整页详情重复挂载 -->
+    <div class="reading-pane" v-if="threePane && isListRoute">
+      <ContentView v-if="emailStore.contentData.email?.emailId" pane />
+      <div v-else class="reading-empty">
+        <Icon icon="fluent:mail-20-regular" width="48" height="48" />
+        <span>{{ $t('selectMailToView') }}</span>
       </div>
     </div>
     <el-dropdown
@@ -350,6 +365,8 @@ import {useUserStore} from "@/store/user.js";
 import {useUiStore} from "@/store/ui.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useSidebarStore} from "@/store/sidebar.js";
+import {useRoute} from "vue-router";
+import ContentView from "@/views/content/index.vue";
 import {sleep} from "@/utils/time-utils.js"
 import {fromNow} from "@/utils/day.js";
 import {useI18n} from "vue-i18n";
@@ -422,6 +439,21 @@ const uiStore = useUiStore();
 const emailStore = useEmailStore();
 const userStore = useUserStore();
 const sidebarStore = useSidebarStore();
+const route = useRoute()
+
+// 三栏阅读：桌面端（鼠标）+ 开关打开 + 非草稿视图；草稿点开是编辑器，没有正文可看
+const threePane = computed(() => uiStore.isThreePane && props.type !== 'draft')
+// 只在邮件列表路由下渲染阅读窗：去整页详情/通讯录等页面时卸载，避免与整页详情重复挂载
+const isListRoute = computed(() => ['email', 'send', 'star', 'all-email', 'trash', 'spam'].includes(route.name))
+
+function toggleReadingPane() {
+  uiStore.readingPane = !uiStore.readingPane
+}
+
+// 三栏模式下左侧菜单栏自动收起，地方让给列表和正文；左上角 ☰ 随时可以再打开
+watch(threePane, (v) => {
+  if (v) uiStore.asideShow = false
+}, {immediate: true})
 
 // 管理员删除通知弹窗：仅全部邮件视图、开关开启、且删到别人的邮件时出现
 const notifyDialog = reactive({
@@ -1379,12 +1411,44 @@ function renderHighlight(value) {
 
 .email-container {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr;
   padding: 0;
   font-size: 14px;
   color: var(--el-text-color-primary);
   overflow: hidden;
   height: 100%;
+}
+
+/* 三栏阅读：列表固定 380px（窄窗口不超过 45%），正文占剩余宽度 */
+.email-container.three-pane {
+  grid-template-columns: min(380px, 45%) minmax(0, 1fr);
+}
+
+.list-col {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.reading-pane {
+  height: 100%;
+  overflow: hidden;
+  border-left: 1px solid var(--el-border-color-lighter);
+  min-width: 0;
+}
+
+.reading-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
 }
 
 .scroll {
@@ -1470,6 +1534,10 @@ function renderHighlight(value) {
     .sender-avatar {
       transform: scale(0.92);
     }
+  }
+  /* 三栏阅读：正文里正在看的那封，在列表里高亮 */
+  &.selected {
+    background: var(--el-color-primary-light-9);
   }
   &.all-email {
     height: 65px;

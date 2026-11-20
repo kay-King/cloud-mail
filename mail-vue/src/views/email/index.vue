@@ -28,6 +28,7 @@
 <script setup>
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
+import {useUiStore} from "@/store/ui.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useSidebarStore} from "@/store/sidebar.js";
 import emailScroll from "@/components/email-scroll/index.vue"
@@ -49,6 +50,7 @@ defineOptions({
 })
 
 const emailStore = useEmailStore();
+const uiStore = useUiStore();
 const accountStore = useAccountStore();
 const settingStore = useSettingStore();
 const sidebarStore = useSidebarStore();
@@ -103,6 +105,7 @@ function jumpContent(email) {
   emailStore.contentData.showStar = true
   emailStore.contentData.showReply = true
   emailStore.contentData.showSpam = true
+  if (uiStore.isThreePane) return
   router.push({name: 'content', params: {mailbox: 'inbox'}})
 }
 

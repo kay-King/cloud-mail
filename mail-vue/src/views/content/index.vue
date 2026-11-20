@@ -1,7 +1,7 @@
 <template>
-  <div class="box">
+  <div class="box" :class="{ pane: props.pane }">
     <div class="header-actions">
-      <el-tooltip effect="dark" :content="$t('back')">
+      <el-tooltip v-if="!props.pane" effect="dark" :content="$t('back')">
         <Icon class="icon" icon="material-symbols-light:arrow-back-ios-new" width="20" height="20" @click="handleBack"/>
       </el-tooltip>
       <el-tooltip effect="dark" :content="emailStore.contentData.delType === 'trash' ? $t('deleteForever') : $t('delete')">
@@ -174,6 +174,14 @@ import {useI18n} from "vue-i18n";
 import {EmailUnreadEnum} from "@/enums/email-enum.js";
 const { t } = useI18n()
 
+// pane 模式：嵌在三栏阅读的右边看正文，返回/删除等操作只清掉当前选中，不跳路由
+const props = defineProps({
+  pane: {
+    type: Boolean,
+    default: false
+  }
+})
+
 const uiStore = useUiStore();
 const settingStore = useSettingStore();
 const accountStore = useAccountStore();
@@ -200,7 +208,7 @@ function onNotifyDialogConfirm(opts) {
     // 成对删除时后端返回实际删掉的全部 id（含副本），列表按它移除
     emailStore.deleteIds = Array.isArray(deletedIds) && deletedIds.length ? deletedIds : [email.value.emailId]
   })
-  router.back()
+  handleBack()
 }
 const sendNameRef = ref(null)
 const senderWrapped = ref(false)
@@ -441,6 +449,10 @@ function changeStar() {
 }
 
 const handleBack = () => {
+  if (props.pane) {
+    emailStore.contentData.email = null
+    return
+  }
   router.back()
 }
 
@@ -510,7 +522,7 @@ const handleDelete = () => {
       })
     }
 
-    router.back()
+    handleBack()
   })
 }
 
@@ -522,7 +534,7 @@ const handleRestore = () => {
       plain: true,
     })
     emailStore.deleteIds = [email.value.emailId]
-    router.back()
+    handleBack()
   })
 }
 
@@ -534,7 +546,7 @@ const handleMarkSpam = () => {
       plain: true,
     })
     emailStore.deleteIds = [email.value.emailId]
-    router.back()
+    handleBack()
   })
 }
 
@@ -546,7 +558,7 @@ const handleUnspam = () => {
       plain: true,
     })
     emailStore.deleteIds = [email.value.emailId]
-    router.back()
+    handleBack()
   })
 }
 </script>
@@ -554,6 +566,17 @@ const handleUnspam = () => {
 .box {
   height: 100%;
   overflow: hidden;
+}
+
+/* 三栏阅读窗：正文区收窄一点，附件盒子不设最小宽，避免窄窗下被裁 */
+.box.pane {
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .att-box {
+    min-width: 0;
+  }
 }
 
 .header-actions {

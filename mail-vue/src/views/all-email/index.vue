@@ -65,6 +65,7 @@ import emailScroll from "@/components/email-scroll/index.vue"
 import {defineOptions, reactive, ref, watch, onMounted, onBeforeUnmount} from "vue";
 import {useAllEmailStore} from "@/store/all-email.js";
 import {useEmailStore} from "@/store/email.js";
+import {useUiStore} from "@/store/ui.js";
 import {
   allEmailList,
   allEmailDelete,
@@ -85,6 +86,7 @@ defineOptions({
 
 const {t} = useI18n();
 const emailStore = useEmailStore();
+const uiStore = useUiStore();
 const allEmailStore = useAllEmailStore();
 const settingStore = useSettingStore();
 const clearTime = ref('')
@@ -222,6 +224,7 @@ function jumpContent(email) {
   emailStore.contentData.delType = 'physics'
   emailStore.contentData.showStar = false
   emailStore.contentData.showReply = false
+  if (uiStore.isThreePane) return
   router.push({name: 'content', params: {mailbox: 'all-mail'}})
 }
 

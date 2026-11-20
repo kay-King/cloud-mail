@@ -18,6 +18,7 @@
 <script setup>
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
+import {useUiStore} from "@/store/ui.js";
 import {useSendStore} from "@/store/send.js";
 import emailScroll from "@/components/email-scroll/index.vue"
 import {emailList, emailDelete} from "@/request/email.js";
@@ -30,6 +31,7 @@ defineOptions({
 })
 
 const emailStore = useEmailStore();
+const uiStore = useUiStore();
 const sendStore = useSendStore();
 const accountStore = useAccountStore();
 const sendScroll = ref({})
@@ -54,6 +56,7 @@ function jumpContent(email) {
   emailStore.contentData.delType = 'logic'
   emailStore.contentData.showStar = true
   emailStore.contentData.showReply = true
+  if (uiStore.isThreePane) return
   router.push({name: 'content', params: {mailbox: 'sent'}})
 }
 

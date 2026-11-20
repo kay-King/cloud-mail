@@ -29,6 +29,7 @@
 <script setup>
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
+import {useUiStore} from "@/store/ui.js";
 import {useSidebarStore} from "@/store/sidebar.js";
 import emailScroll from "@/components/email-scroll/index.vue"
 import {Icon} from "@iconify/vue";
@@ -44,6 +45,7 @@ defineOptions({
 
 const {t} = useI18n()
 const emailStore = useEmailStore();
+const uiStore = useUiStore();
 const accountStore = useAccountStore();
 const sidebarStore = useSidebarStore();
 const scroll = ref({})
@@ -94,6 +96,7 @@ function jumpContent(email) {
   emailStore.contentData.showUnread = true
   emailStore.contentData.showStar = false
   emailStore.contentData.showReply = false
+  if (uiStore.isThreePane) return
   router.push({name: 'content', params: {mailbox: 'spam'}})
 }
 

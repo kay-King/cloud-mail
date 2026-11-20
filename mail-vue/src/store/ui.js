@@ -17,8 +17,14 @@ export const useUiStore = defineStore('ui', {
             email: 0,
             send: 0,
             sysEmail: 0
-        }
+        },
+        // 三栏阅读：桌面端（鼠标）默认开，点邮件正文直接在右边打开；触屏设备不启用
+        readingPane: true,
+        finePointer: window.matchMedia('(pointer: fine)').matches,
     }),
+    getters: {
+        isThreePane: (state) => state.readingPane && state.finePointer,
+    },
     actions: {
         showNotice() {
             this.changeNotice ++
@@ -29,6 +35,6 @@ export const useUiStore = defineStore('ui', {
         }
     },
     persist: {
-        pick: ['accountShow','dark','brand'],
+        pick: ['accountShow','dark','brand','readingPane'],
     },
 })
