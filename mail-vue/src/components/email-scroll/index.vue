@@ -64,16 +64,23 @@
                         :key="keyCount"
         >
           <template #default="{ data: item, index }" >
-            <div :class="['email-row', props.type, { 'right-checked': item.rightChecked, 'pressing': item.pressing, 'selected': threePane && item.emailId === emailStore.contentData.email?.emailId }]"
+            <!-- 滑动手势外壳：背景层（删除/标已读）在行后面，行平移时露出来；虚拟列表每项外层已有固定高 + overflow hidden，这里只补相对定位 -->
+            <div class="email-row-wrap" v-if="!item.expand" :key="item.emailId">
+              <div class="swipe-bg swipe-bg-delete" v-if="swipeState.emailId === item.emailId && swipeState.offset < 0">
+                <Icon icon="fluent:delete-20-regular" width="22" height="22" />
+              </div>
+              <div class="swipe-bg swipe-bg-read" v-if="swipeState.emailId === item.emailId && swipeState.offset > 0">
+                <Icon :icon="isUnreadRow(item) ? 'fluent:mail-read-20-regular' : 'fluent:mail-unread-20-regular'" width="22" height="22" />
+              </div>
+            <div :class="['email-row', props.type, { 'right-checked': item.rightChecked, 'pressing': item.pressing, 'selected': threePane && item.emailId === emailStore.contentData.email?.emailId, 'swiping': swipeState.dragging && swipeState.emailId === item.emailId }]"
                  :data-checked="item.checked"
+                 :style="swipeStyle(item)"
                  @click="jumpDetails(item)"
-                 v-if="!item.expand"
-                 :key="item.emailId"
                  @contextmenu="handleContextmenu($event, item)"
                  @touchstart="onRowTouchStart($event, item)"
                  @touchmove="onRowTouchMove"
                  @touchend="onRowTouchEnd"
-                 @touchcancel="onRowTouchEnd"
+                 @touchcancel="onRowTouchCancel"
             >
               <!-- 粗指针设备（触屏，窄屏/宽屏都一样）：头像与复选框共用一个位置，默认显示头像，长按进入选择模式后显示复选框 -->
               <div v-if="!uiStore.finePointer" class="avatar-slot">
@@ -168,6 +175,7 @@
               <div class="email-right" :style="showUserInfo ? 'align-self: start;':''">
                 <span class="email-time" :style="isUnreadRow(item) ? 'font-weight: bold' : ''">{{ item.formatCreateTime }}</span>
               </div>
+            </div>
             </div>
             <skeletonBlock v-else-if="item.expand === 'loading'"
                            :rows="1"
@@ -952,6 +960,8 @@ function rightDelete(emailId) {
           plain: true
         })
         emailStore.deleteIds = [emailId];
+        // 删掉未读邮件会改变侧边栏未读数，立即刷新（左滑删除也走这里）
+        sidebarStore.refreshUnread()
       })
     })
     return;
@@ -963,6 +973,8 @@ function rightDelete(emailId) {
       plain: true
     })
     emailStore.deleteIds = [emailId];
+    // 删掉未读邮件会改变侧边栏未读数，立即刷新（左滑删除也走这里）
+    sidebarStore.refreshUnread()
   })
 }
 
@@ -1268,6 +1280,42 @@ let touchStartX = 0, touchStartY = 0;
 let touchActive = false;
 let suppressClickUntil = 0;
 let pressingEmail = null;
+
+// 手机端左滑右滑手势（Gmail 做法）：左滑删除、右滑标已读/未读切换。
+// 只在触屏设备上启用（finePointer 为 false）；回收站禁用（左滑会变成彻底删除，太容易误触）。
+// 偏移状态只记一封邮件（单指同时只能滑一行），跟 emailId 绑定：虚拟列表把行复用给
+// 另一封邮件时条件不成立、偏移自动不显示，不会串行。
+const SWIPE_VIEWS = ['email', 'star', 'spam', 'all-email', 'send']
+const swipeEnabled = computed(() => !uiStore.finePointer && SWIPE_VIEWS.includes(props.type))
+const swipeState = reactive({ emailId: null, offset: 0, dragging: false })
+let swipeEmail = null
+let swipeRowWidth = 0
+let swipeDecision = 'pending' // pending：还没定方向 | swipe：横滑 | scroll：竖滑滚动
+function swipeThreshold() {
+  // 触发阈值：约行宽 30%，夹在 80–120px 之间（用户手机约 390px 宽时约 117px）
+  return Math.max(80, Math.min(120, swipeRowWidth * 0.3))
+}
+// 右滑标已读/未读只在收件箱/星标/垃圾箱且是收到的邮件时可用（照右键菜单的条件）：
+// 全部邮件与已发送视图没传 read/unread handler，发件份的未读状态本身也没意义
+function canSwipeRight(item) {
+  return ['email', 'star', 'spam'].includes(props.type) && item.type === 0 && props.emailRead && props.emailUnread
+}
+function swipeStyle(item) {
+  if (swipeState.emailId !== item.emailId || swipeState.offset === 0) return {}
+  return { transform: `translateX(${swipeState.offset}px)` }
+}
+// 左滑删除：走右键单封删除的现有流程（全部邮件视图里含确认框与管理员删他人邮件的通知弹窗，不能绕过）
+function swipeDelete(email) {
+  rightDelete(email.emailId)
+}
+// 右滑标已读/未读切换：走现有 handler（视图层成功后会刷新侧边栏未读数）
+function swipeToggleRead(email) {
+  if (email.unread === EmailUnreadEnum.UNREAD) {
+    emailRead(email.emailId)
+  } else {
+    emailUnread(email.emailId)
+  }
+}
 function onRowTouchStart(e, email) {
   // 细指针桌面端不启用长按（用复选框）；窄屏或粗指针设备都启用（宽屏触屏设备以前因 isMobile 门进不来长按）
   if (!isMobile.value && uiStore.finePointer) return;
@@ -1277,6 +1325,12 @@ function onRowTouchStart(e, email) {
   touchStartY = t.clientY;
   pressingEmail = email;
   email.pressing = true;
+  // 滑动手势初始化：已进入多选模式时禁用滑动（点按是勾选/取消勾选）
+  if (swipeEnabled.value && !selectMode.value) {
+    swipeEmail = email;
+    swipeRowWidth = e.currentTarget.offsetWidth || 0;
+    swipeDecision = 'pending';
+  }
   clearTimeout(longPressTimer);
   longPressTimer = setTimeout(() => {
     longPressTimer = null;
@@ -1287,9 +1341,42 @@ function onRowTouchStart(e, email) {
   }, 350);
 }
 function onRowTouchMove(e) {
-  if (!longPressTimer) return;
   const t = e.touches[0];
-  if (Math.abs(t.clientX - touchStartX) > 20 || Math.abs(t.clientY - touchStartY) > 20) {
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+  // 方向决策：横向位移占主导且超过 10px 时接管为横滑；竖向占主导时交给滚动
+  if (swipeEmail && swipeDecision === 'pending' && !selectMode.value) {
+    if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      swipeDecision = 'swipe';
+      swipeState.dragging = true;
+      // 开始横滑就取消长按计时
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+      if (pressingEmail) {
+        pressingEmail.pressing = false;
+        pressingEmail = null;
+      }
+    } else if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) {
+      swipeDecision = 'scroll';
+    }
+  }
+  if (swipeDecision === 'swipe' && swipeEmail) {
+    // 跟手平移：左右最多滑 60% 行宽（再远就拽不动）；右滑只在可标已读/未读时允许
+    let offset = dx;
+    const maxDrag = swipeRowWidth * 0.6;
+    if (offset < -maxDrag) offset = -maxDrag;
+    if (offset > 0) {
+      if (!canSwipeRight(swipeEmail)) offset = 0;
+      else if (offset > maxDrag) offset = maxDrag;
+    }
+    swipeState.emailId = swipeEmail.emailId;
+    swipeState.offset = offset;
+    // 横滑时拦掉浏览器默认行为（下拉刷新、滚动串位），竖滑已由 touch-action: pan-y 交给浏览器
+    e.preventDefault();
+    return;
+  }
+  if (!longPressTimer) return;
+  if (Math.abs(dx) > 20 || Math.abs(dy) > 20) {
     clearTimeout(longPressTimer);
     longPressTimer = null;
     if (pressingEmail) {
@@ -1305,6 +1392,40 @@ function onRowTouchEnd() {
     pressingEmail.pressing = false;
     pressingEmail = null;
   }
+  // 横滑收尾：过阈值执行动作，没过弹回原位；只要行移动过就吞掉随后合成的 click，防误开邮件
+  if (swipeDecision === 'swipe' && swipeEmail) {
+    const offset = swipeState.offset;
+    const email = swipeEmail;
+    const threshold = swipeThreshold();
+    swipeState.emailId = null;
+    swipeState.offset = 0;
+    swipeState.dragging = false;
+    if (Math.abs(offset) > 10) {
+      suppressClickUntil = Date.now() + 600;
+    }
+    if (offset <= -threshold) {
+      swipeDelete(email);
+    } else if (offset >= threshold && canSwipeRight(email)) {
+      swipeToggleRead(email);
+    }
+  }
+  swipeEmail = null;
+  swipeDecision = 'pending';
+  setTimeout(() => { touchActive = false; }, 500);
+}
+// 手势被浏览器接管时（竖滑滚动、系统打断）：只复位状态，不执行动作
+function onRowTouchCancel() {
+  clearTimeout(longPressTimer);
+  longPressTimer = null;
+  if (pressingEmail) {
+    pressingEmail.pressing = false;
+    pressingEmail = null;
+  }
+  swipeState.emailId = null;
+  swipeState.offset = 0;
+  swipeState.dragging = false;
+  swipeEmail = null;
+  swipeDecision = 'pending';
   setTimeout(() => { touchActive = false; }, 500);
 }
 
@@ -1436,7 +1557,7 @@ function renderHighlight(value) {
 /* 三栏阅读：列表只有 380px 宽，行改用堆叠式（同窄屏布局），主题/摘要/日期不再被截断；
    日期从行右侧（.email-right）移到发件人行（.phone-time），跟窄屏一致 */
 .email-container.three-pane {
-  :deep(.email-row) {
+:deep(.email-row) {
     height: 83px;
     &.all-email {
       height: 132px;
@@ -1585,6 +1706,30 @@ function renderHighlight(value) {
   }
 }
 
+/* 滑动手势外壳：背景层在行后面，行平移时露出来 */
+.email-row-wrap {
+  position: relative;
+  height: 100%;
+}
+.swipe-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  color: #fff;
+  z-index: 0;
+}
+.swipe-bg-delete {
+  background: #F56C6C;
+  justify-content: flex-end;
+  padding-right: 24px;
+}
+.swipe-bg-read {
+  background: var(--el-color-primary);
+  justify-content: flex-start;
+  padding-left: 24px;
+}
+
 :deep(.email-row) {
   display: flex;
   padding: 8px 0;
@@ -1593,7 +1738,10 @@ function renderHighlight(value) {
   cursor: pointer;
   align-items: center;
   position: relative;
-  transition: background 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  z-index: 1;
+  /* touch-action: pan-y：竖滑交给浏览器滚动，横滑由手势逻辑接管 */
+  touch-action: pan-y;
+  transition: background 0.15s ease-in-out, box-shadow 0.15s ease-in-out, transform 0.2s ease-out;
   height: 48px;
   @media (max-width: 1366px) {
     height: 83px;
@@ -1611,6 +1759,11 @@ function renderHighlight(value) {
     .sender-avatar {
       transform: scale(0.92);
     }
+  }
+  /* 滑动中：跟手平移不要过渡动画；行本身不透明，盖住背后的色块 */
+  &.swiping {
+    transition: background 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    background: var(--el-bg-color);
   }
   /* 三栏阅读：正文里正在看的那封，在列表里高亮 */
   &.selected {
