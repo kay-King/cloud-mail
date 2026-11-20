@@ -124,13 +124,17 @@
                   <div class="user-info" v-if="showUserInfo">
                     <div class="user">
                       <span>
-                        <Icon icon="mynaui:user" width="20" height="20"/>
+                        <el-tooltip effect="dark" :content="$t('sender')">
+                          <Icon icon="mynaui:user" width="20" height="20"/>
+                        </el-tooltip>
                       </span>
                       <span v-html="item.senderEmailHtml"></span>
                     </div>
                     <div class="account">
                       <span>
-                        <Icon icon="mdi-light:email" width="20" height="20"/>
+                        <el-tooltip effect="dark" :content="$t('recipient')">
+                          <Icon icon="mdi-light:email" width="20" height="20"/>
+                        </el-tooltip>
                       </span>
                       <span v-html="item.recipientEmailHtml"></span>
                     </div>
