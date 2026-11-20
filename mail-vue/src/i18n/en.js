@@ -16,6 +16,7 @@ const en = {
     SystemSettings: 'System Settings',
     noMoreData: 'No more data',
     loadingMore: 'Loading…',
+    noMoreData: 'No more data',
     previewLoading: 'Loading preview…',
     previewFailed: 'Preview failed. Please download to view.',
     previewUnsupported: 'This format cannot be previewed online',

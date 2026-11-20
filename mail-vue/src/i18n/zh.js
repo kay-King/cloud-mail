@@ -16,6 +16,7 @@ const zh = {
     SystemSettings: '系统设置',
     noMoreData: '没有更多数据了',
     loadingMore: '加载中…',
+    noMoreData: '没有更多数据了',
     previewLoading: '正在加载预览…',
     previewFailed: '预览失败，请下载后查看',
     previewUnsupported: '该格式不支持在线预览',

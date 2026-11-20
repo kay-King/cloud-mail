@@ -84,6 +84,7 @@
           </div>
         </div>
         <div v-if="loadingMore" class="loading-more">{{ $t('loadingMore') }}</div>
+        <div v-if="noMore && logs.length > 0" class="loading-more">{{ $t('noMoreData') }}</div>
       </div>
     </div>
     <el-dialog class="dialog" v-model="detailShow" :title="$t('auditDetailTitle')" :width="isMobile ? '92%' : 520">
