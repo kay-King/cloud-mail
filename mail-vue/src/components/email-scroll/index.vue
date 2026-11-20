@@ -58,7 +58,7 @@
                         :key="keyCount"
         >
           <template #default="{ data: item, index }" >
-            <div :class="['email-row', props.type, { 'right-checked': item.rightChecked }]"
+            <div :class="['email-row', props.type, { 'right-checked': item.rightChecked, 'pressing': item.pressing }]"
                  :data-checked="item.checked"
                  @click="jumpDetails(item)"
                  v-if="!item.expand"
@@ -1192,12 +1192,15 @@ let longPressTimer = null;
 let touchStartX = 0, touchStartY = 0;
 let touchActive = false;
 let suppressClickUntil = 0;
+let pressingEmail = null;
 function onRowTouchStart(e, email) {
   if (!isMobile.value) return;
   touchActive = true;
   const t = e.touches[0];
   touchStartX = t.clientX;
   touchStartY = t.clientY;
+  pressingEmail = email;
+  email.pressing = true;
   clearTimeout(longPressTimer);
   longPressTimer = setTimeout(() => {
     longPressTimer = null;
@@ -1205,19 +1208,27 @@ function onRowTouchStart(e, email) {
     email.checked = true;
     suppressClickUntil = Date.now() + 600;
     if (navigator.vibrate) navigator.vibrate(10);
-  }, 500);
+  }, 350);
 }
 function onRowTouchMove(e) {
   if (!longPressTimer) return;
   const t = e.touches[0];
-  if (Math.abs(t.clientX - touchStartX) > 10 || Math.abs(t.clientY - touchStartY) > 10) {
+  if (Math.abs(t.clientX - touchStartX) > 20 || Math.abs(t.clientY - touchStartY) > 20) {
     clearTimeout(longPressTimer);
     longPressTimer = null;
+    if (pressingEmail) {
+      pressingEmail.pressing = false;
+      pressingEmail = null;
+    }
   }
 }
 function onRowTouchEnd() {
   clearTimeout(longPressTimer);
   longPressTimer = null;
+  if (pressingEmail) {
+    pressingEmail.pressing = false;
+    pressingEmail = null;
+  }
   setTimeout(() => { touchActive = false; }, 500);
 }
 
@@ -1416,6 +1427,14 @@ function renderHighlight(value) {
     user-select: none;
     -webkit-touch-callout: none;
   }
+
+  /* 按下反馈：手指一碰上行就高亮 + 头像微缩，长按等待时手感跟手 */
+  &.pressing {
+    background: var(--el-fill-color-light);
+    .sender-avatar {
+      transform: scale(0.92);
+    }
+  }
   &.all-email {
     height: 65px;
     @media (max-width: 1366px) {
@@ -1509,6 +1528,7 @@ function renderHighlight(value) {
     flex-shrink: 0;
     user-select: none;
     -webkit-user-select: none;
+    transition: transform 0.15s ease;
   }
 
   /* 桌面端头像 32px，跟在星标后面、名字前面 */
