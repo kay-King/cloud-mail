@@ -264,6 +264,14 @@
               </div>
             </template>
           </el-dropdown-item>
+          <el-dropdown-item v-if="rightClickEmail.type === 0" @click="addSenderToContacts(rightClickEmail)">
+            <template #default>
+              <div class="right-dropdown-item">
+                <Icon icon="fluent:person-add-20-regular" width="19" height="19" />
+                <span>{{t('addToContacts')}}</span>
+              </div>
+            </template>
+          </el-dropdown-item>
           <el-dropdown-item v-if="props.type === 'all-email'" @click="handleSearch('user', rightClickEmail.userEmail)">
             <template #default>
               <div class="right-dropdown-item">
@@ -336,6 +344,7 @@ import deleteNotifyDialog from "@/components/delete-notify-dialog/index.vue"
 import {computed, onActivated, reactive, ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import {useEmailStore} from "@/store/email.js";
 import {emailExport, downloadExport} from "@/request/email.js";
+import {contactAdd, contactSuggest} from "@/request/contact.js";
 import {useUserStore} from "@/store/user.js";
 import {useUiStore} from "@/store/ui.js";
 import {useSettingStore} from "@/store/setting.js";
@@ -822,6 +831,27 @@ function rightSpam(emailId) {
     return;
   }
   props.emailSpam([emailId])
+}
+
+// 右键菜单：把发件人加进通讯录（只对收到的邮件显示，已发送的发件人是自己）
+async function addSenderToContacts(email) {
+  const senderEmail = String(email.sendEmail || '').trim()
+  if (!senderEmail) {
+    return
+  }
+  try {
+    const found = await contactSuggest(senderEmail)
+    const exists = (found || []).some(c => String(c.email || '').toLowerCase() === senderEmail.toLowerCase())
+    if (exists) {
+      ElMessage({message: t('alreadyInContacts'), type: 'info', plain: true})
+      return
+    }
+    await contactAdd({name: email.name || '', email: senderEmail})
+    ElMessage({message: t('addedToContacts'), type: 'success', plain: true})
+  } catch (e) {
+    // 失败提示由 axios 拦截器统一弹出，这里只记日志
+    console.error(e)
+  }
 }
 
 function doExport(emailIds) {
