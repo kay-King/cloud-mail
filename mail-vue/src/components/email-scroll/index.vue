@@ -1798,6 +1798,9 @@ function renderHighlight(value) {
     display: grid;
     grid-template-columns: auto auto;
     align-items: start;
+    /* 窄窗口（<1367px，如 1366 笔记本）时复选框隐藏，header-right 落进 1fr 列被拉满宽，
+       auto 列默认会被拉伸均分，图标会被推到行中间去；贴紧右端，跟宽屏一致 */
+    justify-content: end;
     height: 100%;
     color: var(--el-text-color-primary);;
 
