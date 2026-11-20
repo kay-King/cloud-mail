@@ -452,15 +452,8 @@ function toggleReadingPane() {
   uiStore.readingPane = !uiStore.readingPane
 }
 
-// 切换文件夹时清空正文区，不残留上一个文件夹的邮件；
-// 去设置/通讯录等页面再回来不清空（lastListRoute 只记邮件列表路由，首次为 null 时只记录不清空）
-watch(() => route.name, (to) => {
-  if (!['email', 'send', 'star', 'all-email', 'trash', 'spam'].includes(to)) return
-  if (emailStore.lastListRoute !== null && to !== emailStore.lastListRoute) {
-    emailStore.contentData.email = null
-  }
-  emailStore.lastListRoute = to
-})
+// 切换文件夹时清空正文区的逻辑在 router afterEach 里（这里曾用 watch route.name，但旧视图的
+// 实例在切换时正被 keep-alive 停用，watch 不可靠，新视图挂载时正文区还会短暂残留旧邮件）
 
 // 管理员删除通知弹窗：仅全部邮件视图、开关开启、且删到别人的邮件时出现
 const notifyDialog = reactive({
