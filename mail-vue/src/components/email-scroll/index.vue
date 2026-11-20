@@ -23,21 +23,49 @@
                 v-if="getSelectedMailsIds().length > 0"
                 @click="handleDelete"/>
         </el-tooltip>
-        <el-tooltip effect="dark" :hide-after="0" :content="$t('exportSelected')">
+        <!-- 触屏上导出/标已读/标未读收进 ⋮ 菜单，电脑端保持直接显示 -->
+        <el-tooltip effect="dark" :hide-after="0" :content="$t('exportSelected')" v-if="uiStore.finePointer">
           <Icon class="icon" icon="system-uicons:push-down" width="22" height="22"
                 v-if="getSelectedMailsIds().length > 0 && props.type !== 'draft'"
                 @click="handleExport"/>
         </el-tooltip>
-        <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsRead')">
+        <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsRead')" v-if="uiStore.finePointer">
           <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-read-20-regular" width="20" height="20"
                 v-if="getSelectedMailsIds().length > 0 && showUnread && props.emailRead"
                 @click="handleRead"/>
         </el-tooltip>
-        <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsUnread')">
+        <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsUnread')" v-if="uiStore.finePointer">
           <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-unread-20-regular" width="20" height="20"
                 v-if="getSelectedMailsIds().length > 0 && showUnread && props.emailUnread"
                 @click="handleUnread"/>
         </el-tooltip>
+        <!-- 触屏勾选时的 ⋮ 更多菜单：导出/标已读/标未读收进来，顶栏只留删除 + slot + ⋮；
+             草稿视图三项条件都不满足、菜单会是空的，不显示 ⋮；电脑端不出现 -->
+        <el-dropdown v-if="!uiStore.finePointer && checkedEmailCount > 0 && props.type !== 'draft'" trigger="click">
+          <Icon class="icon" icon="mdi:dots-vertical" width="20" height="20" />
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item v-if="props.type !== 'draft'" @click="handleExport">
+                <div class="right-dropdown-item">
+                  <Icon icon="system-uicons:push-down" width="20" height="20" />
+                  <span>{{ $t('exportSelected') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="showUnread && props.emailRead" v-perm="'email:delete'" @click="handleRead">
+                <div class="right-dropdown-item">
+                  <Icon icon="fluent:mail-read-20-regular" width="20" height="20" />
+                  <span>{{ $t('markAsRead') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="showUnread && props.emailUnread" v-perm="'email:delete'" @click="handleUnread">
+                <div class="right-dropdown-item">
+                  <Icon icon="fluent:mail-unread-20-regular" width="20" height="20" />
+                  <span>{{ $t('markAsUnread') }}</span>
+                </div>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
 
       <div class="header-right">
@@ -547,6 +575,41 @@ const checkedEmailCount = ref(0);
 const isSelectMax = computed(() => checkedEmailCount.value >= MAX_SELECT_COUNT);
 // 选择模式：有任意邮件被勾选时进入（移动端长按勾选第一封即进入；全部取消勾选即退出）
 const selectMode = computed(() => checkedEmailCount.value > 0);
+
+// 手机端返回键：勾选只是页面内状态，没进浏览器历史，按返回会直接退出网站。
+// 触屏上用 history 占位法拦截一次返回：进入选择模式时 push 一条占位记录，按返回时
+// popstate 触发，先取消勾选；界面内取消勾选时把占位记录吃掉，免得下次按返回没反应。
+// 电脑端不动。注意：pushState 必须合并现有 history.state 再写——vue-router 把导航
+// 位置（position/back/forward/scroll）存在 history.state 里，整包替换会弄坏路由的前进
+// 后退记录（vue-router 自己对此有警告）；history.state 为 null 时展开是空对象，没问题。
+// 已知边界：勾选后切到别的视图再按返回，返回键会同时取消勾选，属于可接受行为。
+let selectHistoryPushed = false
+let ignoringPopstate = false
+watch(selectMode, (inSelectMode) => {
+  if (uiStore.finePointer) return
+  if (inSelectMode) {
+    if (!selectHistoryPushed) {
+      history.pushState({ ...history.state, cloudMailSelect: true }, '')
+      selectHistoryPushed = true
+    }
+  } else if (selectHistoryPushed) {
+    // 界面内已取消勾选：把占位记录吃掉，免得下次按返回没反应
+    selectHistoryPushed = false
+    ignoringPopstate = true
+    history.back()
+  }
+})
+function onSelectPopstate() {
+  if (ignoringPopstate) {
+    ignoringPopstate = false
+    return
+  }
+  if (!selectHistoryPushed) return
+  selectHistoryPushed = false
+  // 复用全不选逻辑：所有勾选清除，selectMode 回到 false；此时 watch 再触发一次，
+  // 但标志已清，不会重复 history.back()
+  handleCheckAllChange(false)
+}
 let timer = null
 const position = ref(
     DOMRect.fromRect({
@@ -590,10 +653,12 @@ onMounted(() => {
       email.formatCreateTime = fromNow(email.createTime);
     })
   }, 1000 * 60);
+  window.addEventListener('popstate', onSelectPopstate)
 })
 
 onUnmounted(() => {
   clearInterval(timer)
+  window.removeEventListener('popstate', onSelectPopstate)
 })
 
 getEmailList()
