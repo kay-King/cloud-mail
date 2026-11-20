@@ -71,7 +71,10 @@
             >
               <!-- 移动端：头像与复选框共用一个位置，默认显示头像，长按进入选择模式后显示复选框 -->
               <div v-if="isMobile" class="avatar-slot">
-                <el-checkbox v-if="selectMode" v-model="item.checked" :disabled="!item.checked && isSelectMax" @click.stop></el-checkbox>
+                <!-- 选择模式下已勾选的行：头像位置显示浅蓝底圆圈 + 蓝色对勾；未勾选的行仍显示头像 -->
+                <div v-if="selectMode && item.checked" class="sender-avatar avatar-checked">
+                  <Icon icon="mdi:check" width="22" height="22" />
+                </div>
                 <div v-else class="sender-avatar" :style="{ background: item.avatarColor }">{{ item.avatarLetter }}</div>
               </div>
               <el-checkbox v-if="!isMobile" :class=" props.type === 'all-email' ? 'all-email-checkbox' : 'checkbox'"
@@ -1433,9 +1436,12 @@ function renderHighlight(value) {
     flex-shrink: 0;
     align-self: flex-start;
     margin: 0 12px 0 15px;
-    .el-checkbox {
-      margin-right: 0;
-    }
+  }
+
+  /* 选择模式下已勾选的行：浅色圆底 + 品牌色对勾（跟随当前主题主色） */
+  .avatar-checked {
+    background: var(--el-color-primary-light-7);
+    color: var(--el-color-primary);
   }
 
   .sender-avatar {
