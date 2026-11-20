@@ -13,7 +13,7 @@
         <Icon class="icon" icon="fluent:broom-20-regular" width="20" height="20" @click="clearAll"/>
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('auditDeleteSelected')">
-        <Icon v-if="selectedLogs.length > 0" class="icon" icon="fluent:delete-20-regular" width="20" height="20" @click="deleteSelected"/>
+        <Icon v-if="selectedLogs.length > 0" class="icon icon-huge" icon="hugeicons:delete-02" width="20" height="20" @click="deleteSelected"/>
       </el-tooltip>
     </div>
     <!-- 原生滚动容器：el-scrollbar 的自定义滑块在手机上不可靠，改用浏览器原生滚动条 + 强制常显样式 -->
@@ -60,7 +60,7 @@
           <el-table-column :label="$t('auditOperation')" width="70">
             <template #default="props">
               <el-tooltip effect="dark" :content="$t('delete')">
-                <Icon class="icon" icon="fluent:delete-20-regular" width="20" height="20" @click.stop="deleteOne(props.row)"/>
+                <Icon class="icon icon-huge" icon="hugeicons:delete-02" width="20" height="20" @click.stop="deleteOne(props.row)"/>
               </el-tooltip>
             </template>
           </el-table-column>
@@ -80,7 +80,7 @@
               <div class="card-target">{{ row.targetDesc }}</div>
               <div class="card-detail" v-if="row.detail">{{ row.detail }}</div>
             </div>
-            <Icon class="icon card-delete" icon="fluent:delete-20-regular" width="20" height="20" @click.stop="deleteOne(row)"/>
+            <Icon class="icon card-delete icon-huge" icon="hugeicons:delete-02" width="20" height="20" @click.stop="deleteOne(row)"/>
           </div>
         </div>
         <div v-if="loadingMore" class="loading-more">{{ $t('loadingMore') }}</div>

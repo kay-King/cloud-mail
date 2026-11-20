@@ -14,7 +14,7 @@
         <el-menu-item v-for="item in visiblePersonalItems" :key="item.key"
                       @click="router.push({name: item.key})" :index="item.key"
                       :class="route.meta.name === item.key ? 'choose-item' : ''">
-          <Icon :icon="item.icon" :width="item.size" :height="item.size" />
+          <Icon :icon="item.icon" :width="item.size" :height="item.size" :class="item.cls" />
           <span class="menu-name" :style="{ marginLeft: (item.labelMargin || 16) + 'px' }">{{$t(item.label)}}</span>
           <span v-if="unreadBadge(item.key)" class="menu-badge">{{ unreadBadge(item.key) }}</span>
         </el-menu-item>
@@ -88,7 +88,7 @@ const personalItems = [
   { key: 'draft', icon: 'fluent:document-20-regular', size: 20, label: 'drafts', perm: 'email:send' },
   { key: 'star', icon: 'fluent:star-20-regular', size: 20, label: 'starred', perm: null },
   { key: 'spam', icon: 'fluent:folder-prohibited-20-regular', size: 20, label: 'spam', perm: null },
-  { key: 'trash', icon: 'fluent:delete-20-regular', size: 20, label: 'trash', perm: null },
+  { key: 'trash', icon: 'hugeicons:delete-02', size: 20, label: 'trash', perm: null, cls: 'icon-huge' },
   { key: 'attachments', icon: 'fluent:attach-20-regular', size: 20, label: 'myAttachments', perm: null },
   { key: 'contacts', icon: 'fluent:people-20-regular', size: 20, label: 'contacts', perm: null },
   { key: 'setting', icon: 'fluent:settings-20-regular', size: 20, label: 'settings', perm: null },

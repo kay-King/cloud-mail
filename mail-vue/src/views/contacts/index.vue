@@ -47,7 +47,7 @@
         <div class="card-actions">
           <Icon icon="fluent:send-20-regular" width="20" height="20" v-perm="'email:send'" @click="writeTo(row)"/>
           <Icon icon="fluent:edit-20-regular" width="20" height="20" @click="openEdit(row)"/>
-          <Icon icon="fluent:delete-20-regular" width="20" height="20" @click="deleteRow(row)"/>
+          <Icon class="icon-huge" icon="hugeicons:delete-02" width="20" height="20" @click="deleteRow(row)"/>
         </div>
       </div>
     </div>

@@ -22,7 +22,7 @@
         <slot name="first"></slot>
         <!-- 批量操作图标常驻显示：未勾选时禁用态（半透明、点不动），勾选后恢复可点 -->
         <el-tooltip effect="dark" :hide-after="0" :content="props.type === 'trash' ? $t('deleteForeverSelected') : $t('deleteSelected')">
-          <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:delete-20-regular" width="20" height="20"
+          <Icon v-perm="'email:delete'" class="icon delete icon-huge" icon="hugeicons:delete-02" width="20" height="20"
                 :class="{ 'icon-disabled': checkedEmailCount === 0 }"
                 @click="handleDelete"/>
         </el-tooltip>
@@ -106,7 +106,7 @@
             <!-- 滑动手势外壳：背景层（删除/标已读）在行后面，行平移时露出来；虚拟列表每项外层已有固定高 + overflow hidden，这里只补相对定位 -->
             <div class="email-row-wrap" v-if="!item.expand" :key="item.emailId">
               <div class="swipe-bg swipe-bg-delete" v-if="swipeState.emailId === item.emailId && swipeState.offset < 0">
-                <Icon icon="fluent:delete-20-regular" width="22" height="22" />
+                <Icon class="icon-huge" icon="hugeicons:delete-02" width="22" height="22" />
               </div>
               <div class="swipe-bg swipe-bg-read" v-if="swipeState.emailId === item.emailId && swipeState.offset > 0">
                 <Icon :icon="isUnreadRow(item) ? 'fluent:mail-read-20-regular' : 'fluent:mail-unread-20-regular'" width="22" height="22" />
@@ -389,7 +389,7 @@
           <el-dropdown-item @click="rightDelete(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="fluent:delete-20-regular" width="20" height="20" />
+                <Icon class="icon-huge" icon="hugeicons:delete-02" width="20" height="20" />
                 <span>{{props.type === 'trash' ? t('deleteForever') : t('delete')}}</span>
               </div>
             </template>

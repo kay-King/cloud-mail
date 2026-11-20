@@ -34,7 +34,7 @@
         {{ tab === 'fav' ? $t('unFavorite') : $t('favorite') }}
       </el-button>
       <el-button :disabled="selected.length === 0" @click="deleteSelected">
-        <Icon icon="fluent:delete-20-regular" width="20" height="20"/>
+        <Icon class="icon-huge" icon="hugeicons:delete-02" width="20" height="20"/>
         {{ $t('deleted') }}
       </el-button>
       <el-select v-model="category" class="att-filter" @change="reload" v-if="!isMobile">

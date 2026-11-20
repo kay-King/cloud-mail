@@ -129,7 +129,7 @@
                       <Icon icon="fluent:edit-20-regular" width="16" height="16"/>
                     </el-button>
                     <el-button class="opt-button" size="small" type="primary" @click="delBackground">
-                      <Icon icon="fluent:delete-20-regular" width="16" height="16"/>
+                      <Icon class="icon-huge" icon="hugeicons:delete-02" width="16" height="16"/>
                     </el-button>
                   </div>
                 </div>

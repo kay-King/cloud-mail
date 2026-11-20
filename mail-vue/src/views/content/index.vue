@@ -5,7 +5,7 @@
         <Icon class="icon" icon="fluent:chevron-left-20-regular" width="20" height="20" @click="handleBack"/>
       </el-tooltip>
       <el-tooltip effect="dark" :content="emailStore.contentData.delType === 'trash' ? $t('deleteForever') : $t('delete')">
-        <Icon v-perm="'email:delete'" class="icon" icon="fluent:delete-20-regular" width="20" height="20" @click="handleDelete"/>
+        <Icon v-perm="'email:delete'" class="icon icon-huge" icon="hugeicons:delete-02" width="20" height="20" @click="handleDelete"/>
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('restore')">
         <Icon v-if="emailStore.contentData.delType === 'trash'" v-perm="'email:delete'" class="icon" icon="fluent:arrow-undo-20-regular" width="20" height="20" @click="handleRestore"/>

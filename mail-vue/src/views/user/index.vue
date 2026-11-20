@@ -34,7 +34,7 @@
         <Icon class="icon" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="refresh"/>
       </el-tooltip>
       <el-tooltip :hide-after="0" effect="dark" :content="$t('deleteSelectedUsers')">
-        <Icon class="icon" icon="fluent:delete-20-regular" width="20" height="20" @click="delUser"/>
+        <Icon class="icon icon-huge" icon="hugeicons:delete-02" width="20" height="20" @click="delUser"/>
       </el-tooltip>
     </div>
     <el-scrollbar ref="scrollbarRef" class="scrollbar">
@@ -377,7 +377,7 @@
           <el-dropdown-item v-if="rightClickUser.type !== 0" @click="delOneUser(rightClickUser)" >
             <template #default>
               <div class="right-dropdown-item" >
-                <Icon icon="fluent:delete-20-regular" width="20" height="20" />
+                <Icon class="icon-huge" icon="hugeicons:delete-02" width="20" height="20" />
                 <span>{{ t('adminDeleteUser') }}</span>
               </div>
             </template>
