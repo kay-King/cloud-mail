@@ -4,7 +4,7 @@
       <div class="title">
         <div class="title-left">
           <span class="title-text">
-            <Icon class="icon-huge" icon="hugeicons:quill-write-01" width="28" height="28"/>
+            <Icon icon="hugeicons:quill-write-01" width="28" height="28"/>
           </span>
           <span class="sender">{{ $t('sender') }}:</span>
           <span class="sender-name">{{ form.name }}</span>

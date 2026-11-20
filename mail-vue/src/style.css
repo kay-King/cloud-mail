@@ -291,9 +291,10 @@ html[data-theme-to="light"]::view-transition-old(root) {
 /* HugeIcons 是 24 格、描边 1.5，渲染成 20px 时等效只有 1.25px，比 Fluent 20-regular
    的 1.5px 细一截，放在同一排里一眼就能看出来；描边提到 1.8，20px 下等效正好 1.5px。
    （CSS 规则优先于 SVG 里的 presentation attribute，这条能盖掉图标自带的 stroke-width；
-   1.8/24 = 1.5/20，任何渲染尺寸下都与 Fluent 等效一致，不只限于 20px；
    有的 HugeIcons 图标把 path 包在 <g> 里（如 mail-block-01），有的直接就是裸 <path>
-   （如 delete-02），两条选择器都要写，缺一个就有图标吃不到加粗） */
+   （如 delete-02），两条选择器都要写，缺一个就有图标吃不到加粗；
+   注意：1.8 这个值是按 20px 工具栏图标（标垃圾、删除）调出来的，别当成通用公式——
+   羽毛笔 22px 时套用就显粗了，用户 2026-11-21 实测确认不加才正好，羽毛笔不要加这个类） */
 svg.icon-huge g,
 svg.icon-huge path {
   stroke-width: 1.8;
