@@ -88,7 +88,7 @@ const {t} = useI18n()
 const uiStore = useUiStore()
 
 const list = ref([])
-const loading = ref(false)
+const loading = ref(true)
 const total = ref(0)
 const keyword = ref('')
 const page = ref(1)

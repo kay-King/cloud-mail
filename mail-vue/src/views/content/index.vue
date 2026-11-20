@@ -380,6 +380,10 @@ function handleKeyDown(event) {
   if (document.querySelector('.el-message-box')) return;
   const writeBox = document.querySelector('.write-box');
   if (writeBox && writeBox.offsetParent !== null) return;
+  // 右键菜单（下拉菜单）打开时，Esc 只关菜单本身，不清空正文选择
+  for (const menu of document.querySelectorAll('.el-dropdown-menu')) {
+    if (menu.offsetParent !== null) return;
+  }
   handleBack();
 }
 

@@ -124,7 +124,7 @@ const zh = {
     allAttachments: '全部附件',
     auditOperator: '操作人',
     auditOperatorPlaceholder: '输入操作人邮箱',
-    auditAction: '操作',
+    auditAction: '操作类型',
     auditTarget: '对象',
     auditDetail: '备注',
     auditTime: '时间',

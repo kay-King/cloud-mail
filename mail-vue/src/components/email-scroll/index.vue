@@ -13,26 +13,26 @@
       </el-checkbox>
       <div class="header-left" :style="'padding-left:' + actionLeft">
 
-        <el-tooltip effect="dark" :content="$t('refresh')">
+        <el-tooltip effect="dark" :hide-after="0" :content="$t('refresh')">
           <Icon class="icon reload" icon="ion:reload" width="20" height="20" @click="refresh"/>
         </el-tooltip>
         <slot name="first"></slot>
-        <el-tooltip effect="dark" :content="props.type === 'trash' ? $t('deleteForeverSelected') : $t('deleteSelected')">
+        <el-tooltip effect="dark" :hide-after="0" :content="props.type === 'trash' ? $t('deleteForeverSelected') : $t('deleteSelected')">
           <Icon v-perm="'email:delete'" class="icon delete" icon="uiw:delete" width="18" height="18"
                 v-if="getSelectedMailsIds().length > 0"
                 @click="handleDelete"/>
         </el-tooltip>
-        <el-tooltip effect="dark" :content="$t('exportSelected')">
+        <el-tooltip effect="dark" :hide-after="0" :content="$t('exportSelected')">
           <Icon class="icon" icon="system-uicons:push-down" width="22" height="22"
                 v-if="getSelectedMailsIds().length > 0 && props.type !== 'draft'"
                 @click="handleExport"/>
         </el-tooltip>
-        <el-tooltip effect="dark" :content="$t('markAsRead')">
+        <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsRead')">
           <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-read-20-regular" width="20" height="20"
                 v-if="getSelectedMailsIds().length > 0 && showUnread && props.emailRead"
                 @click="handleRead"/>
         </el-tooltip>
-        <el-tooltip effect="dark" :content="$t('markAsUnread')">
+        <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsUnread')">
           <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-unread-20-regular" width="20" height="20"
                 v-if="getSelectedMailsIds().length > 0 && showUnread && props.emailUnread"
                 @click="handleUnread"/>
@@ -41,12 +41,12 @@
 
       <div class="header-right">
         <span class="email-count" v-if="total">{{ $t('emailCount', {total: total}) }}</span>
-        <el-tooltip effect="dark" :content="threePane ? $t('switchToListMode') : $t('switchToReadingPane')">
+        <el-tooltip effect="dark" :hide-after="0" :content="threePane ? $t('switchToListMode') : $t('switchToReadingPane')">
           <Icon v-if="uiStore.finePointer && props.type !== 'draft'" class="more-icon icon" width="18" height="18"
                 :icon="threePane ? 'fluent:list-20-regular' : 'mdi:view-split-vertical'"
                 @click="toggleReadingPane"/>
         </el-tooltip>
-        <el-tooltip effect="dark" :content="$t('toggleAccountPanel')">
+        <el-tooltip effect="dark" :hide-after="0" :content="$t('toggleAccountPanel')">
           <Icon v-if="showAccountIcon" class="more-icon icon" width="16" height="16" icon="akar-icons:dot-grid-fill"
                 @click="changeAccountShow"/>
         </el-tooltip>
@@ -91,7 +91,7 @@
                            v-model="item.checked"
                            :disabled="!item.checked && isSelectMax"
                            @click.stop></el-checkbox>
-              <el-tooltip effect="dark" :content="item.isStar ? $t('unstar') : $t('starIt')">
+              <el-tooltip effect="dark" :hide-after="0" :content="item.isStar ? $t('unstar') : $t('starIt')">
                 <div @click.stop="starChange(item)" class="pc-star" v-if="showStar">
                   <Icon v-if="item.isStar" icon="fluent-color:star-16" width="20" height="20"/>
                   <Icon v-else icon="solar:star-line-duotone" width="18" height="18"/>
@@ -102,11 +102,11 @@
 
                 <div class="email-sender" :style=" (showStatus ? 'gap: 10px;' : '') + (isUnreadRow(item) ? 'font-weight: bold' : '')">
                   <div class="email-status" v-if="showStatus">
-                    <el-tooltip v-if="item.statusIcon" effect="dark" :content="item.statusIcon.content">
+                    <el-tooltip v-if="item.statusIcon" effect="dark" :hide-after="0" :content="item.statusIcon.content">
                       <Icon :icon="item.statusIcon.icon" :style="`color: ${item.statusIcon.color}`" width="20" height="20"/>
                     </el-tooltip>
                     <div class="del-status" v-if="item.isDel && item.status !== 6">
-                      <el-tooltip effect="dark" :content="item.isDelContent">
+                      <el-tooltip effect="dark" :hide-after="0" :content="item.isDelContent">
                         <Icon class="icon" icon="mdi:email-remove" width="20" height="20"/>
                       </el-tooltip>
                     </div>
@@ -133,13 +133,13 @@
                           <span v-html="item.subjectHtml"></span>
                         </slot>
                       </span>
-                      <el-tooltip effect="dark" :content="$t('hasAttachmentTip')">
+                      <el-tooltip effect="dark" :hide-after="0" :content="$t('hasAttachmentTip')">
                         <Icon v-if="item.hasAttachment" icon="iconamoon:attachment-fill" width="16" height="16" class="attachment-icon"/>
                       </el-tooltip>
-                      <el-tooltip effect="dark" :content="$t('hasImageTip')">
+                      <el-tooltip effect="dark" :hide-after="0" :content="$t('hasImageTip')">
                         <Icon v-if="item.hasInlineImage" icon="mdi:image" width="16" height="16" class="attachment-icon"/>
                       </el-tooltip>
-                      <el-tooltip effect="dark" :content="$t('pairCountTip', {count: item.pairCount})">
+                      <el-tooltip effect="dark" :hide-after="0" :content="$t('pairCountTip', {count: item.pairCount})">
                         <Icon v-if="item.pairCount > 1" icon="fluent:mail-copy-20-regular" width="16" height="16" class="attachment-icon"/>
                       </el-tooltip>
                     </span>
@@ -148,7 +148,7 @@
                   <div class="user-info" v-if="showUserInfo">
                     <div class="user">
                       <span>
-                        <el-tooltip effect="dark" :content="$t('sender')">
+                        <el-tooltip effect="dark" :hide-after="0" :content="$t('sender')">
                           <Icon icon="mynaui:user" width="20" height="20"/>
                         </el-tooltip>
                       </span>
@@ -156,7 +156,7 @@
                     </div>
                     <div class="account">
                       <span>
-                        <el-tooltip effect="dark" :content="$t('recipient')">
+                        <el-tooltip effect="dark" :hide-after="0" :content="$t('recipient')">
                           <Icon icon="mdi-light:email" width="20" height="20"/>
                         </el-tooltip>
                       </span>
@@ -233,11 +233,19 @@
               </div>
             </template>
           </el-dropdown-item>
-          <el-dropdown-item v-if="['email'].includes(props.type)" @click="emailRead(rightClickEmail.emailId)" >
+          <el-dropdown-item v-if="['email','star','spam'].includes(props.type) && rightClickEmail.type === 0 && rightClickEmail.unread === EmailUnreadEnum.UNREAD" @click="emailRead(rightClickEmail.emailId)" >
             <template #default>
               <div class="right-dropdown-item">
                 <Icon icon="fluent:mail-read-20-regular" width="20" height="20" />
                 <span>{{t('markAsRead')}}</span>
+              </div>
+            </template>
+          </el-dropdown-item>
+          <el-dropdown-item v-if="['email','star','spam'].includes(props.type) && rightClickEmail.type === 0 && rightClickEmail.unread === EmailUnreadEnum.READ" @click="emailUnread(rightClickEmail.emailId)" >
+            <template #default>
+              <div class="right-dropdown-item">
+                <Icon icon="fluent:mail-unread-20-regular" width="20" height="20" />
+                <span>{{t('markAsUnread')}}</span>
               </div>
             </template>
           </el-dropdown-item>
@@ -444,10 +452,15 @@ function toggleReadingPane() {
   uiStore.readingPane = !uiStore.readingPane
 }
 
-// 三栏模式下左侧菜单栏自动收起，地方让给列表和正文；左上角 ☰ 随时可以再打开
-watch(threePane, (v) => {
-  if (v) uiStore.asideShow = false
-}, {immediate: true})
+// 切换文件夹时清空正文区，不残留上一个文件夹的邮件；
+// 去设置/通讯录等页面再回来不清空（lastListRoute 只记邮件列表路由，首次为 null 时只记录不清空）
+watch(() => route.name, (to) => {
+  if (!['email', 'send', 'star', 'all-email', 'trash', 'spam'].includes(to)) return
+  if (emailStore.lastListRoute !== null && to !== emailStore.lastListRoute) {
+    emailStore.contentData.email = null
+  }
+  emailStore.lastListRoute = to
+})
 
 // 管理员删除通知弹窗：仅全部邮件视图、开关开启、且删到别人的邮件时出现
 const notifyDialog = reactive({
@@ -599,10 +612,12 @@ const list = computed(() => {
 })
 
 const itemHeight = computed(() => {
+    // 三栏模式下行是堆叠式（同窄屏高度），虚拟列表的行高必须同步，否则行会重叠
+    const stacked = isMobile.value || threePane.value
     if (props.type === 'all-email') {
-      return isMobile.value ? 132 : 65;
+      return stacked ? 132 : 65;
     } else  {
-      return isMobile.value ? 83 : 48;
+      return stacked ? 83 : 48;
     }
 })
 
@@ -817,6 +832,11 @@ const handleUnread = () => {
 function emailRead(emailId) {
   props.emailRead([emailId])
   localRead([emailId]);
+}
+
+function emailUnread(emailId) {
+  props.emailUnread([emailId])
+  localUnread([emailId]);
 }
 
 function localRead(emailIds) {
@@ -1417,6 +1437,73 @@ function renderHighlight(value) {
 /* 三栏阅读：列表固定 380px（窄窗口不超过 45%），正文占剩余宽度 */
 .email-container.three-pane {
   grid-template-columns: min(380px, 45%) minmax(0, 1fr);
+}
+
+/* 三栏阅读：列表只有 380px 宽，行改用堆叠式（同窄屏布局），主题/摘要/日期不再被截断；
+   日期从行右侧（.email-right）移到发件人行（.phone-time），跟窄屏一致 */
+.email-container.three-pane {
+  :deep(.email-row) {
+    height: 83px;
+    &.all-email {
+      height: 132px;
+    }
+    .user-info {
+      flex-direction: column;
+    }
+    .title-column {
+      grid-template-columns: 1fr !important;
+      gap: 4px !important;
+    }
+    .title {
+      grid-template-columns: 1fr;
+      gap: 4px;
+      padding-right: 15px;
+    }
+    .email-status {
+      flex-direction: row;
+      gap: 5px;
+    }
+    .name {
+      grid-template-columns: auto auto 1fr;
+      > span:last-child {
+        display: flex;
+      }
+    }
+    .phone-time {
+      display: block;
+    }
+    .email-text {
+      grid-template-columns: 1fr;
+    }
+    .email-content {
+      padding-left: 0;
+      margin-top: 0;
+    }
+    .email-right {
+      display: none;
+    }
+    .email-text-skeleton {
+      .text-skeleton-one {
+        width: 40%;
+      }
+      .text-skeleton-two {
+        display: block;
+        width: 100%;
+      }
+    }
+  }
+  .pc-star {
+    display: none;
+  }
+  .phone-star {
+    display: block;
+    align-self: end;
+    padding-right: 16px;
+    padding-top: 8px;
+  }
+  .star-pd {
+    padding-top: 6px !important;
+  }
 }
 
 .list-col {
