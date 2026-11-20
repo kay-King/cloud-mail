@@ -652,7 +652,15 @@ defineExpose({
   total
 })
 
+// 别的视图动过邮件归属后（删除/标垃圾/恢复等），本列表缓存就旧了；
+// 切回来时静默重拉一次，不闪骨架屏、不回顶
+let needsRefresh = false
+
 onActivated(() => {
+  if (needsRefresh) {
+    needsRefresh = false
+    getEmailList(true, true)
+  }
   requestAnimationFrame(() => {
     const index = scrollTop / itemHeight.value
     scrollbarRef.value?.scrollTo(index);
@@ -760,7 +768,13 @@ watch(
 
 watch(() => emailStore.deleteIds, () => {
   if (emailStore.deleteIds) {
-    deleteEmail(emailStore.deleteIds)
+    const removed = deleteEmail(emailStore.deleteIds)
+    // 这次操作没动我这个列表（removed 为 0），说明邮件是被移进/移出别的视图了
+    // （比如在垃圾箱点「不是垃圾」，邮件回到收件箱）：这个列表下次切回来时要重拉，
+    // 否则还显示旧数据。删掉的行已经当场拼掉了（removed > 0），不用重拉。
+    if (removed === 0) {
+      needsRefresh = true
+    }
     // 正文区正在看的邮件被删了，一起清掉，别留着已删邮件
     const ids = Array.isArray(emailStore.deleteIds) ? emailStore.deleteIds : [emailStore.deleteIds]
     if (emailStore.contentData?.email && ids.includes(emailStore.contentData.email.emailId)) {
@@ -1124,6 +1138,7 @@ function deleteEmail(emailIds) {
   if (emailList.length < queryParam.size && !noLoading.value) {
     getEmailList()
   }
+  return removed
 }
 
 function addItem(email) {
@@ -1238,7 +1253,7 @@ function jumpDetails(email) {
 }
 
 
-function getEmailList(refresh = false) {
+function getEmailList(refresh = false, silent = false) {
 
   if (reqLock) return Promise.resolve(false);
 
@@ -1254,10 +1269,13 @@ function getEmailList(refresh = false) {
     }
 
   } else {
-    getSkeletonRows()
     emailId = 0
-    loading.value = true
-    scrollTop = 0
+    // 静默刷新（切回脏列表时用）：不闪骨架屏、不回顶，数据到了直接换掉
+    if (!silent) {
+      getSkeletonRows()
+      loading.value = true
+      scrollTop = 0
+    }
   }
 
   if (emailList.length === 0) {
