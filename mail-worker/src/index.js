@@ -9,6 +9,7 @@ import analysisService from './service/analysis-service';
 import backupService from './service/backup-service';
 import auditService from './service/audit-service';
 import proxyService from './service/proxy-service';
+import brandIconService from './service/brand-icon-service';
 import { handleWsUpgrade } from './websocket/connect';
 export { MailHub } from './websocket/hub'; // Durable Object 必须从 Worker 入口导出
 export default {
@@ -19,6 +20,11 @@ export default {
 		// 邮件图片代理：校验链接签名后，由 Worker 代拉外链图。
 		if (url.pathname === '/proxy') {
 			return proxyService.fetchImage(env, url.searchParams);
+		}
+
+		// 品牌头像：按发件域名取品牌 logo（Simple Icons），Worker 代拉并边缘缓存。
+		if (url.pathname === '/api/brand-icon') {
+			return brandIconService.fetchIcon(url.searchParams);
 		}
 
 		// WebSocket：浏览器连 /api/realtime，转到 MailHub Durable Object

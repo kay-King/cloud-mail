@@ -75,7 +75,11 @@
                 <div v-if="selectMode && item.checked" class="sender-avatar avatar-checked">
                   <Icon icon="mdi:check" width="22" height="22" />
                 </div>
-                <div v-else class="sender-avatar" :style="{ background: item.avatarColor }">{{ item.avatarLetter }}</div>
+                <div v-else class="sender-avatar" :class="{ 'brand-avatar': showBrandImg(item) }" :style="showBrandImg(item) ? {} : { background: item.avatarColor }">
+                  <img v-if="item.avatarBrand && !item.brandFailed" :src="'/brand/' + item.avatarBrand + '.svg'" @error="item.brandFailed = true" :alt="item.avatarLetter">
+                  <img v-else-if="item.avatarBrandDomain && !item.brandFailed" :src="'/api/brand-icon?domain=' + item.avatarBrandDomain" @error="item.brandFailed = true" :alt="item.avatarLetter">
+                  <template v-else>{{ item.avatarLetter }}</template>
+                </div>
               </div>
               <el-checkbox v-if="!isMobile" :class=" props.type === 'all-email' ? 'all-email-checkbox' : 'checkbox'"
                            v-model="item.checked"
@@ -89,7 +93,11 @@
               </el-tooltip>
               <div v-if="!showStar"></div>
               <!-- 桌面端发件人头像 -->
-              <div v-if="!isMobile" class="sender-avatar sender-avatar-pc" :style="{ background: item.avatarColor }">{{ item.avatarLetter }}</div>
+              <div v-if="!isMobile" class="sender-avatar sender-avatar-pc" :class="{ 'brand-avatar': showBrandImg(item) }" :style="showBrandImg(item) ? {} : { background: item.avatarColor }">
+                <img v-if="item.avatarBrand && !item.brandFailed" :src="'/brand/' + item.avatarBrand + '.svg'" @error="item.brandFailed = true" :alt="item.avatarLetter">
+                <img v-else-if="item.avatarBrandDomain && !item.brandFailed" :src="'/api/brand-icon?domain=' + item.avatarBrandDomain" @error="item.brandFailed = true" :alt="item.avatarLetter">
+                <template v-else>{{ item.avatarLetter }}</template>
+              </div>
               <div class="title" :class="accountShow ? 'title-column' : 'title-column'">
 
                 <div class="email-sender" :style=" (showStatus ? 'gap: 10px;' : '') + (isUnreadRow(item) ? 'font-weight: bold' : '')">
@@ -1125,16 +1133,58 @@ function getEmailList(refresh = false) {
   })
 }
 
-// 发件人头像：首字母 + 按发件身份哈希取色的圆底（Gmail/Outlook 同款做法，不联网、不取品牌图）
+// 发件人头像：品牌 logo（白底圆圈）或首字母 + 哈希取色的圆底。
+// 品牌 logo 不用手维护名单：谷歌/微软用内置多彩版（图标库里是单色的不好看），
+// 其余一律走 /api/brand-icon，由 Worker 按发件域名去 Simple Icons（约 3000 个品牌）取，
+// 未收录的 404，前端回落首字母头像。
 const AVATAR_COLORS = ['#7C4DFF', '#009688', '#FF7043', '#5C6BC0', '#26A69A', '#EC407A', '#AB47BC', '#42A5F5', '#66BB6A', '#FFA726', '#8D6E63', '#78909C'];
+const BUNDLED_BRANDS = {
+  'google.com': 'google',
+  'microsoft.com': 'microsoft',
+};
+// 免费邮箱域名：发件人用的服务商、不是发件方本身，不出品牌 logo
+//（后端 brand-icon-service 里有一份同样的表，两边改要同步）
+const FREEMAIL_DOMAINS = [
+  'gmail.com', 'googlemail.com',
+  'outlook.com', 'hotmail.com', 'live.com', 'live.cn', 'msn.com',
+  'icloud.com', 'me.com', 'mac.com',
+  'yahoo.com', 'yahoo.cn', 'ymail.com',
+  'qq.com', 'foxmail.com',
+  '163.com', '126.com', 'yeah.net',
+  'sina.com', 'sina.cn', 'sohu.com', 'tom.com',
+  '139.com', '189.cn', 'aliyun.com',
+  'protonmail.com', 'proton.me', 'pm.me',
+  'tutanota.com', 'tuta.io',
+  'zoho.com', 'yandex.com', 'yandex.ru',
+  'mail.com', 'gmx.com', 'gmx.net', 'aol.com',
+];
+function domainMatches(domain, base) {
+  return domain === base || domain.endsWith('.' + base);
+}
 function avatarFor(email) {
   const name = (email.name || '').trim();
   const addr = (email.sendEmail || email.toEmail || '').trim();
+  const domain = (addr.split('@')[1] || '').toLowerCase();
+  let brand = null;
+  let brandDomain = null;
+  if (domain && !FREEMAIL_DOMAINS.some(base => domainMatches(domain, base))) {
+    for (const base in BUNDLED_BRANDS) {
+      if (domainMatches(domain, base)) {
+        brand = BUNDLED_BRANDS[base];
+        break;
+      }
+    }
+    if (!brand) brandDomain = domain;
+  }
   const first = name ? Array.from(name)[0] : (addr ? addr[0] : '?');
   const key = (name + '|' + addr).toLowerCase();
   let hash = 0;
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-  return { letter: first.toUpperCase(), color: AVATAR_COLORS[hash % AVATAR_COLORS.length] };
+  return { letter: first.toUpperCase(), color: AVATAR_COLORS[hash % AVATAR_COLORS.length], brand, brandDomain };
+}
+// 是否显示品牌图（内置或接口取到的；加载失败后回落首字母）
+function showBrandImg(item) {
+  return (item.avatarBrand || item.avatarBrandDomain) && !item.brandFailed;
 }
 
 // 移动端长按进入选择模式（Gmail 做法：默认无复选框，长按勾选）
@@ -1178,6 +1228,8 @@ function handleList(list) {
     const av = avatarFor(email);
     email.avatarLetter = av.letter;
     email.avatarColor = av.color;
+    email.avatarBrand = av.brand;
+    email.avatarBrandDomain = av.brandDomain;
     const statusIconMap = {
       0: { icon: 'ic:round-mark-email-read', color: '#51C76B', content: t('received') },
       1: { icon: 'bi:send-arrow-up-fill',  color: 'var(--el-color-primary)', content: t('sent') },
@@ -1465,6 +1517,17 @@ function renderHighlight(value) {
     height: 32px;
     font-size: 14px;
     margin-right: 12px;
+  }
+
+  /* 品牌头像：白底圆圈 + 品牌 logo（细边框在白底列表上勾出圆圈轮廓） */
+  .brand-avatar {
+    background: #fff;
+    border: 1px solid var(--el-border-color-lighter);
+    img {
+      width: 60%;
+      height: 60%;
+      object-fit: contain;
+    }
   }
 
   .title-column {
