@@ -11,7 +11,7 @@
         <Icon v-if="emailStore.contentData.delType === 'trash'" v-perm="'email:delete'" class="icon" icon="mdi:restore" width="20" height="20" @click="handleRestore"/>
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('markSpam')">
-        <Icon v-if="emailStore.contentData.showSpam" v-perm="'email:delete'" class="icon" icon="lucide:mail-x" width="20" height="20" @click="handleMarkSpam"/>
+        <Icon v-if="emailStore.contentData.showSpam" v-perm="'email:delete'" class="icon" icon="hugeicons:mail-block-01" width="20" height="20" @click="handleMarkSpam"/>
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('notSpam')">
         <Icon v-if="emailStore.contentData.delType === 'spam'" v-perm="'email:delete'" class="icon" icon="mdi:restore" width="20" height="20" @click="handleUnspam"/>
