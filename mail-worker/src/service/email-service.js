@@ -571,7 +571,10 @@ const emailService = {
 		ccEmail.forEach(address => takenAddress.add(address.toLowerCase()));
 		bccEmail = bccEmail.filter(address => !takenAddress.has(address.toLowerCase()));
 
-		const { resendTokens, sendkitTokens, brevoTokens, r2Domain, send, domainList } = await settingService.query(c);
+		const setting = await settingService.query(c);
+		const { resendTokens, sendkitTokens, brevoTokens, r2Domain, send, domainList } = setting;
+		// Mailjet 是账号级一对密钥（各域名共用），不是按域名 token 表
+		const mailjetConfig = settingService.mailjetConfig(setting);
 
 		// 引用正文里的 /proxy?url= 还原成原始外链再发。
 		content = proxyService.restoreHtml(content);
@@ -651,10 +654,11 @@ const emailService = {
 		const resendToken = resendTokens[domain];
 		const sendkitToken = (sendkitTokens || {})[domain];
 		const brevoToken = (brevoTokens || {})[domain];
+		const hasMailjet = !!(mailjetConfig.apiKey && mailjetConfig.secretKey);
 		const useCloudflareEmail = !!c.env.email;
 
 		//如果接收方存在站外邮箱，又没有发信服务
-		if (!useCloudflareEmail && !resendToken && !sendkitToken && !brevoToken && !allInternal) {
+		if (!useCloudflareEmail && !resendToken && !sendkitToken && !brevoToken && !hasMailjet && !allInternal) {
 			throw new BizError(t('noSendProvider'));
 		}
 
@@ -708,7 +712,7 @@ const emailService = {
 
 		// sendParams 用于渠道请求，saveParams 保留保存记录所需的账号、权限和附件数据。
 		const context = {
-			separate, allInternal, useCloudflareEmail, resendToken, sendkitToken, brevoToken, sendParams,
+			separate, allInternal, useCloudflareEmail, resendToken, sendkitToken, brevoToken, mailjetConfig, sendParams,
 			skipForward: params.skipForward === true,
 			saveParams: {
 				accountId, userId, name, subject, text, html,
@@ -720,8 +724,9 @@ const emailService = {
 			}
 		};
 
-		// 全部站内收件人走本地投递；存在站外收件人时优先 CF，其次 Resend，再次 Sendkit，最后 Brevo。
+		// 全部站内收件人走本地投递；存在站外收件人时优先 CF，其次 Resend，再次 Sendkit，再次 Brevo，最后 Mailjet。
 		// 多服务商同时配置、同时生效，设置页的服务商切换只切换看哪个的配置，不改变发送优先级。
+		// 选定一家后失败就直接抛错，不会自动换下一个服务商重试。
 		let deliveries;
 		if (allInternal) {
 			deliveries = this.sendInternal(c, context);
@@ -731,8 +736,10 @@ const emailService = {
 			deliveries = this.sendResend(c, context);
 		} else if (sendkitToken) {
 			deliveries = this.sendSendkit(c, context);
-		} else {
+		} else if (brevoToken) {
 			deliveries = this.sendBrevo(c, context);
+		} else {
+			deliveries = this.sendMailjet(c, context);
 		}
 
 		const emailResults = [];
@@ -907,7 +914,40 @@ const emailService = {
 		}
 	},
 
-	// 三个渠道共用的发件记录保存：恢复正文图片 URL、保存附件并更新发送计数。
+	// Mailjet 支持一次提交多收件人：普通发送一次提交所有收件人，分开发送逐人调用单封接口。
+	// 链尾兜底：只有前面几家都没配置时才走到这里；未配置时抛明确错误，不静默失败。
+	async *sendMailjet(c, { separate, mailjetConfig, sendParams, saveParams }) {
+		if (!mailjetConfig?.apiKey || !mailjetConfig?.secretKey) {
+			throw new BizError(t('mailjetNotConfigured'));
+		}
+		if (separate && sendParams.receiveEmail.length > 100) {
+			throw new BizError(t('mailjetRecipientLimit'));
+		}
+		const recipientGroups = separate
+			? sendParams.receiveEmail.map(address => [address])
+			: [sendParams.receiveEmail];
+		for (const receiveEmail of recipientGroups) {
+			let result;
+			try {
+				result = await this.sendByMailjet(mailjetConfig, { ...sendParams, receiveEmail });
+			} catch (error) {
+				if (!separate) throw error;
+				// 分开发送遇到渠道错误即停止，已成功的记录由入口汇总。
+				yield { error: { message: error.message } };
+				return;
+			}
+			if (result.error) {
+				yield { error: result.error };
+				return;
+			}
+			const emailResult = await this.saveSentEmail(c, {
+				...saveParams, receiveEmail, providerId: result.data?.id
+			});
+			yield { emails: [emailResult] };
+		}
+	},
+
+	// 各渠道共用的发件记录保存：恢复正文图片 URL、保存附件并更新发送计数。
 	async saveSentEmail(c, params) {
 		const {
 			accountId, userId, name, subject, text, html, sendEmail, receiveEmail,
@@ -1185,6 +1225,74 @@ const emailService = {
 
 			if (attachment.contentId) {
 				item.contentId = attachment.contentId.replace(/^<|>$/g, '');
+			}
+
+			return item;
+		});
+	},
+
+	async sendByMailjet(mailjetConfig, params) {
+		const message = {
+			From: { Email: params.accountEmail, Name: params.name },
+			To: params.receiveEmail.map(email => ({ Email: email, Name: '' })),
+			Subject: params.subject,
+			TextPart: params.text,
+			HTMLPart: params.html
+		};
+
+		if (params.ccEmail.length > 0) {
+			message.Cc = params.ccEmail.map(email => ({ Email: email, Name: '' }));
+		}
+
+		if (params.bccEmail.length > 0) {
+			message.Bcc = params.bccEmail.map(email => ({ Email: email, Name: '' }));
+		}
+
+		const attachments = await this.toMailjetAttachments(params.attachments);
+		if (attachments.length > 0) {
+			message.Attachments = attachments;
+		}
+
+		if (params.sendType === 'reply' && params.messageId) {
+			message.Headers = {
+				'In-Reply-To': params.messageId,
+				'References': params.messageId
+			};
+		}
+
+		const response = await fetch('https://api.mailjet.com/v3.1/send', {
+			method: 'POST',
+			headers: {
+				'Authorization': `Basic ${btoa(`${mailjetConfig.apiKey}:${mailjetConfig.secretKey}`)}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ Messages: [message] })
+		});
+
+		const result = await response.json().catch(() => ({}));
+		const mjMessage = result.Messages?.[0];
+		const mjError = mjMessage?.Errors?.[0];
+
+		if (!response.ok || mjMessage?.Status === 'error') {
+			return { error: { message: mjError?.ErrorMessage || result.ErrorMessage || result.message || `Mailjet error: ${response.status}` } };
+		}
+
+		const messageId = mjMessage?.To?.[0]?.MessageID;
+		return { data: { id: messageId != null ? String(messageId) : undefined } };
+	},
+
+	async toMailjetAttachments(attachments = []) {
+		const resendAttachments = await this.toResendAttachments(attachments);
+
+		return resendAttachments.map(attachment => {
+			const item = {
+				ContentType: attachment.contentType || 'application/octet-stream',
+				Filename: attachment.filename,
+				Base64Content: attachment.content
+			};
+
+			if (attachment.contentId) {
+				item.ContentID = attachment.contentId.replace(/^<|>$/g, '');
 			}
 
 			return item;

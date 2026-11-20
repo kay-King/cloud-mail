@@ -191,6 +191,7 @@
                     <el-option label="Resend" value="resend" :style="sendProviderOptionStyle('resend')"/>
                     <el-option label="Sendkit" value="sendkit" :style="sendProviderOptionStyle('sendkit')"/>
                     <el-option label="Brevo" value="brevo" :style="sendProviderOptionStyle('brevo')"/>
+                    <el-option label="Mailjet" value="mailjet" :style="sendProviderOptionStyle('mailjet')"/>
                   </el-select>
                 </div>
               </div>
@@ -705,6 +706,14 @@
           </el-select>
           <el-input type="text" :placeholder="$t('addBrevoTokenDesc')" v-model="brevoTokenForm.token" @keyup.enter="saveBrevoToken"/>
           <el-button type="primary" :loading="settingLoading" @click="saveBrevoToken">{{ $t('save') }}</el-button>
+        </form>
+      </el-dialog>
+      <!-- Mailjet 是账号级一对密钥（各域名共用），没有按域名列表；打开即预填脱敏值，改了才保存，清空则删除 -->
+      <el-dialog v-model="mailjetTokenFormShow" :title="$t('mailjetToken')" width="340" @closed="cleanMailjetTokenForm">
+        <form @submit.prevent>
+          <el-input type="text" :placeholder="$t('addMailjetApiKeyDesc')" v-model="mailjetTokenForm.apiKey" @keyup.enter="saveMailjetToken"/>
+          <el-input type="text" style="margin-top: 15px" :placeholder="$t('addMailjetSecretKeyDesc')" v-model="mailjetTokenForm.secretKey" @keyup.enter="saveMailjetToken"/>
+          <el-button type="primary" :loading="settingLoading" @click="saveMailjetToken">{{ $t('save') }}</el-button>
         </form>
       </el-dialog>
       <el-dialog v-model="turnstileShow" :title="$t('addTurnstileSecret')" width="340"
@@ -1423,6 +1432,7 @@ const editTitleShow = ref(false)
 const resendTokenFormShow = ref(false)
 const sendkitTokenFormShow = ref(false)
 const brevoTokenFormShow = ref(false)
+const mailjetTokenFormShow = ref(false)
 const blackFormShow = ref(false)
 const autoCleanShow = ref(false)
 const auditCleanShow = ref(false)
@@ -1480,6 +1490,11 @@ const sendkitTokenForm = reactive({
 const brevoTokenForm = reactive({
   domain: '',
   token: '',
+})
+// Mailjet 是账号级一对密钥，没有域名概念；打开弹窗时预填脱敏值（后端合并时跳过 ******，原样保存等于不改）
+const mailjetTokenForm = reactive({
+  apiKey: '',
+  secretKey: '',
 })
 const turnstileForm = reactive({
   siteKey: '',
@@ -2002,10 +2017,12 @@ function pickDefaultSendProvider() {
   if (Object.keys(setting.value.resendTokens || {}).length > 0) manageProvider.value = 'resend'
   else if (Object.keys(setting.value.sendkitTokens || {}).length > 0) manageProvider.value = 'sendkit'
   else if (Object.keys(setting.value.brevoTokens || {}).length > 0) manageProvider.value = 'brevo'
+  else if (setting.value.mailjetConfig?.apiKey) manageProvider.value = 'mailjet'
 }
 
-// 服务商是否配了密钥（至少一个域名）
+// 服务商是否配了密钥（Resend/Sendkit/Brevo 至少一个域名；Mailjet 是账号级一对密钥，看 apiKey）
 function sendProviderConfigured(p) {
+  if (p === 'mailjet') return !!setting.value.mailjetConfig?.apiKey
   const tokens = p === 'resend' ? setting.value.resendTokens
     : p === 'sendkit' ? setting.value.sendkitTokens
     : setting.value.brevoTokens
@@ -2017,10 +2034,11 @@ function sendProviderOptionStyle(p) {
   return sendProviderConfigured(p) ? {} : { color: 'var(--el-text-color-placeholder)' }
 }
 
-// 当前服务商单条目的标题（合并前的老文案：Resend Token / Sendkit API Key / Brevo API Key）
+// 当前服务商单条目的标题（合并前的老文案：Resend Token / Sendkit API Key / Brevo API Key / Mailjet API Key）
 const manageProviderTokenLabel = computed(() => {
   if (manageProvider.value === 'resend') return 'resendToken'
   if (manageProvider.value === 'sendkit') return 'sendkitToken'
+  if (manageProvider.value === 'mailjet') return 'mailjetToken'
   return 'brevoToken'
 })
 
@@ -2028,12 +2046,15 @@ function openSendProviderList() {
   if (manageProvider.value === 'resend') openResendList()
   else if (manageProvider.value === 'sendkit') openSendkitList()
   else if (manageProvider.value === 'brevo') openBrevoList()
+  // Mailjet 没有按域名列表，查看与新增都是同一个密钥弹窗
+  else if (manageProvider.value === 'mailjet') openMailjetForm()
 }
 
 function openSendProviderForm() {
   if (manageProvider.value === 'resend') openResendForm()
   else if (manageProvider.value === 'sendkit') openSendkitForm()
   else if (manageProvider.value === 'brevo') openBrevoForm()
+  else if (manageProvider.value === 'mailjet') openMailjetForm()
 }
 
 function resetNoticeForm() {
@@ -2567,6 +2588,13 @@ function openBrevoForm() {
   brevoTokenFormShow.value = true
 }
 
+function openMailjetForm() {
+  const m = setting.value.mailjetConfig || {}
+  mailjetTokenForm.apiKey = m.apiKey || ''
+  mailjetTokenForm.secretKey = m.secretKey || ''
+  mailjetTokenFormShow.value = true
+}
+
 function openBlackListForm() {
   blackFormShow.value = true
 }
@@ -2602,6 +2630,10 @@ function saveBrevoToken() {
   editSetting(settingForm)
 }
 
+function saveMailjetToken() {
+  editSetting({mailjetConfig: {apiKey: mailjetTokenForm.apiKey, secretKey: mailjetTokenForm.secretKey}})
+}
+
 function backupSetting() {
   const settingForm = {...setting.value}
   delete settingForm.resendTokens
@@ -2622,6 +2654,11 @@ function cleanSendkitTokenForm() {
 
 function cleanBrevoTokenForm() {
   brevoTokenForm.token = ''
+}
+
+function cleanMailjetTokenForm() {
+  mailjetTokenForm.apiKey = ''
+  mailjetTokenForm.secretKey = ''
 }
 
 function beforeChange() {
@@ -2662,6 +2699,13 @@ function change(e) {
     const tc = {...settingForm.tgConfig}
     delete tc.tgBotToken
     settingForm.tgConfig = tc
+  }
+  // Mailjet 密钥在 mailjetConfig 对象里，整包发过去会带上脱敏值，先从副本里去掉（后端合并时保留现值）
+  if (settingForm.mailjetConfig) {
+    const mj = {...settingForm.mailjetConfig}
+    delete mj.apiKey
+    delete mj.secretKey
+    settingForm.mailjetConfig = mj
   }
   delete settingForm.resendTokens
   delete settingForm.sendkitTokens
@@ -2888,6 +2932,7 @@ function editSetting(settingForm, refreshStatus = true) {
     resendTokenFormShow.value = false
     sendkitTokenFormShow.value = false
     brevoTokenFormShow.value = false
+    mailjetTokenFormShow.value = false
     turnstileShow.value = false
     tgSettingShow.value = false
     notifySettingShow.value = false

@@ -33,6 +33,8 @@ const en = {
 	resendRecipientLimit: 'Resend separate sending supports at most 100 recipients',
 	sendkitRecipientLimit: 'Sendkit separate sending supports at most 100 recipients',
 	brevoRecipientLimit: 'Brevo separate sending supports at most 100 recipients',
+	mailjetRecipientLimit: 'Mailjet separate sending supports at most 100 recipients',
+	mailjetNotConfigured: 'Mailjet API Key and Secret Key are not configured',
 	recipientLimit: 'To, CC, and BCC together cannot exceed 50 recipients',
 	resendSeparateAttachments: 'Resend separate sending does not support attachments',
 	pwdLengthLimit: 'Password length exceeds the limit',

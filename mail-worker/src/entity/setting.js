@@ -22,6 +22,8 @@ export const setting = sqliteTable('setting', {
 	resendTokens: text('resend_tokens').default("{}").notNull(),
 	sendkitTokens: text('sendkit_tokens').default("{}").notNull(),
 	brevoTokens: text('brevo_tokens').default("{}").notNull(),
+	// Mailjet 是账号级一对密钥（各域名共用），不是按域名 token 表；{apiKey, secretKey}
+	mailjetConfig: text('mailjet_config').default('{}').notNull(),
 	// 系统公告 8 项打包进一个 JSON 列，8 列变 1 列腾 7 个空位
 	noticeConfig: text('notice_config').default('{}').notNull(),
 	noRecipient: integer('no_recipient').default(1).notNull(),

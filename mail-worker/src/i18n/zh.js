@@ -33,6 +33,8 @@ const zh = {
 	resendRecipientLimit: 'Resend 分开发送最多支持100位收件人',
 	sendkitRecipientLimit: 'Sendkit 分开发送最多支持100位收件人',
 	brevoRecipientLimit: 'Brevo 分开发送最多支持100位收件人',
+	mailjetRecipientLimit: 'Mailjet 分开发送最多支持100位收件人',
+	mailjetNotConfigured: 'Mailjet 未配置 API Key 与 Secret Key',
 	recipientLimit: '收件人、抄送和密送合计不能超过50个',
 	resendSeparateAttachments: 'Resend 分开发送不能携带附件',
 	pwdLengthLimit: '密码长度超出限制',

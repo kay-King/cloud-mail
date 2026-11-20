@@ -39,6 +39,7 @@ const SETTING_LABELS = {
 	resendTokens: 'Resend 密钥',
 	sendkitTokens: 'Sendkit 密钥',
 	brevoTokens: 'Brevo 密钥',
+	mailjetConfig: 'Mailjet 密钥',
 	siteKey: '验证 Site Key',
 	secretKey: '验证 Secret Key',
 	oauthConfig: '第三方登录',

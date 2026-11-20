@@ -63,6 +63,7 @@ const dbInit = {
 		await this.v3_28DB(c);
 		await this.v3_29DB(c);
 		await this.v3_30DB(c);
+		await this.v3_31DB(c);
 		await userService.initAdmin(c);
 		await settingService.refresh(c);
 		return c.text('success');
@@ -722,6 +723,15 @@ const dbInit = {
 		// 旧值里只有 1 保持关闭，其余（0、3、5…）一律改成 2 开启。
 		try {
 			await c.env.db.prepare(`UPDATE setting SET auto_refresh = 2 WHERE auto_refresh != 1`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+	},
+
+	async v3_31DB(c) {
+		// Mailjet 第四发信服务商：账号级一对密钥（各域名共用），存 mailjet_config JSON 列。
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN mailjet_config TEXT NOT NULL DEFAULT '{}';`).run();
 		} catch (e) {
 			console.warn(`跳过字段：${e.message}`);
 		}
@@ -1504,7 +1514,7 @@ const dbInit = {
 			many_email INTEGER NOT NULL,
 			title TEXT NOT NULL,
 			auto_refresh INTEGER NOT NULL,
-			r2_domain TEXT, login_opacity INTEGER NOT NULL DEFAULT 0.90, site_key TEXT, send INTEGER NOT NULL DEFAULT 0, resend_tokens TEXT NOT NULL DEFAULT '{}', secret_key TEXT, background TEXT, reg_key INTEGER NOT NULL DEFAULT 1, no_recipient INTEGER NOT NULL DEFAULT 1, login_domain INTEGER NOT NULL DEFAULT 0, sync_delete INTEGER NOT NULL DEFAULT 0, sendkit_tokens TEXT NOT NULL DEFAULT '{}', brevo_tokens TEXT NOT NULL DEFAULT '{}', att_encrypt INTEGER NOT NULL DEFAULT 1, notify_email TEXT NOT NULL DEFAULT '', notify_flags TEXT NOT NULL DEFAULT '{}', global_forward TEXT NOT NULL DEFAULT '{}', backup_config TEXT NOT NULL DEFAULT '{}', att_storage TEXT NOT NULL DEFAULT '{}', oauth_config TEXT NOT NULL DEFAULT '{}', notice_config TEXT NOT NULL DEFAULT '{}', tg_config TEXT NOT NULL DEFAULT '{}', verify_config TEXT NOT NULL DEFAULT '{}', webhook_config TEXT NOT NULL DEFAULT '{}', blacklist_config TEXT NOT NULL DEFAULT '{}', auto_clean_config TEXT NOT NULL DEFAULT '{}', ai_code_config TEXT NOT NULL DEFAULT '{}', email_prefix_config TEXT NOT NULL DEFAULT '{}', login_verify_config TEXT NOT NULL DEFAULT '{}')
+			r2_domain TEXT, login_opacity INTEGER NOT NULL DEFAULT 0.90, site_key TEXT, send INTEGER NOT NULL DEFAULT 0, resend_tokens TEXT NOT NULL DEFAULT '{}', secret_key TEXT, background TEXT, reg_key INTEGER NOT NULL DEFAULT 1, no_recipient INTEGER NOT NULL DEFAULT 1, login_domain INTEGER NOT NULL DEFAULT 0, sync_delete INTEGER NOT NULL DEFAULT 0, sendkit_tokens TEXT NOT NULL DEFAULT '{}', brevo_tokens TEXT NOT NULL DEFAULT '{}', mailjet_config TEXT NOT NULL DEFAULT '{}', att_encrypt INTEGER NOT NULL DEFAULT 1, notify_email TEXT NOT NULL DEFAULT '', notify_flags TEXT NOT NULL DEFAULT '{}', global_forward TEXT NOT NULL DEFAULT '{}', backup_config TEXT NOT NULL DEFAULT '{}', att_storage TEXT NOT NULL DEFAULT '{}', oauth_config TEXT NOT NULL DEFAULT '{}', notice_config TEXT NOT NULL DEFAULT '{}', tg_config TEXT NOT NULL DEFAULT '{}', verify_config TEXT NOT NULL DEFAULT '{}', webhook_config TEXT NOT NULL DEFAULT '{}', blacklist_config TEXT NOT NULL DEFAULT '{}', auto_clean_config TEXT NOT NULL DEFAULT '{}', ai_code_config TEXT NOT NULL DEFAULT '{}', email_prefix_config TEXT NOT NULL DEFAULT '{}', login_verify_config TEXT NOT NULL DEFAULT '{}')
 		`).run();
 		await c.env.db.prepare(`
 		  CREATE TABLE IF NOT EXISTS perm (
@@ -1670,9 +1680,9 @@ const dbInit = {
 		try {
 			await c.env.db.prepare(`
 			  INSERT INTO setting (
-				register, receive, add_email, many_email, title, auto_refresh, resend_tokens, send, r2_domain, site_key, secret_key, background, login_opacity, reg_key, no_recipient, login_domain, sync_delete, sendkit_tokens, brevo_tokens, att_encrypt, notify_email, notify_flags, global_forward, backup_config, att_storage, oauth_config, notice_config, tg_config, verify_config, webhook_config, blacklist_config, auto_clean_config, ai_code_config, email_prefix_config, login_verify_config
+				register, receive, add_email, many_email, title, auto_refresh, resend_tokens, send, r2_domain, site_key, secret_key, background, login_opacity, reg_key, no_recipient, login_domain, sync_delete, sendkit_tokens, brevo_tokens, mailjet_config, att_encrypt, notify_email, notify_flags, global_forward, backup_config, att_storage, oauth_config, notice_config, tg_config, verify_config, webhook_config, blacklist_config, auto_clean_config, ai_code_config, email_prefix_config, login_verify_config
 			  )
-			  SELECT 0, 0, 0, 0, 'Cloud Mail', 2, '{}', 0, NULL, NULL, NULL, NULL, 0.9, 1, 1, 0, 0, '{}', '{}', 1, '', '{"notifyStatus":0,"adminDelNotify":1,"forwardFailNotify":1,"backupFailNotify":1}', '{"forwardEmail":"","forwardStatus":1,"ruleEmail":"","ruleType":0}', '{"autoBackup":1,"backupType":"s3","backupBucket":"","backupRegion":"","backupEndpoint":"","backupS3AccessKey":"","backupS3SecretKey":"","backupForcePathStyle":1,"backupR2AccountId":"","backupR2Bucket":"","backupR2AccessKey":"","backupR2SecretKey":"","backupWebdavUrl":"","backupWebdavUsername":"","backupWebdavPassword":""}', '{"bucket":"","region":"","endpoint":"","s3AccessKey":"","s3SecretKey":"","forcePathStyle":1,"attStorageType":"s3","r2AccountId":"","r2Bucket":"","r2AccessKey":"","r2SecretKey":"","webdavUrl":"","webdavUsername":"","webdavPassword":""}', '{"linuxdoClientId":"","linuxdoClientSecret":"","linuxdoSwitch":1,"githubClientId":"","githubClientSecret":"","githubSwitch":1,"googleClientId":"","googleClientSecret":"","googleSwitch":1}', '{"noticeTitle":"Cloud Mail","noticeContent":"本项目仅供学习交流，禁止用于违法业务\\n<br>\\n请遵守当地法规，作者不承担任何法律责任","noticeType":"none","noticeDuration":0,"noticePosition":"top-right","noticeOffset":0,"noticeWidth":340,"notice":0}', '{"tgBotToken":"","tgChatId":"","tgBotStatus":1,"customDomain":"","tgMsgFrom":"only-name","tgMsgTo":"show","tgMsgText":"show"}', '{"addEmailVerify":1,"registerVerify":1,"regVerifyCount":1,"addVerifyCount":1}', '{"webhookUrl":"","webhookStatus":1,"webhookRetry":0,"webhookSecret":""}', '{"blackSubject":"","blackContent":"","blackFrom":""}', '{"autoCleanDays":0,"autoCleanExclude":"","auditCleanDays":0}', '{"aiCode":1,"aiCodeFilter":""}', '{"minEmailPrefix":1,"emailPrefixFilter":""}', '{"loginVerify":1,"loginVerifyCount":1}'
+			  SELECT 0, 0, 0, 0, 'Cloud Mail', 2, '{}', 0, NULL, NULL, NULL, NULL, 0.9, 1, 1, 0, 0, '{}', '{}', '{}', 1, '', '{"notifyStatus":0,"adminDelNotify":1,"forwardFailNotify":1,"backupFailNotify":1}', '{"forwardEmail":"","forwardStatus":1,"ruleEmail":"","ruleType":0}', '{"autoBackup":1,"backupType":"s3","backupBucket":"","backupRegion":"","backupEndpoint":"","backupS3AccessKey":"","backupS3SecretKey":"","backupForcePathStyle":1,"backupR2AccountId":"","backupR2Bucket":"","backupR2AccessKey":"","backupR2SecretKey":"","backupWebdavUrl":"","backupWebdavUsername":"","backupWebdavPassword":""}', '{"bucket":"","region":"","endpoint":"","s3AccessKey":"","s3SecretKey":"","forcePathStyle":1,"attStorageType":"s3","r2AccountId":"","r2Bucket":"","r2AccessKey":"","r2SecretKey":"","webdavUrl":"","webdavUsername":"","webdavPassword":""}', '{"linuxdoClientId":"","linuxdoClientSecret":"","linuxdoSwitch":1,"githubClientId":"","githubClientSecret":"","githubSwitch":1,"googleClientId":"","googleClientSecret":"","googleSwitch":1}', '{"noticeTitle":"Cloud Mail","noticeContent":"本项目仅供学习交流，禁止用于违法业务\\n<br>\\n请遵守当地法规，作者不承担任何法律责任","noticeType":"none","noticeDuration":0,"noticePosition":"top-right","noticeOffset":0,"noticeWidth":340,"notice":0}', '{"tgBotToken":"","tgChatId":"","tgBotStatus":1,"customDomain":"","tgMsgFrom":"only-name","tgMsgTo":"show","tgMsgText":"show"}', '{"addEmailVerify":1,"registerVerify":1,"regVerifyCount":1,"addVerifyCount":1}', '{"webhookUrl":"","webhookStatus":1,"webhookRetry":0,"webhookSecret":""}', '{"blackSubject":"","blackContent":"","blackFrom":""}', '{"autoCleanDays":0,"autoCleanExclude":"","auditCleanDays":0}', '{"aiCode":1,"aiCodeFilter":""}', '{"minEmailPrefix":1,"emailPrefixFilter":""}', '{"loginVerify":1,"loginVerifyCount":1}'
 			  WHERE NOT EXISTS (SELECT 1 FROM setting)
 			`).run();
 		} catch (e) {

@@ -105,7 +105,7 @@
 
 - **💻 响应式设计**：响应式布局自动适配PC和大部分手机端浏览器；附件页与操作记录页在手机上是卡片列表，列表均为无限滚动
 
-- **📧 邮件发送**：集成 Cloudflare Email、Resend、Sendkit、Brevo 发送邮件，支持群发；按发件域名自动选择已配置的服务商，多个服务商可同时配置
+- **📧 邮件发送**：集成 Cloudflare Email、Resend、Sendkit、Brevo、Mailjet 发送邮件，支持群发；按发件域名自动选择已配置的服务商，多个服务商可同时配置
 
 - **🛡️ 管理员功能**：可以对用户，邮件进行管理，RBAC权限控制对功能及使用资源限制；管理员删除别人的邮件或附件时可通知对方
 
@@ -161,7 +161,7 @@
 
 - **UI框架**：[Element Plus](https://element-plus.org/)
 
-- **邮件发送：** [Cloudflare Email](https://developers.cloudflare.com/email-service/) / [Resend](https://resend.com/) / [Sendkit](https://sendkit.dev) / [Brevo](https://www.brevo.com/)
+- **邮件发送：** [Cloudflare Email](https://developers.cloudflare.com/email-service/) / [Resend](https://resend.com/) / [Sendkit](https://sendkit.dev) / [Brevo](https://www.brevo.com/) / [Mailjet](https://www.mailjet.com/)
 
 - **缓存**：[Cloudflare KV](https://developers.cloudflare.com/kv/)
 

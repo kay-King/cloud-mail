@@ -255,7 +255,7 @@ npx wrangler deploy
 
 ## 发信配置（让你的邮箱能往外发信）
 
-Cloudflare 自己不提供对外发信，需要接一个发信服务商，三个免费选一个就行，推荐 Sendkit。
+Cloudflare 自己不提供对外发信，需要接一个发信服务商，四个免费选一个就行，推荐 Sendkit。
 
 ### Sendkit（推荐：免费 3000 封/月，每天 100 封，1 个发信域名）
 
@@ -276,6 +276,10 @@ Cloudflare 自己不提供对外发信，需要接一个发信服务商，三个
 ### Resend（备选：免费 100 封/天）
 
 [resend.com](https://resend.com) → Domains → Add Domain → 加 DNS 验证 → API Keys → Create API Key → 填进 Cloud Mail 的 Resend。注意：Resend 会拒绝一些免费公共域名后缀（如 .qzz.io 这类），被拒就换 Sendkit 或 Brevo。
+
+### Mailjet（备选：免费 6000 封/月，每天 200 封）
+
+[mailjet.com](https://www.mailjet.com) 注册 → Account Settings → API Keys → 复制 API Key 与 Secret Key。注意：Mailjet 的密钥是账号级一对（不是按域名），Cloud Mail 系统设置 → 发信服务商 → Mailjet → 点 + 号填这一对密钥 → 保存，各域名共用。发件地址要在 Mailjet 里验证过（Account Settings → Senders & Domains）才能发信；新账号可能有每小时 10 封的临时限制。发送优先级最低（站内 → CF → Resend → Sendkit → Brevo → Mailjet），前面几家都没配置时才用它。
 
 ### 发信小提醒
 

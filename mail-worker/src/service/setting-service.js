@@ -18,6 +18,7 @@ const settingService = {
 		settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
 		settingRow.sendkitTokens = JSON.parse(settingRow.sendkitTokens || '{}');
 		settingRow.brevoTokens = JSON.parse(settingRow.brevoTokens || '{}');
+		settingRow.mailjetConfig = JSON.parse(settingRow.mailjetConfig || '{}');
 		settingRow.notifyFlags = JSON.parse(settingRow.notifyFlags || '{}');
 		settingRow.globalForward = JSON.parse(settingRow.globalForward || '{}');
 		settingRow.backupConfig = JSON.parse(settingRow.backupConfig || '{}');
@@ -302,6 +303,19 @@ const settingService = {
 		};
 	},
 
+	// Mailjet 配置读值（mailjet_config 打包后）：账号级一对密钥（各域名共用），不是按域名 token 表。
+	mailjetConfig(setting) {
+		const m = setting?.mailjetConfig;
+		const pick = (key, def) => {
+			if (m && typeof m === 'object' && m[key] !== undefined && m[key] !== null) return m[key];
+			return def;
+		};
+		return {
+			apiKey: pick('apiKey', ''),
+			secretKey: pick('secretKey', '')
+		};
+	},
+
 	async query(c) {
 
 		if (c.get?.('setting')) {
@@ -374,6 +388,12 @@ const settingService = {
 		Object.keys(settingRow.brevoTokens || {}).forEach(key => {
 			settingRow.brevoTokens[key] = `${settingRow.brevoTokens[key].slice(0, 12)}******`;
 		});
+
+		// Mailjet 密钥脱敏：账号级一对密钥在 mailjetConfig 对象里
+		const _mj = settingRow.mailjetConfig || {};
+		for (const k of ['apiKey', 'secretKey']) {
+			if (_mj[k]) _mj[k] = `${String(_mj[k]).slice(0, 12)}******`;
+		}
 
 		// 附件密钥脱敏：新格式在 attStorage 对象里，旧缓存是平铺字段，两边都脱敏
 		const _as = settingRow.attStorage || {};
@@ -561,6 +581,14 @@ const settingService = {
 		if (loginVerifyConfig.loginVerifyCount !== undefined && (!Number.isSafeInteger(loginVerifyConfig.loginVerifyCount) || loginVerifyConfig.loginVerifyCount < 1)) {
 			loginVerifyConfig.loginVerifyCount = 1;
 		}
+		let mailjetConfig = { ...(settingData.mailjetConfig || {}) };
+		if (params.mailjetConfig && typeof params.mailjetConfig === 'object') {
+			for (const [k, v] of Object.entries(params.mailjetConfig)) {
+				// 带 ****** 的是前端回显的脱敏值，不是真实密钥，跳过不覆盖
+				if (typeof v === 'string' && v.includes('******')) continue;
+				mailjetConfig[k] = v;
+			}
+		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		params.sendkitTokens = JSON.stringify(sendkitTokens);
@@ -579,6 +607,7 @@ const settingService = {
 		params.aiCodeConfig = JSON.stringify(aiCodeConfig);
 		params.emailPrefixConfig = JSON.stringify(emailPrefixConfig);
 		params.loginVerifyConfig = JSON.stringify(loginVerifyConfig);
+		params.mailjetConfig = JSON.stringify(mailjetConfig);
 
 		// 旧版平铺列已打包进 JSON 列，旧客户端可能还带这些字段，删掉避免写不存在的列
 		delete params.notifyStatus;
