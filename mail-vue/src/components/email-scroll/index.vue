@@ -1135,6 +1135,8 @@ function deleteEmail(emailIds) {
   if (removed > 0) {
     total.value = Math.max(0, total.value - removed)
   }
+  // 全部数据已加载完时，计数以实际行数为准（跟拉列表时的兜底同理）
+  if (noLoading.value) total.value = emailList.length
   if (emailList.length < queryParam.size && !noLoading.value) {
     getEmailList()
   }
@@ -1313,6 +1315,10 @@ function getEmailList(refresh = false, silent = false) {
     followLoading.value = data.list.length >= queryParam.size;
 
     total.value = data.total;
+    // 全部数据已加载完（没更多页）时，计数就该等于当前行数；
+    // 兜底：本地增减计数可能与服务端总数漂移（比如恢复邮件后计数少 1），
+    // 以实际行数为准，计数永远跟列表一致
+    if (noLoading.value) total.value = emailList.length
     return true;
   }).finally(() => {
     loading.value = false
