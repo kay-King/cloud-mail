@@ -2131,7 +2131,7 @@ function clearS3() {
     form.forcePathStyle = 1
   }
   clearS3Loading.value = true
-  editSetting(form)
+  editSetting({attStorage: form})
 }
 
 function saveS3() {
@@ -2835,7 +2835,7 @@ function clearBackupS3() {
     form.backupForcePathStyle = 1
   }
   clearBackupS3Loading.value = true
-  editSetting(form)
+  editSetting({backupConfig: form})
 }
 
 function rotateAttKey() {

@@ -96,6 +96,7 @@ function jumpContent(email) {
   emailStore.contentData.showUnread = true
   emailStore.contentData.showStar = false
   emailStore.contentData.showReply = false
+  emailStore.contentData.showSpam = false
   if (uiStore.isThreePane) return
   router.push({name: 'content', params: {mailbox: 'spam'}})
 }

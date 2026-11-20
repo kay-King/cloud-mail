@@ -369,6 +369,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   emailStore.contentData.showUnread = false;
+  emailStore.contentData.showSpam = false;
   readRequesting = false
   window.removeEventListener('keydown', handleKeyDown);
   senderResizeObserver?.disconnect()

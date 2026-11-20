@@ -205,7 +205,7 @@ const oauthService = {
 	},
 
 	assertEnabled(setting, switchKey) {
-		if (setting[switchKey] !== 0) {
+		if (settingService.oauthConfig(setting)[switchKey] !== 0) {
 			throw new BizError(t('oauthDisabled'));
 		}
 	},

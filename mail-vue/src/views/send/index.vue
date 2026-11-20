@@ -56,6 +56,7 @@ function jumpContent(email) {
   emailStore.contentData.delType = 'logic'
   emailStore.contentData.showStar = true
   emailStore.contentData.showReply = true
+  emailStore.contentData.showSpam = false
   if (uiStore.isThreePane) return
   router.push({name: 'content', params: {mailbox: 'sent'}})
 }

@@ -457,6 +457,7 @@ const emailService = {
 		await orm(c).update(email).set({ isSpam: 1 }).where(
 			and(
 				eq(email.userId, userId),
+				eq(email.type, emailConst.type.RECEIVE),
 				inArray(email.emailId, emailIdList))
 		).run();
 	},

@@ -1,7 +1,6 @@
 import { parseHTML } from 'linkedom';
-import domainUtils from '../utils/domain-uitls';
 
-export default function emailHtmlTemplate(html, domain) {
+export default function emailHtmlTemplate(html) {
 
 	const { document } = parseHTML(html);
 	document.querySelectorAll('script').forEach(script => script.remove());
@@ -23,7 +22,7 @@ export default function emailHtmlTemplate(html, domain) {
 		}
 	});
 	html = document.toString();
-	html = html.replace(/{{domain}}/g, domainUtils.toOssDomain(domain) + '/');
+	html = html.replace(/{{domain}}/g, '/');
 	const safeHtmlJson = JSON.stringify(html).replace(/</g, '\\u003C');
 
 	return `<!DOCTYPE html>
