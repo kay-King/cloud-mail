@@ -185,6 +185,7 @@ const zh = {
     deleteForeverSelected: '彻底删除选中邮件',
     markSpam: '标记为垃圾',
     addToContacts: '添加到通讯录',
+    addToContactsConfirm: '将 {name}（{email}）添加到通讯录？',
     addedToContacts: '已添加到通讯录',
     alreadyInContacts: '已在通讯录中',
     markSpamSelected: '标记所选为垃圾',

@@ -345,6 +345,7 @@ import {computed, onActivated, reactive, ref, watch, nextTick, onMounted, onUnmo
 import {useEmailStore} from "@/store/email.js";
 import {emailExport, downloadExport} from "@/request/email.js";
 import {contactAdd, contactSuggest} from "@/request/contact.js";
+import {avatarLetter} from "@/utils/avatar.js";
 import {useUserStore} from "@/store/user.js";
 import {useUiStore} from "@/store/ui.js";
 import {useSettingStore} from "@/store/setting.js";
@@ -834,9 +835,18 @@ function rightSpam(emailId) {
 }
 
 // 右键菜单：把发件人加进通讯录（只对收到的邮件显示，已发送的发件人是自己）
+// 先弹确认框把名字和邮箱亮出来，确认了才加
 async function addSenderToContacts(email) {
   const senderEmail = String(email.sendEmail || '').trim()
   if (!senderEmail) {
+    return
+  }
+  try {
+    await ElMessageBox.confirm(
+      t('addToContactsConfirm', {name: email.name || senderEmail, email: senderEmail}),
+      {confirmButtonText: t('confirm'), cancelButtonText: t('cancel'), type: 'info'}
+    )
+  } catch {
     return
   }
   try {
@@ -1167,7 +1177,6 @@ function getEmailList(refresh = false) {
 // 品牌 logo 不用手维护名单：谷歌/微软用内置多彩版（图标库里是单色的不好看），
 // 其余一律走 /api/brand-icon，由 Worker 按发件域名去 Simple Icons（约 3000 个品牌）取，
 // 未收录的 404，前端回落首字母头像。
-const AVATAR_COLORS = ['#7C4DFF', '#009688', '#FF7043', '#5C6BC0', '#26A69A', '#EC407A', '#AB47BC', '#42A5F5', '#66BB6A', '#FFA726', '#8D6E63', '#78909C'];
 const BUNDLED_BRANDS = {
   'google.com': 'google',
   'microsoft.com': 'microsoft',
@@ -1206,11 +1215,8 @@ function avatarFor(email) {
     }
     if (!brand) brandDomain = domain;
   }
-  const first = name ? Array.from(name)[0] : (addr ? addr[0] : '?');
-  const key = (name + '|' + addr).toLowerCase();
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-  return { letter: first.toUpperCase(), color: AVATAR_COLORS[hash % AVATAR_COLORS.length], brand, brandDomain };
+  const {letter, color} = avatarLetter(name, addr);
+  return {letter, color, brand, brandDomain};
 }
 // 是否显示品牌图（内置或接口取到的；加载失败后回落首字母）
 function showBrandImg(item) {
@@ -1621,6 +1627,11 @@ function renderHighlight(value) {
         /* 发件人名字加大加粗（照手机邮箱 App 的列表样式，未读时外层再加粗到 700） */
         font-size: 16px;
         font-weight: 600;
+        /* 电脑端（鼠标设备）名字恢复之前样式，不加大加粗；未读时继承外层 bold */
+        @media (pointer: fine) {
+          font-size: inherit;
+          font-weight: inherit;
+        }
 
         > span:last-child {
           display: flex;

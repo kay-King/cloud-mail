@@ -185,6 +185,7 @@ const en = {
     deleteForeverSelected: 'Permanently delete selected emails',
     markSpam: 'Mark as spam',
     addToContacts: 'Add to contacts',
+    addToContactsConfirm: 'Add {name} ({email}) to contacts?',
     addedToContacts: 'Added to contacts',
     alreadyInContacts: 'Already in contacts',
     markSpamSelected: 'Mark selected as spam',

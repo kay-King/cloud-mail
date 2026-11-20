@@ -47,17 +47,44 @@
           <div class="email-info">
             <div class="address-meta">
               <div class="send"><span class="send-source">{{$t('from')}}</span>
-                <div class="send-name" ref="sendNameRef" :class="{ 'is-wrapped': senderWrapped }">
-                  <span class="send-name-title">{{ email.name }}</span>
-                  <span class="send-email"><{{ email.sendEmail }}></span>
-                  <span class="sent-via" v-if="sentViaEmail">
-                    <el-tooltip effect="dark" :content="$t('sentVia', { email: sentViaEmail })">
-                      <span>
-                        <el-tag size="small" disable-transitions>{{ $t('sentViaTag') }}</el-tag>
+                <!-- 发件人卡片（Gmail 式）：悬停/点发件人弹出，显示头像、名字、邮箱再决定加不加；已发送的发件人是自己，不弹 -->
+                <el-popover
+                    placement="bottom-start"
+                    :width="300"
+                    :trigger="['hover', 'click']"
+                    :show-after="300"
+                    :disabled="email.type !== 0"
+                    @show="onSenderCardShow"
+                >
+                  <template #reference>
+                    <div class="send-name" ref="sendNameRef" :class="{ 'is-wrapped': senderWrapped, 'can-card': email.type === 0 }">
+                      <span class="send-name-title">{{ email.name }}</span>
+                      <span class="send-email"><{{ email.sendEmail }}></span>
+                      <span class="sent-via" v-if="sentViaEmail">
+                        <el-tooltip effect="dark" :content="$t('sentVia', { email: sentViaEmail })">
+                          <span>
+                            <el-tag size="small" disable-transitions>{{ $t('sentViaTag') }}</el-tag>
+                          </span>
+                        </el-tooltip>
                       </span>
-                    </el-tooltip>
-                  </span>
-                </div>
+                    </div>
+                  </template>
+                  <div class="sender-card">
+                    <div class="sender-card-top">
+                      <span class="sender-card-avatar" :style="{ backgroundColor: senderAvatar.color }">{{ senderAvatar.letter }}</span>
+                      <div class="sender-card-info">
+                        <div class="sender-card-name">{{ email.name }}</div>
+                        <div class="sender-card-email">{{ email.sendEmail }}</div>
+                      </div>
+                    </div>
+                    <el-button v-if="!senderInContacts" type="primary" size="small" :loading="senderCardAdding" class="sender-card-btn" @click="addSenderFromCard">
+                      <Icon icon="fluent:person-add-20-regular" width="16" height="16" style="margin-right: 4px"/>{{ $t('addToContacts') }}
+                    </el-button>
+                    <div v-else class="sender-card-added">
+                      <Icon icon="mdi:check" width="16" height="16"/>{{ $t('alreadyInContacts') }}
+                    </div>
+                  </div>
+                </el-popover>
               </div>
               <div class="receive"><span class="source">{{$t('recipient')}}</span><span class="receive-email">{{  formateReceive(email.recipient) }}</span></div>
               <div class="receive" v-if="ccText"><span class="source">{{$t('cc')}}</span><span class="receive-email">{{ ccText }}</span></div>
@@ -127,6 +154,8 @@ import {computed, reactive, ref, watch, onMounted, onUnmounted, nextTick} from "
 import {useRouter} from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import {emailDelete, emailRead, emailUnread, emailRestore, emailPhysicsDelete, emailExport, downloadExport, emailMarkSpam, emailUnmarkSpam} from "@/request/email.js";
+import {contactAdd, contactSuggest} from "@/request/contact.js";
+import {avatarLetter} from "@/utils/avatar.js";
 import {Icon} from "@iconify/vue";
 import {useEmailStore} from "@/store/email.js";
 import {useSidebarStore} from "@/store/sidebar.js";
@@ -200,6 +229,41 @@ const sentViaEmail = computed(() => {
   if (!address || address.toLowerCase() === String(email.value.sendEmail || '').trim().toLowerCase()) return ''
   return address
 })
+
+// 发件人卡片（Gmail 式）：弹出时查是否已在通讯录里
+const senderInContacts = ref(false)
+const senderCardAdding = ref(false)
+const senderAvatar = computed(() => avatarLetter(email.value?.name, email.value?.sendEmail))
+
+watch(() => email.value?.emailId, () => {
+  senderInContacts.value = false
+})
+
+async function onSenderCardShow() {
+  const addr = String(email.value?.sendEmail || '').trim()
+  if (!addr) return
+  try {
+    const found = await contactSuggest(addr)
+    senderInContacts.value = (found || []).some(c => String(c.email || '').toLowerCase() === addr.toLowerCase())
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+async function addSenderFromCard() {
+  const addr = String(email.value?.sendEmail || '').trim()
+  if (!addr) return
+  senderCardAdding.value = true
+  try {
+    await contactAdd({name: email.value?.name || '', email: addr})
+    senderInContacts.value = true
+    ElMessage({message: t('addedToContacts'), type: 'success', plain: true})
+  } catch (e) {
+    // 失败提示由 axios 拦截器统一弹出，这里只记日志
+    console.error(e)
+  }
+  senderCardAdding.value = false
+}
 
 watch(() => accountStore.currentAccountId, () => {
   handleBack()
@@ -516,6 +580,55 @@ const handleUnspam = () => {
   width: 100%;
 }
 
+/* 发件人卡片（el-popover 内容传送到 body，样式须放顶层，不能嵌在 .container 下面） */
+.sender-card {
+  .sender-card-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .sender-card-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    font-weight: 600;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .sender-card-info {
+    min-width: 0;
+  }
+  .sender-card-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    overflow-wrap: anywhere;
+  }
+  .sender-card-email {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    overflow-wrap: anywhere;
+  }
+  .sender-card-btn {
+    width: 100%;
+  }
+  .sender-card-added {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    padding: 4px 0;
+  }
+}
+
 .container {
   font-size: 14px;
   padding-left: 20px;
@@ -660,6 +773,10 @@ const handleUnspam = () => {
           flex-wrap: wrap;
           align-items: center;
           column-gap: 6px;
+
+          &.can-card {
+            cursor: pointer;
+          }
 
           .send-email {
             max-width: 100%;
