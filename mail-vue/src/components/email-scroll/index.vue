@@ -2,9 +2,9 @@
   <div class="email-container" :class="{ 'three-pane': threePane }">
     <div class="list-col">
     <div class="header-actions">
-      <!-- 移动端默认不显示全选框，进入选择模式（长按勾选）后才出现 -->
+      <!-- 触屏端默认不显示全选框，进入选择模式（长按勾选）后才出现；电脑端（鼠标）一直显示 -->
       <el-checkbox
-          v-if="!isMobile || selectMode"
+          v-if="uiStore.finePointer || selectMode"
           v-model="checkAll"
           :indeterminate="isIndeterminate"
           :disabled="!emailList.length || loading"
@@ -75,8 +75,8 @@
                  @touchend="onRowTouchEnd"
                  @touchcancel="onRowTouchEnd"
             >
-              <!-- 移动端：头像与复选框共用一个位置，默认显示头像，长按进入选择模式后显示复选框 -->
-              <div v-if="isMobile" class="avatar-slot">
+              <!-- 触屏端：头像与复选框共用一个位置，默认显示头像，长按进入选择模式后显示复选框 -->
+              <div v-if="isMobile && !uiStore.finePointer" class="avatar-slot">
                 <!-- 选择模式下已勾选的行：头像位置显示浅蓝底圆圈 + 蓝色对勾；未勾选的行仍显示头像 -->
                 <div v-if="selectMode && item.checked" class="sender-avatar avatar-checked">
                   <Icon icon="mdi:check" width="22" height="22" />
@@ -87,7 +87,7 @@
                   <template v-else>{{ item.avatarLetter }}</template>
                 </div>
               </div>
-              <el-checkbox v-if="!isMobile" :class=" props.type === 'all-email' ? 'all-email-checkbox' : 'checkbox'"
+              <el-checkbox v-if="uiStore.finePointer" :class=" props.type === 'all-email' ? 'all-email-checkbox' : 'checkbox'"
                            v-model="item.checked"
                            :disabled="!item.checked && isSelectMax"
                            @click.stop></el-checkbox>
@@ -98,12 +98,6 @@
                 </div>
               </el-tooltip>
               <div v-if="!showStar"></div>
-              <!-- 桌面端发件人头像 -->
-              <div v-if="!isMobile" class="sender-avatar sender-avatar-pc" :class="{ 'brand-avatar': showBrandImg(item) }" :style="showBrandImg(item) ? {} : { background: item.avatarColor }">
-                <img v-if="item.avatarBrand && !item.brandFailed" :src="'/brand/' + item.avatarBrand + '.svg'" @error="item.brandFailed = true" :alt="item.avatarLetter">
-                <img v-else-if="item.avatarBrandDomain && !item.brandFailed" :src="'/api/brand-icon?domain=' + item.avatarBrandDomain" @error="item.brandFailed = true" :alt="item.avatarLetter">
-                <template v-else>{{ item.avatarLetter }}</template>
-              </div>
               <div class="title" :class="accountShow ? 'title-column' : 'title-column'">
 
                 <div class="email-sender" :style=" (showStatus ? 'gap: 10px;' : '') + (isUnreadRow(item) ? 'font-weight: bold' : '')">
@@ -1905,7 +1899,8 @@ function renderHighlight(value) {
 
   .header-right {
     display: grid;
-    grid-template-columns: auto auto;
+    /* 三项：计数 + 三栏切换 + 账号栏切换，之前只有两列，第三个会被挤到下一行 */
+    grid-template-columns: auto auto auto;
     align-items: start;
     /* 窄窗口（<1367px，如 1366 笔记本）时复选框隐藏，header-right 落进 1fr 列被拉满宽，
        auto 列默认会被拉伸均分，图标会被推到行中间去；贴紧右端，跟宽屏一致 */
