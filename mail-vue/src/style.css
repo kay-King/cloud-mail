@@ -266,3 +266,17 @@ html[data-theme-to="light"]::view-transition-old(root) {
   scrollbar-width: thin;
   scrollbar-color: var(--el-text-color-placeholder) transparent;
 }
+
+/* 触屏设备没有悬停手势：提示框点出来就关不掉（手指没有"移开"，mouseleave 不触发，
+   hide-after 只管 mouseleave 后的延迟），干脆在触屏上不显示提示框；电脑端不受影响。
+   注意：Element Plus 2.x 里 tooltip 弹出层没有 el-tooltip__popper 这个类（那是 Vue 2
+   时代 Element UI 的名字），实际类名就是 .el-popper + is-dark/is-light；也不能按
+   role="tooltip" 藏——select、popover、date-picker 的弹出层内部就是用 tooltip 实现的，
+   role 同样是 tooltip，藏了会把手机端下拉框一起藏掉。区分靠深浅：全站 tooltip 都是
+   深色（默认 dark），select/popover/date-picker/dropdown 都是浅色（默认 light）。
+   约束：以后不要给 select/popover 加 effect="dark"，否则手机端下拉框会被这条规则藏掉。 */
+@media (pointer: coarse) {
+  .el-popper.is-dark {
+    display: none !important;
+  }
+}

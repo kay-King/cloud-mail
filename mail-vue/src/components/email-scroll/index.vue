@@ -13,7 +13,8 @@
       </el-checkbox>
       <div class="header-left" :style="'padding-left:' + actionLeft">
 
-        <el-tooltip effect="dark" :hide-after="0" :content="$t('refresh')">
+        <!-- 勾选时收起刷新：选中时刷新用不到，还容易误触丢了勾选 -->
+        <el-tooltip effect="dark" :hide-after="0" :content="$t('refresh')" v-if="checkedEmailCount === 0">
           <Icon class="icon reload" icon="ion:reload" width="20" height="20" @click="refresh"/>
         </el-tooltip>
         <slot name="first"></slot>
@@ -40,7 +41,7 @@
       </div>
 
       <div class="header-right">
-        <span class="email-count" v-if="total">{{ $t('emailCount', {total: total}) }}</span>
+        <span class="email-count" v-if="total">{{ checkedEmailCount > 0 ? $t('emailSelectedCount', {count: checkedEmailCount}) : $t('emailCount', {total: total}) }}</span>
         <el-tooltip effect="dark" :hide-after="0" :content="threePane ? $t('switchToListMode') : $t('switchToReadingPane')">
           <Icon v-if="uiStore.finePointer && props.type !== 'draft'" class="more-icon icon" width="18" height="18"
                 :icon="threePane ? 'fluent:list-20-regular' : 'mdi:view-split-vertical'"
@@ -2113,6 +2114,20 @@ function renderHighlight(value) {
   gap: 15px;
   padding: 8px 15px;
   box-shadow: var(--header-actions-border);
+
+  /* 触屏端间距收紧：勾选时顶栏按钮多，省出空间防换行；电脑端不动 */
+  @media (pointer: coarse) {
+    gap: 10px;
+    padding: 8px 12px;
+
+    .header-left {
+      column-gap: 14px;
+    }
+
+    .more-icon {
+      margin-left: 10px;
+    }
+  }
 
   .header-left {
     display: flex;
