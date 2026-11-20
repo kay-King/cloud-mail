@@ -2,10 +2,10 @@
   <div class="account-box">
     <div class="head-opt">
       <el-tooltip effect="dark" :content="$t('addAccount')">
-        <Icon v-perm="'account:add'" class="icon add" icon="ion:add-outline" width="23" height="23" @click="add"/>
+        <Icon v-perm="'account:add'" class="icon add" icon="fluent:add-20-regular" width="20" height="20" @click="add"/>
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('refresh')">
-        <Icon class="icon refresh" icon="ion:reload" width="18" height="18" @click="refresh"/>
+        <Icon class="icon refresh" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="refresh"/>
       </el-tooltip>
     </div>
     <el-scrollbar class="scrollbar" ref="scrollbarRef">
@@ -28,10 +28,10 @@
               <el-tooltip effect="dark" :content="$t('copyEmail')">
                 <Icon icon="fluent-color:clipboard-24" width="22" height="22" @click.stop="copyAccount(item.email)"/>
               </el-tooltip>
-              <Icon icon="fluent:settings-24-filled" width="21" height="21" color="#909399"
+              <Icon icon="fluent:settings-20-regular" width="20" height="20" color="#909399"
                     v-if="showNullSetting(item)"/>
               <el-dropdown v-else>
-                <Icon icon="fluent:settings-24-filled" width="21" height="21" color="#909399"/>
+                <Icon icon="fluent:settings-20-regular" width="20" height="20" color="#909399"/>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item v-if="hasPerm('email:send')" @click="openSetName(item)">{{ $t('rename') }}</el-dropdown-item>
@@ -580,7 +580,7 @@ path[fill="#ffdda1"] {
     }
 
     .refresh {
-      margin-left: 10px;
+      margin-left: 20px;
     }
 
     .add {

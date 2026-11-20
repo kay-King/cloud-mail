@@ -11,39 +11,48 @@
           @change="handleCheckAllChange"
       >
       </el-checkbox>
-      <div class="header-left" :style="'padding-left:' + actionLeft">
+      <!-- 触屏端左内边距 19px：配合勾选框的 16px 左移，第一个图标左缘对准下面邮件行
+           的内容列起头（头像左距 15 + 头像 40 + 右间距 16 = 71）；电脑端仍用各视图传的 actionLeft -->
+      <div class="header-left" :style="{ paddingLeft: uiStore.finePointer ? actionLeft : '19px' }">
 
         <!-- 勾选时收起刷新：选中时刷新用不到，还容易误触丢了勾选 -->
         <el-tooltip effect="dark" :hide-after="0" :content="$t('refresh')" v-if="checkedEmailCount === 0">
           <Icon class="icon reload" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="refresh"/>
         </el-tooltip>
         <slot name="first"></slot>
+        <!-- 批量操作图标常驻显示：未勾选时禁用态（半透明、点不动），勾选后恢复可点 -->
         <el-tooltip effect="dark" :hide-after="0" :content="props.type === 'trash' ? $t('deleteForeverSelected') : $t('deleteSelected')">
           <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:delete-20-regular" width="20" height="20"
-                v-if="getSelectedMailsIds().length > 0"
+                :class="{ 'icon-disabled': checkedEmailCount === 0 }"
                 @click="handleDelete"/>
         </el-tooltip>
-        <!-- 触屏上导出/标已读/标未读收进 ⋮ 菜单，电脑端保持直接显示 -->
+        <!-- 电脑端导出/标已读/标未读直接显示在顶栏；触屏上收进下面的 ⋮ 菜单（顶栏放不下 5 个，
+             垃圾箱视图还有取消垃圾/清空两个额外图标，360px 宽会溢出换行） -->
         <el-tooltip effect="dark" :hide-after="0" :content="$t('exportSelected')" v-if="uiStore.finePointer">
           <Icon class="icon" icon="fluent:arrow-download-20-regular" width="20" height="20"
-                v-if="getSelectedMailsIds().length > 0 && props.type !== 'draft'"
+                v-if="props.type !== 'draft'"
+                :class="{ 'icon-disabled': checkedEmailCount === 0 }"
                 @click="handleExport"/>
         </el-tooltip>
         <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsRead')" v-if="uiStore.finePointer">
           <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-read-20-regular" width="20" height="20"
-                v-if="getSelectedMailsIds().length > 0 && showUnread && props.emailRead"
+                v-if="showUnread && props.emailRead"
+                :class="{ 'icon-disabled': checkedEmailCount === 0 }"
                 @click="handleRead"/>
         </el-tooltip>
         <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsUnread')" v-if="uiStore.finePointer">
           <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-unread-20-regular" width="20" height="20"
-                v-if="getSelectedMailsIds().length > 0 && showUnread && props.emailUnread"
+                v-if="showUnread && props.emailUnread"
+                :class="{ 'icon-disabled': checkedEmailCount === 0 }"
                 @click="handleUnread"/>
         </el-tooltip>
-        <!-- 触屏勾选时的 ⋮ 更多菜单：导出/标已读/标未读收进来，顶栏只留删除 + slot + ⋮；
-             草稿视图三项条件都不满足、菜单会是空的，不显示 ⋮；电脑端不出现；
+        <!-- 触屏 ⋮ 更多菜单：导出/标已读/标未读收进来，顶栏只留删除 + slot + ⋮；
+             常驻显示，未勾选时禁用态（半透明、点不开）；草稿视图三项条件都不满足、菜单会是空的，
+             不显示 ⋮；电脑端不出现；
              bottom-start：⋮ 在顶栏左侧，菜单左缘对齐触发器，不会超出屏幕左缘 -->
-        <el-dropdown v-if="!uiStore.finePointer && checkedEmailCount > 0 && props.type !== 'draft'" trigger="click" placement="bottom-start">
-          <Icon class="icon" icon="fluent:more-vertical-20-regular" width="20" height="20" />
+        <el-dropdown v-if="!uiStore.finePointer && props.type !== 'draft'" trigger="click" placement="bottom-start">
+          <Icon class="icon" icon="fluent:more-vertical-20-regular" width="20" height="20"
+                :class="{ 'icon-disabled': checkedEmailCount === 0 }" />
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item v-if="props.type !== 'draft'" @click="handleExport">
@@ -73,7 +82,7 @@
         <span class="email-count" v-if="total">{{ checkedEmailCount > 0 ? $t('emailSelectedCount', {count: checkedEmailCount}) : $t('emailCount', {total: total}) }}</span>
         <el-tooltip effect="dark" :hide-after="0" :content="threePane ? $t('switchToListMode') : $t('switchToReadingPane')">
           <Icon v-if="uiStore.finePointer && props.type !== 'draft'" class="more-icon icon" width="18" height="18"
-                :icon="threePane ? 'fluent:list-20-regular' : 'mdi:view-split-vertical'"
+                :icon="threePane ? 'fluent:list-20-regular' : 'fluent:panel-right-20-regular'"
                 @click="toggleReadingPane"/>
         </el-tooltip>
         <el-tooltip effect="dark" :hide-after="0" :content="$t('toggleAccountPanel')">
@@ -116,7 +125,7 @@
               <div v-if="!uiStore.finePointer" class="avatar-slot">
                 <!-- 选择模式下已勾选的行：头像位置显示浅蓝底圆圈 + 蓝色对勾；未勾选的行仍显示头像 -->
                 <div v-if="selectMode && item.checked" class="sender-avatar avatar-checked">
-                  <Icon icon="mdi:check" width="22" height="22" />
+                  <Icon icon="fluent:checkmark-20-regular" width="22" height="22" />
                 </div>
                 <div v-else class="sender-avatar" :class="{ 'brand-avatar': showBrandImg(item) }" :style="showBrandImg(item) ? {} : { background: item.avatarColor }">
                   <img v-if="item.avatarBrand && !item.brandFailed" :src="'/brand/' + item.avatarBrand + '.svg'" @load="item.brandLoaded = true" @error="item.brandFailed = true" :alt="item.avatarLetter" v-show="item.brandLoaded">
@@ -133,7 +142,7 @@
               <el-tooltip effect="dark" :hide-after="0" :content="item.isStar ? $t('unstar') : $t('starIt')">
                 <div @click.stop="starChange(item)" class="pc-star" v-if="showStar">
                   <Icon v-if="item.isStar" icon="fluent-color:star-16" width="20" height="20"/>
-                  <Icon v-else icon="solar:star-line-duotone" width="18" height="18"/>
+                  <Icon v-else icon="fluent:star-20-regular" width="18" height="18"/>
                 </div>
               </el-tooltip>
               <div v-if="!showStar"></div>
@@ -146,7 +155,7 @@
                     </el-tooltip>
                     <div class="del-status" v-if="item.isDel && item.status !== 6">
                       <el-tooltip effect="dark" :hide-after="0" :content="item.isDelContent">
-                        <Icon class="icon" icon="mdi:email-remove" width="20" height="20"/>
+                        <Icon class="icon" icon="fluent:mail-dismiss-20-regular" width="20" height="20"/>
                       </el-tooltip>
                     </div>
                   </div>
@@ -173,10 +182,10 @@
                         </slot>
                       </span>
                       <el-tooltip effect="dark" :hide-after="0" :content="$t('hasAttachmentTip')">
-                        <Icon v-if="item.hasAttachment" icon="iconamoon:attachment-fill" width="16" height="16" class="attachment-icon"/>
+                        <Icon v-if="item.hasAttachment" icon="fluent:attach-20-regular" width="16" height="16" class="attachment-icon"/>
                       </el-tooltip>
                       <el-tooltip effect="dark" :hide-after="0" :content="$t('hasImageTip')">
-                        <Icon v-if="item.hasInlineImage" icon="mdi:image" width="16" height="16" class="attachment-icon"/>
+                        <Icon v-if="item.hasInlineImage" icon="fluent:image-20-regular" width="16" height="16" class="attachment-icon"/>
                       </el-tooltip>
                       <el-tooltip effect="dark" :hide-after="0" :content="$t('pairCountTip', {count: item.pairCount})">
                         <Icon v-if="item.pairCount > 1" icon="fluent:mail-copy-20-regular" width="16" height="16" class="attachment-icon"/>
@@ -188,7 +197,7 @@
                     <div class="user">
                       <span>
                         <el-tooltip effect="dark" :hide-after="0" :content="$t('sender')">
-                          <Icon icon="mynaui:user" width="20" height="20"/>
+                          <Icon icon="fluent:person-20-regular" width="20" height="20"/>
                         </el-tooltip>
                       </span>
                       <span v-html="item.senderEmailHtml"></span>
@@ -196,7 +205,7 @@
                     <div class="account">
                       <span>
                         <el-tooltip effect="dark" :hide-after="0" :content="$t('recipient')">
-                          <Icon icon="mdi-light:email" width="20" height="20"/>
+                          <Icon icon="fluent:mail-20-regular" width="20" height="20"/>
                         </el-tooltip>
                       </span>
                       <span v-html="item.recipientEmailHtml"></span>
@@ -292,7 +301,7 @@
           <el-dropdown-item v-if="['email','star'].includes(props.type)" @click="openReply(rightClickEmail)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="fluent-mdl2:reply" width="19" height="19"  />
+                <Icon icon="fluent:arrow-reply-20-regular" width="20" height="20"  />
                 <span>{{t('reply')}}</span>
               </div>
             </template>
@@ -300,7 +309,7 @@
           <el-dropdown-item v-if="['email','send', 'star'].includes(props.type)" @click="openForward(rightClickEmail)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="iconoir:arrow-up-right" width="19" height="19"  />
+                <Icon icon="fluent:arrow-forward-20-regular" width="20" height="20"  />
                 <span>{{t('forward')}}</span>
               </div>
             </template>
@@ -308,7 +317,7 @@
           <el-dropdown-item v-if="['email','send', 'star'].includes(props.type)" @click="starChange(rightClickEmail)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="solar:star-line-duotone" width="19" height="19"/>
+                <Icon icon="fluent:star-20-regular" width="20" height="20"/>
                 <span>{{t('star')}}</span>
               </div>
             </template>
@@ -316,7 +325,7 @@
           <el-dropdown-item v-if="['email'].includes(props.type)" @click="rightSpam(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="hugeicons:mail-block-01" width="19" height="19" />
+                <Icon icon="hugeicons:mail-block-01" class="icon-huge" width="20" height="20" />
                 <span>{{t('markSpam')}}</span>
               </div>
             </template>
@@ -324,7 +333,7 @@
           <el-dropdown-item v-if="rightClickEmail.type === 0" @click="addSenderToContacts(rightClickEmail)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="fluent:person-add-20-regular" width="19" height="19" />
+                <Icon icon="fluent:person-add-20-regular" width="20" height="20" />
                 <span>{{t('addToContacts')}}</span>
               </div>
             </template>
@@ -332,7 +341,7 @@
           <el-dropdown-item v-if="props.type === 'all-email'" @click="handleSearch('user', rightClickEmail.userEmail)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="iconoir:search" width="20" height="20" />
+                <Icon icon="fluent:search-20-regular" width="20" height="20" />
                 <span>{{t('searchUser')}}</span>
               </div>
             </template>
@@ -340,7 +349,7 @@
           <el-dropdown-item v-if="props.type === 'all-email' " @click="handleSearch('account', rightClickEmail.type === 0 ? rightClickEmail.toEmail : rightClickEmail.sendEmail)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="iconoir:search" width="20" height="20" />
+                <Icon icon="fluent:search-20-regular" width="20" height="20" />
                 <span>{{t('searchEmail')}}</span>
               </div>
             </template>
@@ -348,7 +357,7 @@
           <el-dropdown-item v-if="props.type === 'all-email' " @click="handleSearch('name', rightClickEmail.name)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="iconoir:search" width="20" height="20" />
+                <Icon icon="fluent:search-20-regular" width="20" height="20" />
                 <span>{{t('searchSender')}}</span>
               </div>
             </template>
@@ -356,7 +365,7 @@
           <el-dropdown-item v-if="props.type === 'trash'" @click="rightRestore(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="mdi:restore" width="19" height="19" />
+                <Icon icon="fluent:arrow-undo-20-regular" width="20" height="20" />
                 <span>{{t('restore')}}</span>
               </div>
             </template>
@@ -364,7 +373,7 @@
           <el-dropdown-item v-if="props.type === 'spam'" @click="rightRestore(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="mdi:restore" width="19" height="19" />
+                <Icon icon="fluent:arrow-undo-20-regular" width="20" height="20" />
                 <span>{{t('notSpam')}}</span>
               </div>
             </template>
@@ -372,7 +381,7 @@
           <el-dropdown-item v-if="props.type !== 'draft'" @click="rightExport(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="system-uicons:push-down" width="19" height="19" />
+                <Icon icon="fluent:arrow-download-20-regular" width="20" height="20" />
                 <span>{{t('exportMail')}}</span>
               </div>
             </template>
@@ -380,7 +389,7 @@
           <el-dropdown-item @click="rightDelete(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="uiw:delete" width="16" height="20" style="margin-left: 1px;margin-right: 3px" />
+                <Icon icon="fluent:delete-20-regular" width="20" height="20" />
                 <span>{{props.type === 'trash' ? t('deleteForever') : t('delete')}}</span>
               </div>
             </template>
@@ -1896,7 +1905,8 @@ function renderHighlight(value) {
     }
   }
 
-  /* 发件人头像：移动端 40px，与复选框共用一个位置（长按进入选择模式时互换，不移位） */
+  /* 发件人头像：移动端 40px，与复选框共用一个位置（长按进入选择模式时互换，不移位）；
+     右间距 16px：头像与内容列之间留白加大一点（骨架屏 skeleton 里有一份同样的边距，改这边要同步改那边） */
   .avatar-slot {
     display: flex;
     align-items: center;
@@ -1905,7 +1915,7 @@ function renderHighlight(value) {
     height: 40px;
     flex-shrink: 0;
     align-self: flex-start;
-    margin: 0 12px 0 15px;
+    margin: 0 16px 0 15px;
   }
 
   /* 选择模式下已勾选的行：浅色圆底 + 品牌色对勾（跟随当前主题主色） */
@@ -2195,6 +2205,12 @@ function renderHighlight(value) {
     gap: 10px;
     padding: 8px 12px;
 
+    /* 勾选框左移 16px：中心线对准下面邮件行的头像中心（12 + 16 + 7 = 35 = 15 + 20）；
+       配合 header-left 的 19px 左内边距，第一个图标左缘对准内容列起头（15 + 40 + 16 = 71） */
+    .el-checkbox {
+      margin-left: 16px;
+    }
+
     .header-left {
       column-gap: 14px;
     }
@@ -2211,7 +2227,7 @@ function renderHighlight(value) {
     position: relative;
     column-gap: 20px;
     row-gap: 8px;
-    padding-left: 2px;
+    /* 左内边距由模板里的 :style 绑定定（触屏 19px 对齐内容列、电脑端用 actionLeft），这里不写 */
     color: var(--el-text-color-primary);;
   }
 

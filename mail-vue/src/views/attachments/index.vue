@@ -22,19 +22,19 @@
 
     <div class="att-actions" v-if="!isMobile || selected.length > 0">
       <el-button :disabled="selected.length === 0" @click="downloadSelected">
-        <Icon icon="system-uicons:push-down" width="18" height="18"/>
+        <Icon icon="fluent:arrow-download-20-regular" width="20" height="20"/>
         {{ $t('download') }}
       </el-button>
       <el-button :disabled="selected.length === 0" :loading="sending" @click="sendSelected" v-if="!admin">
-        <Icon icon="cil:send" width="18" height="18"/>
+        <Icon icon="fluent:send-20-regular" width="20" height="20"/>
         {{ $t('send') }}
       </el-button>
       <el-button :disabled="selected.length === 0" @click="starSelected" v-if="!admin">
-        <Icon icon="solar:star-line-duotone" width="18" height="18"/>
+        <Icon icon="fluent:star-20-regular" width="20" height="20"/>
         {{ tab === 'fav' ? $t('unFavorite') : $t('favorite') }}
       </el-button>
       <el-button :disabled="selected.length === 0" @click="deleteSelected">
-        <Icon icon="fluent:delete-24-regular" width="18" height="18"/>
+        <Icon icon="fluent:delete-20-regular" width="20" height="20"/>
         {{ $t('deleted') }}
       </el-button>
       <el-select v-model="category" class="att-filter" @change="reload" v-if="!isMobile">
@@ -57,7 +57,7 @@
         <template #default="{row}">
           <Icon v-if="row.isStar" icon="fluent-color:star-16" width="20" height="20"
                 class="star-icon" @click="toggleStar(row)"/>
-          <Icon v-else icon="solar:star-line-duotone" width="20" height="20"
+          <Icon v-else icon="fluent:star-20-regular" width="20" height="20"
                 class="star-icon" @click="toggleStar(row)"/>
         </template>
       </el-table-column>
@@ -84,14 +84,14 @@
            @click="previewAttachment(row)">
         <div class="card-icon" :class="{checked: isSelected(row)}" @click.stop="toggleSelect(row)">
           <Icon v-if="!isSelected(row)" v-bind="getIconByName(row.filename)"/>
-          <Icon v-else icon="ep:check" width="22" height="22" color="#fff"/>
+          <Icon v-else icon="fluent:checkmark-20-regular" width="22" height="22" color="#fff"/>
         </div>
         <div class="card-body">
           <div class="card-name">{{ row.filename }}</div>
           <div class="card-meta">{{ formatBytes(row.size) }} · {{ formatCardDate(row.createTime) }}</div>
           <div class="card-sub" v-if="cardSub(row)" @click.stop="!admin && jumpToEmail(row)">{{ cardSub(row) }}</div>
         </div>
-        <Icon v-if="!admin" :icon="row.isStar ? 'fluent-color:star-16' : 'solar:star-line-duotone'"
+        <Icon v-if="!admin" :icon="row.isStar ? 'fluent-color:star-16' : 'fluent:star-20-regular'"
               width="20" height="20" class="card-star" @click.stop="toggleStar(row)"/>
       </div>
     </div>

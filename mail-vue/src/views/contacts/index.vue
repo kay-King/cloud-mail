@@ -45,9 +45,9 @@
           <div class="card-remark" v-if="row.remark">{{ row.remark }}</div>
         </div>
         <div class="card-actions">
-          <Icon icon="cil:send" width="20" height="20" v-perm="'email:send'" @click="writeTo(row)"/>
-          <Icon icon="ep:edit" width="20" height="20" @click="openEdit(row)"/>
-          <Icon icon="fluent:delete-24-regular" width="20" height="20" @click="deleteRow(row)"/>
+          <Icon icon="fluent:send-20-regular" width="20" height="20" v-perm="'email:send'" @click="writeTo(row)"/>
+          <Icon icon="fluent:edit-20-regular" width="20" height="20" @click="openEdit(row)"/>
+          <Icon icon="fluent:delete-20-regular" width="20" height="20" @click="deleteRow(row)"/>
         </div>
       </div>
     </div>

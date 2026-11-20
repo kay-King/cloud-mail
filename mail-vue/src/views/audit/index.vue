@@ -3,17 +3,17 @@
     <div class="header-actions">
       <el-tooltip effect="dark" :content="$t('auditSelectAll')" v-if="isMobile">
         <div class="header-check" :class="{checked: isAllSelected}" @click="toggleSelectAll">
-          <Icon v-if="isAllSelected" icon="ep:check" width="14" height="14"/>
+          <Icon v-if="isAllSelected" icon="fluent:checkmark-20-regular" width="14" height="14"/>
         </div>
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('refresh')">
-        <Icon class="icon" icon="ion:reload" width="20" height="20" @click="reload"/>
+        <Icon class="icon" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="reload"/>
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('auditClearAll')">
-        <Icon class="icon" icon="fluent:broom-sparkle-16-regular" width="20" height="20" @click="clearAll"/>
+        <Icon class="icon" icon="fluent:broom-20-regular" width="20" height="20" @click="clearAll"/>
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('auditDeleteSelected')">
-        <Icon v-if="selectedLogs.length > 0" class="icon" icon="uiw:delete" width="18" height="18" @click="deleteSelected"/>
+        <Icon v-if="selectedLogs.length > 0" class="icon" icon="fluent:delete-20-regular" width="20" height="20" @click="deleteSelected"/>
       </el-tooltip>
     </div>
     <!-- 原生滚动容器：el-scrollbar 的自定义滑块在手机上不可靠，改用浏览器原生滚动条 + 强制常显样式 -->
@@ -60,7 +60,7 @@
           <el-table-column :label="$t('auditOperation')" width="70">
             <template #default="props">
               <el-tooltip effect="dark" :content="$t('delete')">
-                <Icon class="icon" icon="fluent:delete-24-regular" width="18" height="18" @click.stop="deleteOne(props.row)"/>
+                <Icon class="icon" icon="fluent:delete-20-regular" width="20" height="20" @click.stop="deleteOne(props.row)"/>
               </el-tooltip>
             </template>
           </el-table-column>
@@ -69,7 +69,7 @@
           <div v-if="logs.length === 0 && !first" class="audit-empty">{{ $t('auditNoRecords') }}</div>
           <div class="audit-card" :class="{selected: isSelected(row)}" v-for="row in logs" :key="row.logId" @click="openDetail(row)">
             <div class="card-check" :class="{checked: isSelected(row)}" @click.stop="toggleSelect(row)">
-              <Icon v-if="isSelected(row)" icon="ep:check" width="14" height="14"/>
+              <Icon v-if="isSelected(row)" icon="fluent:checkmark-20-regular" width="14" height="14"/>
             </div>
             <div class="card-body">
               <div class="card-line1">
@@ -80,7 +80,7 @@
               <div class="card-target">{{ row.targetDesc }}</div>
               <div class="card-detail" v-if="row.detail">{{ row.detail }}</div>
             </div>
-            <Icon class="icon card-delete" icon="fluent:delete-24-regular" width="18" height="18" @click.stop="deleteOne(row)"/>
+            <Icon class="icon card-delete" icon="fluent:delete-20-regular" width="20" height="20" @click.stop="deleteOne(row)"/>
           </div>
         </div>
         <div v-if="loadingMore" class="loading-more">{{ $t('loadingMore') }}</div>
@@ -363,6 +363,9 @@ onUnmounted(() => {
   gap: 20px;
   padding: 12px 16px;
   flex-wrap: wrap;
+  @media (max-width: 767px) {
+    gap: 15px;
+  }
 }
 
 .icon {

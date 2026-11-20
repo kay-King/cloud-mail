@@ -2,7 +2,7 @@
   <div class="reg-key">
     <div class="header-actions">
       <el-tooltip :hide-after="0" effect="dark" :content="$t('addRegKey')">
-        <Icon class="icon" icon="ion:add-outline" width="23" height="23" @click="openAdd"/>
+        <Icon class="icon" icon="fluent:add-20-regular" width="20" height="20" @click="openAdd"/>
       </el-tooltip>
       <div class="search">
         <el-input
@@ -13,13 +13,13 @@
         </el-input>
       </div>
       <el-tooltip :hide-after="0" effect="dark" :content="$t('search')">
-        <Icon class="icon" icon="iconoir:search" @click="search" width="20" height="20"/>
+        <Icon class="icon" icon="fluent:search-20-regular" @click="search" width="20" height="20"/>
       </el-tooltip>
       <el-tooltip :hide-after="0" effect="dark" :content="$t('refresh')">
-        <Icon class="icon" icon="ion:reload" width="18" height="18" @click="refresh"/>
+        <Icon class="icon" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="refresh"/>
       </el-tooltip>
       <el-tooltip :hide-after="0" effect="dark" :content="$t('clearUnused')">
-        <Icon class="icon" icon="fluent:broom-sparkle-16-regular" width="22" height="22" @click="clearNotUse"/>
+        <Icon class="icon" icon="fluent:broom-20-regular" width="20" height="20" @click="clearNotUse"/>
       </el-tooltip>
     </div>
 
@@ -51,7 +51,7 @@
             </div>
             <div class="info-right">
               <el-dropdown class="setting">
-                <Icon icon="fluent:settings-24-filled" width="21" height="21" color="var(--secondary-text-color)"/>
+                <Icon icon="fluent:settings-20-regular" width="20" height="20" color="var(--secondary-text-color)"/>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item @click="copyCode(item.code)">{{ $t('copy') }}</el-dropdown-item>
@@ -73,7 +73,7 @@
         <el-input v-model="addForm.code" :placeholder="$t('regKey')" @keyup.enter="submit">
           <template #suffix>
             <el-tooltip :hide-after="0" effect="dark" :content="$t('generateCode')">
-              <Icon @click.stop="genCode" class="gen-code" icon="bitcoin-icons:refresh-filled" width="24" height="24"/>
+              <Icon @click.stop="genCode" class="gen-code" icon="fluent:arrow-clockwise-20-regular" width="24" height="24"/>
             </el-tooltip>
           </template>
         </el-input>
@@ -550,7 +550,7 @@ function openAdd() {
 .header-actions {
   padding: 9px 15px;
   display: flex;
-  gap: 18px;
+  gap: 20px;
   flex-wrap: wrap;
   align-items: center;
   box-shadow: inset 0 -1px 0 0 rgba(100, 121, 143, 0.12);

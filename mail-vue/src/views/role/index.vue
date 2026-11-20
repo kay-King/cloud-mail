@@ -2,10 +2,10 @@
   <div class="perm-box">
     <div class="header-actions">
       <el-tooltip :hide-after="0" effect="dark" :content="$t('addRoleTitle')">
-        <Icon class="icon" icon="ion:add-outline" width="23" height="23" @click="openAddRole"/>
+        <Icon class="icon" icon="fluent:add-20-regular" width="20" height="20" @click="openAddRole"/>
       </el-tooltip>
       <el-tooltip :hide-after="0" effect="dark" :content="$t('refresh')">
-        <Icon class="icon" icon="ion:reload" width="18" height="18" @click="refresh"/>
+        <Icon class="icon" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="refresh"/>
       </el-tooltip>
     </div>
     <el-scrollbar class="perm-scrollbar">
@@ -60,7 +60,7 @@
             placement="bottom"
         >
           <template #reference>
-            <Icon class="warning" icon="fe:warning" width="18" height="18"/>
+            <Icon class="warning" icon="fluent:warning-20-regular" width="18" height="18"/>
           </template>
           <div style="font-weight: bold;;margin-bottom: 2px;">{{ t('emailInterception') }}</div>
           <div>{{ t('emailInterceptionDesc') }}</div>
@@ -447,9 +447,12 @@ window.onresize = () => {
   padding: 9px 15px;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 20px;
   box-shadow: var(--header-actions-border);
   font-size: 18px;
+  @media (max-width: 767px) {
+    gap: 15px;
+  }
 
   .search {
     :deep(.el-input-group) {

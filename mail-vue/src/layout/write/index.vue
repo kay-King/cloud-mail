@@ -11,7 +11,7 @@
           <span class="send-email"><{{ form.sendEmail }}></span>
         </div>
         <button type="button" class="close-btn" @click="close" :aria-label="$t('close')">
-          <Icon icon="material-symbols-light:close-rounded" width="22" height="22"/>
+          <Icon icon="fluent:dismiss-20-regular" width="20" height="20"/>
         </button>
       </div>
       <div class="container">
@@ -43,7 +43,7 @@
                 <button type="button" class="address-toggle" v-if="form.manyType !== 'divide' && !showCc" @click.stop="openCc">CC</button>
                 <button type="button" class="address-toggle" v-if="form.manyType !== 'divide' && !showBcc" @click.stop="openBcc">BCC</button>
                 <el-tooltip effect="dark" :content="$t('chooseContacts')">
-                  <Icon icon="fa7-solid:user-plus" width="20" height="20" class="add-contact" @click.stop="openContacts('receive')" />
+                  <Icon icon="fluent:person-add-20-regular" width="20" height="20" class="add-contact" @click.stop="openContacts('receive')" />
                 </el-tooltip>
               </div>
             </template>
@@ -73,7 +73,7 @@
             <template #suffix>
               <div class="address-actions">
                 <el-tooltip effect="dark" :content="$t('chooseContacts')">
-                  <Icon icon="fa7-solid:user-plus" width="20" height="20" class="add-contact" @click.stop="openContacts('cc')" />
+                  <Icon icon="fluent:person-add-20-regular" width="20" height="20" class="add-contact" @click.stop="openContacts('cc')" />
                 </el-tooltip>
               </div>
             </template>
@@ -103,7 +103,7 @@
             <template #suffix>
               <div class="address-actions">
                 <el-tooltip effect="dark" :content="$t('chooseContacts')">
-                  <Icon icon="fa7-solid:user-plus" width="20" height="20" class="add-contact" @click.stop="openContacts('bcc')" />
+                  <Icon icon="fluent:person-add-20-regular" width="20" height="20" class="add-contact" @click.stop="openContacts('bcc')" />
                 </el-tooltip>
               </div>
             </template>
@@ -113,11 +113,11 @@
         <tinyEditor :def-value="defValue" ref="editor" @change="change" @focus="focusChange" />
         <div class="button-item">
           <button type="button" class="att-add" @click="chooseFile" :aria-label="$t('addAttachment')">
-            <Icon icon="iconamoon:attachment-fill" width="24" height="24"/>
+            <Icon icon="fluent:attach-20-regular" width="20" height="20"/>
           </button>
           <input ref="fileInputRef" type="file" multiple style="display: none" @change="onFilesSelected"/>
           <div class="att-clear" @click="clearContent">
-            <Icon icon="icon-park-outline:clear-format" width="24" height="24 "/>
+            <Icon icon="fluent:clear-formatting-20-regular" width="20" height="20"/>
           </div>
           <div class="att-list">
             <div class="att-item" v-for="(item,index) in form.attachments" :key="index">
@@ -125,8 +125,8 @@
               <span class="att-filename">{{ item.filename }}</span>
               <span class="att-size">{{ formatBytes(item.size) }}</span>
               <el-tooltip effect="dark" :content="$t('removeAttachment')">
-                <Icon style="cursor: pointer;" icon="material-symbols-light:close-rounded" @click="delAtt(index)"
-                      width="22" height="22"/>
+                <Icon style="cursor: pointer;" icon="fluent:dismiss-20-regular" @click="delAtt(index)"
+                      width="20" height="20"/>
               </el-tooltip>
             </div>
           </div>
@@ -168,7 +168,7 @@
         <el-table-column width="55" label="" >
           <template #default>
             <div style="display: flex;">
-              <Icon icon="mage:user" style="color: var(--el-text-color-primary)" width="22" height="22" color="var(--el-text-color-regular)" />
+              <Icon icon="fluent:person-20-regular" style="color: var(--el-text-color-primary)" width="20" height="20" color="var(--el-text-color-regular)" />
             </div>
           </template>
         </el-table-column>
@@ -1040,7 +1040,7 @@ function close() {
 
         .att-clear {
           cursor: pointer;
-          margin-left: 10px;
+          margin-left: 20px;
         }
 
         .att-list {

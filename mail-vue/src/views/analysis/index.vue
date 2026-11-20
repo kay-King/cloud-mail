@@ -15,7 +15,7 @@
             </div>
             <div class="right">
               <div class="count-icon">
-                <Icon icon="hugeicons:mailbox-01" width="25" height="25"></Icon>
+                <Icon icon="fluent:mail-inbox-20-regular" width="25" height="25"></Icon>
               </div>
             </div>
           </div>
@@ -34,7 +34,7 @@
             </div>
             <div class="right">
               <div class="count-icon">
-                <Icon icon="cil:send" width="25" height="25"></Icon>
+                <Icon icon="fluent:send-20-regular" width="25" height="25"></Icon>
               </div>
             </div>
           </div>
@@ -53,7 +53,7 @@
             </div>
             <div class="right">
               <div class="count-icon">
-                <Icon icon="lets-icons:e-mail" width="23" height="23"></Icon>
+                <Icon icon="fluent:mail-20-regular" width="25" height="25"></Icon>
               </div>
             </div>
           </div>
@@ -72,7 +72,7 @@
             </div>
             <div class="right">
               <div class="count-icon">
-                <Icon icon="iconoir:user" width="25" height="25"></Icon>
+                <Icon icon="fluent:person-20-regular" width="25" height="25"></Icon>
               </div>
             </div>
           </div>
@@ -91,7 +91,7 @@
             </div>
             <div class="right">
               <div class="count-icon">
-                <Icon icon="iconamoon:attachment-fill" width="25" height="25"></Icon>
+                <Icon icon="fluent:attach-20-regular" width="25" height="25"></Icon>
               </div>
             </div>
           </div>
@@ -111,7 +111,7 @@
             </div>
             <div class="right">
               <div class="count-icon">
-                <Icon icon="iconoir:database" width="25" height="25"></Icon>
+                <Icon icon="fluent:database-20-regular" width="25" height="25"></Icon>
               </div>
             </div>
           </div>

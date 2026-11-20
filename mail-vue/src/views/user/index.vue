@@ -2,7 +2,7 @@
   <div class="user-box">
     <div class="header-actions">
       <el-tooltip :hide-after="0" effect="dark" :content="$t('addUser')">
-        <Icon class="icon" icon="ion:add-outline" width="23" height="23" @click="openAdd"/>
+        <Icon class="icon" icon="fluent:add-20-regular" width="20" height="20" @click="openAdd"/>
       </el-tooltip>
       <div class="search">
         <el-input
@@ -20,21 +20,21 @@
         <el-option :key="-2" :label="$t('deleted')" :value="-2"/>
       </el-select>
       <el-tooltip :hide-after="0" effect="dark" :content="$t('search')">
-        <Icon class="icon" icon="iconoir:search" @click="search" width="20" height="20"/>
+        <Icon class="icon" icon="fluent:search-20-regular" @click="search" width="20" height="20"/>
       </el-tooltip>
       <el-tooltip :hide-after="0" v-if="params.timeSort === 1" effect="dark" :content="$t('sortByTime')">
-        <Icon class="icon" @click="changeTimeSort" icon="material-symbols-light:timer-arrow-down-outline"
-              width="28" height="28"/>
+        <Icon class="icon" @click="changeTimeSort" icon="fluent:arrow-down-20-regular"
+              width="20" height="20"/>
       </el-tooltip>
       <el-tooltip :hide-after="0" v-else effect="dark" :content="$t('sortByTime')">
-        <Icon class="icon" @click="changeTimeSort" icon="material-symbols-light:timer-arrow-up-outline" width="28"
-              height="28"/>
+        <Icon class="icon" @click="changeTimeSort" icon="fluent:arrow-up-20-regular" width="20"
+              height="20"/>
       </el-tooltip>
       <el-tooltip :hide-after="0" effect="dark" :content="$t('refresh')">
-        <Icon class="icon" icon="ion:reload" width="18" height="18" @click="refresh"/>
+        <Icon class="icon" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="refresh"/>
       </el-tooltip>
       <el-tooltip :hide-after="0" effect="dark" :content="$t('deleteSelectedUsers')">
-        <Icon class="icon" icon="uiw:delete" width="16" height="16" @click="delUser"/>
+        <Icon class="icon" icon="fluent:delete-20-regular" width="20" height="20" @click="delUser"/>
       </el-tooltip>
     </div>
     <el-scrollbar ref="scrollbarRef" class="scrollbar">
@@ -332,7 +332,7 @@
           <el-dropdown-item @click="openSetPwd(rightClickUser)">
             <template #default>
               <div class="right-dropdown-item">
-                <icon icon="fluent:fingerprint-20-filled" width="22" height="22" />
+                <icon icon="fluent:fingerprint-20-regular" width="20" height="20" />
                 <span>{{t('changePassword')}}</span>
               </div>
             </template>
@@ -340,7 +340,7 @@
           <el-dropdown-item @click="openSetType(rightClickUser)">
             <template #default>
               <div class="right-dropdown-item">
-                <icon icon="fluent:lock-closed-16-regular" width="21" height="21" />
+                <icon icon="fluent:lock-closed-20-regular" width="20" height="20" />
                 <span>{{ t('setRole') }}</span>
               </div>
             </template>
@@ -348,12 +348,12 @@
           <el-dropdown-item v-if="rightClickUser.type !== 0">
             <template #default>
               <div class="right-dropdown-item" v-if="rightClickUser.isDel !== 1" @click="setStatus(rightClickUser)" >
-                <Icon icon="ion:reload" v-if="rightClickUser.status" style="margin-left: 1px;margin-right: 1px" width="19" height="19" />
-                <Icon icon="ion:ban-outline" v-else style="margin-left: 1px;margin-right: 1px" width="19" height="19" />
+                <Icon icon="fluent:arrow-clockwise-20-regular" v-if="rightClickUser.status" width="20" height="20" />
+                <Icon icon="fluent:person-prohibited-20-regular" v-else width="20" height="20" />
                 <span>{{ setRightStatusName(rightClickUser) }}</span>
               </div>
               <div class="right-dropdown-item" v-else @click="restore(rightClickUser)">
-                <Icon icon="ion:reload" style="margin-left: 1px;margin-right: 1px" width="19" height="19" />
+                <Icon icon="fluent:arrow-clockwise-20-regular" width="20" height="20" />
                 <span>{{ t('restoreUser') }}</span>
               </div>
             </template>
@@ -361,7 +361,7 @@
           <el-dropdown-item @click="openAccountList(rightClickUser.userId)" >
             <template #default>
               <div class="right-dropdown-item" >
-                <Icon icon="hugeicons:mailbox-01" width="20" height="20" />
+                <Icon icon="fluent:mail-inbox-20-regular" width="20" height="20" />
                 <span>{{ t('userEmail') }}</span>
               </div>
             </template>
@@ -369,7 +369,7 @@
           <el-dropdown-item @click="openDetails(rightClickUser)" >
             <template #default>
               <div class="right-dropdown-item" >
-                <Icon icon="si:user-alt-2-line" width="20" height="20" />
+                <Icon icon="fluent:person-20-regular" width="20" height="20" />
                 <span>{{ t('userDetails') }}</span>
               </div>
             </template>
@@ -377,7 +377,7 @@
           <el-dropdown-item v-if="rightClickUser.type !== 0" @click="delOneUser(rightClickUser)" >
             <template #default>
               <div class="right-dropdown-item" >
-                <Icon icon="uiw:delete" width="18" height="18" style="margin-left: 1px;margin-right: 1px" />
+                <Icon icon="fluent:delete-20-regular" width="20" height="20" />
                 <span>{{ t('adminDeleteUser') }}</span>
               </div>
             </template>
@@ -1125,11 +1125,14 @@ function adjustWidth() {
 .header-actions {
   padding: 9px 15px;
   display: flex;
-  gap: 15px;
+  gap: 20px;
   flex-wrap: wrap;
   align-items: center;
   box-shadow: var(--header-actions-border);
   font-size: 18px;
+  @media (max-width: 767px) {
+    gap: 15px;
+  }
 
   .search-input {
     width: min(200px, calc(100vw - 140px));

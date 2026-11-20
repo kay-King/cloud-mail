@@ -12,7 +12,7 @@
       <el-checkbox v-if="finePointer" disabled :class=" props.type === 'all-email' ? 'all-email-checkbox' : 'checkbox'"
       ></el-checkbox>
       <div class="pc-star" v-if="showStar">
-        <Icon style="color: var(--el-border-color)" icon="solar:star-line-duotone" width="18" height="18"/>
+        <Icon style="color: var(--el-border-color)" icon="fluent:star-20-regular" width="18" height="18"/>
       </div>
       <div v-if="!showStar"></div>
       <div class="title" :class="accountShow ? 'title-column' : 'title-column'">
@@ -130,7 +130,7 @@ import {Icon} from "@iconify/vue";
   height: 40px;
   flex-shrink: 0;
   align-self: flex-start;
-  margin: 0 12px 0 15px;
+  margin: 0 16px 0 15px;
 }
 
 .phone-star {

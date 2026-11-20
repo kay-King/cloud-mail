@@ -280,3 +280,18 @@ html[data-theme-to="light"]::view-transition-old(root) {
     display: none !important;
   }
 }
+
+/* 批量操作图标禁用态：未勾选邮件时常驻显示，但半透明、点不动、hover 也没效果
+   （pointer-events: none 让鼠标/触摸事件直接穿透，tooltip 也不会弹出来） */
+.icon-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* HugeIcons 是 24 格、描边 1.5，渲染成 20px 时等效只有 1.25px，比 Fluent 20-regular
+   的 1.5px 细一截，放在同一排里一眼就能看出来；描边提到 1.8，20px 下等效正好 1.5px。
+   （CSS 规则优先于 SVG 里的 presentation attribute，这条能盖掉图标自带的 stroke-width；
+   只给 20px 渲染的 HugeIcons 图标加 .icon-huge，别的尺寸不要加） */
+svg.icon-huge g {
+  stroke-width: 1.8;
+}

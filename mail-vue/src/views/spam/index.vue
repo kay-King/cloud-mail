@@ -13,12 +13,12 @@
   >
     <template #first>
       <el-tooltip effect="dark" :content="$t('unspamSelected')">
-        <Icon v-perm="'email:delete'" class="icon" icon="mdi:restore" width="20" height="20"
-              v-if="selectedIds.length > 0"
+        <Icon v-perm="'email:delete'" class="icon" icon="fluent:arrow-undo-20-regular" width="20" height="20"
+              :class="{ 'icon-disabled': selectedIds.length === 0 }"
               @click="handleUnspamSelected"/>
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('clearSpam')">
-        <Icon v-perm="'email:delete'" class="icon" icon="fluent:delete-24-regular" width="20" height="20"
+        <Icon v-perm="'email:delete'" class="icon" icon="fluent:delete-20-regular" width="20" height="20"
               v-if="spamCount > 0"
               @click="handleClearSpam"/>
       </el-tooltip>

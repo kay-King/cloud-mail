@@ -152,13 +152,13 @@
       <div class="sidebar-dialog-tip">{{$t('sidebarTip')}}</div>
       <div ref="sidebarListRef" class="sidebar-list">
         <div v-for="key in sidebarDraftOrder" :key="key" class="sidebar-row">
-          <Icon icon="mdi:menu" width="20" height="20" class="sidebar-drag-handle" />
+          <Icon icon="fluent:re-order-dots-vertical-20-regular" width="20" height="20" class="sidebar-drag-handle" />
           <span class="sidebar-row-name">{{ sidebarItemLabel(key) }}</span>
           <el-switch v-if="!isSidebarHideable(key)" :model-value="true" disabled />
           <el-dropdown v-else-if="isSidebarUnreadKey(key)" trigger="click" placement="bottom-end" @command="onSidebarDraftVisibility(key, $event)">
             <span class="sidebar-visibility-select">
               {{ sidebarVisibilityLabel(key) }}
-              <Icon icon="mdi:chevron-down" width="16" height="16" class="sidebar-visibility-arrow" />
+              <Icon icon="fluent:chevron-down-20-regular" width="16" height="16" class="sidebar-visibility-arrow" />
             </span>
             <template #dropdown>
               <el-dropdown-menu>

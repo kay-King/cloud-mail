@@ -14,16 +14,16 @@
       <div class="panel-topbar">
         <span class="panel-title">{{ panelRow ? panelRow.filename : '' }}</span>
         <Icon v-if="showStar && panelRow && panelRow.isStar !== undefined"
-              :icon="panelRow.isStar ? 'fluent-color:star-16' : 'solar:star-line-duotone'"
+              :icon="panelRow.isStar ? 'fluent-color:star-16' : 'fluent:star-20-regular'"
               width="20" height="20" class="panel-star" @click="toggleStar(panelRow)"/>
         <div class="panel-top-actions">
           <el-button text @click="panelRow && downloadRow(panelRow)">
-            <Icon icon="system-uicons:push-down" width="18" height="18"/>
+            <Icon icon="fluent:arrow-download-20-regular" width="18" height="18"/>
             {{ $t('download') }}
           </el-button>
           <el-dropdown trigger="click" @command="onPanelMoreCommand">
             <el-button text>
-              <Icon icon="mdi:dots-horizontal" width="20" height="20"/>
+              <Icon icon="fluent:more-horizontal-20-regular" width="18" height="18"/>
             </el-button>
             <template #dropdown>
               <el-dropdown-menu>
@@ -32,15 +32,15 @@
             </template>
           </el-dropdown>
           <el-button text :disabled="!hasPrevPanel" @click="stepPanel(-1)">
-            <Icon icon="ep:arrow-up" width="16" height="16"/>
+            <Icon icon="fluent:chevron-up-20-regular" width="18" height="18"/>
             {{ $t('prevItem') }}
           </el-button>
           <el-button text :disabled="!hasNextPanel" @click="stepPanel(1)">
-            <Icon icon="ep:arrow-down" width="16" height="16"/>
+            <Icon icon="fluent:chevron-down-20-regular" width="18" height="18"/>
             {{ $t('nextItem') }}
           </el-button>
           <el-button text @click="closePanel">
-            <Icon icon="ep:close" width="18" height="18"/>
+            <Icon icon="fluent:dismiss-20-regular" width="18" height="18"/>
           </el-button>
         </div>
       </div>

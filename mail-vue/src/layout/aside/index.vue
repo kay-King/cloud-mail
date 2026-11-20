@@ -23,18 +23,18 @@
         </div>
         <el-menu-item @click="router.push({name: 'analysis'})" index="analysis" v-perm="'analysis:query'"
                       :class="route.meta.name === 'analysis' ? 'choose-item' : ''">
-          <Icon icon="fluent:data-pie-20-regular" width="24" height="24" />
-          <span class="menu-name" style="margin-left: 13px">{{$t('analytics')}}</span>
+          <Icon icon="fluent:data-pie-20-regular" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 16px">{{$t('analytics')}}</span>
         </el-menu-item>
         <el-menu-item @click="router.push({name: 'user'})" index="setting" v-perm="'user:query'"
                       :class="route.meta.name === 'user' ? 'choose-item' : ''">
-          <Icon icon="si:user-alt-2-line" width="20" height="20" />
+          <Icon icon="fluent:person-20-regular" width="20" height="20" />
           <span class="menu-name" style="margin-left: 16px">{{$t('allUsers')}}</span>
         </el-menu-item>
         <el-menu-item @click="router.push({name: 'all-email'})" index="all-email" v-perm="'all-email:query'"
                       :class="route.meta.name === 'all-email' ? 'choose-item' : ''">
-          <Icon icon="fluent:mail-list-28-regular" width="22" height="22" />
-          <span class="menu-name" style="margin-left: 15px">{{$t('allMail')}}</span>
+          <Icon icon="fluent:mail-list-20-regular" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 16px">{{$t('allMail')}}</span>
         </el-menu-item>
         <el-menu-item @click="router.push({name: 'all-attachments'})" index="all-attachments" v-perm="'all-email:query'"
                       :class="route.meta.name === 'all-attachments' ? 'choose-item' : ''">
@@ -48,18 +48,18 @@
         </el-menu-item>
         <el-menu-item @click="router.push({name: 'role'})" index="setting" v-perm="'role:query'"
                       :class="route.meta.name === 'role' ? 'choose-item' : ''">
-          <Icon icon="fluent:lock-closed-16-regular" width="22" height="22" />
-          <span class="menu-name" style="margin-left: 15px">{{$t('permissions')}}</span>
+          <Icon icon="fluent:lock-closed-20-regular" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 16px">{{$t('permissions')}}</span>
         </el-menu-item>
         <el-menu-item @click="router.push({name: 'reg-key'})" index="reg-key" v-perm="'reg-key:query'"
                       :class="route.meta.name === 'reg-key' ? 'choose-item' : ''">
-          <Icon icon="fluent:fingerprint-20-filled" width="22" height="22" />
-          <span class="menu-name" style="margin-left: 15px">{{$t('inviteCode')}}</span>
+          <Icon icon="fluent:fingerprint-20-regular" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 16px">{{$t('inviteCode')}}</span>
         </el-menu-item>
         <el-menu-item @click="router.push({name: 'sys-setting'})" index="sys-setting" v-perm="'setting:query'"
                       :class="route.meta.name === 'sys-setting' ? 'choose-item' : ''">
-          <Icon icon="eos-icons:system-ok-outlined" width="18" height="18" style="margin-left: 2px" />
-          <span class="menu-name" style="margin-left: 17px">{{$t('SystemSettings')}}</span>
+          <Icon icon="fluent:server-20-regular" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 16px">{{$t('SystemSettings')}}</span>
         </el-menu-item>
       </el-menu>
     </div>
@@ -83,15 +83,15 @@ const route = useRoute();
 
 // 个人区条目（图标尺寸与边距照抄原来的写法，外观不变；顺序与显隐由 sidebarStore 控制）
 const personalItems = [
-  { key: 'email', icon: 'hugeicons:mailbox-01', size: 20, label: 'inbox', perm: null },
-  { key: 'send', icon: 'cil:send', size: 20, label: 'sent', perm: 'email:send' },
-  { key: 'draft', icon: 'ep:document', size: 19, label: 'drafts', perm: 'email:send', labelMargin: 17 },
-  { key: 'star', icon: 'solar:star-line-duotone', size: 20, label: 'starred', perm: null },
+  { key: 'email', icon: 'fluent:mail-inbox-20-regular', size: 20, label: 'inbox', perm: null },
+  { key: 'send', icon: 'fluent:send-20-regular', size: 20, label: 'sent', perm: 'email:send' },
+  { key: 'draft', icon: 'fluent:document-20-regular', size: 20, label: 'drafts', perm: 'email:send' },
+  { key: 'star', icon: 'fluent:star-20-regular', size: 20, label: 'starred', perm: null },
   { key: 'spam', icon: 'fluent:folder-prohibited-20-regular', size: 20, label: 'spam', perm: null },
-  { key: 'trash', icon: 'fluent:delete-24-regular', size: 20, label: 'trash', perm: null },
+  { key: 'trash', icon: 'fluent:delete-20-regular', size: 20, label: 'trash', perm: null },
   { key: 'attachments', icon: 'fluent:attach-20-regular', size: 20, label: 'myAttachments', perm: null },
   { key: 'contacts', icon: 'fluent:people-20-regular', size: 20, label: 'contacts', perm: null },
-  { key: 'setting', icon: 'fluent:settings-48-regular', size: 20, label: 'settings', perm: null },
+  { key: 'setting', icon: 'fluent:settings-20-regular', size: 20, label: 'settings', perm: null },
 ]
 // 权限过滤走 hasPerm（计算属性，权限晚到也能补上；原来的 v-perm 指令在 mounted 时删元素，权限晚到就回不来了）
 const visiblePersonalItems = computed(() => {
