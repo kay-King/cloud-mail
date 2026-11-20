@@ -115,6 +115,7 @@
           <div class="att-add" @click="chooseFile">
             <Icon icon="iconamoon:attachment-fill" width="24" height="24"/>
           </div>
+          <input ref="fileInputRef" type="file" multiple style="display: none" @change="onFilesSelected"/>
           <div class="att-clear" @click="clearContent">
             <Icon icon="icon-park-outline:clear-format" width="24" height="24 "/>
           </div>
@@ -219,6 +220,7 @@ const settingStore = useSettingStore()
 const emailStore = useEmailStore();
 const accountStore = useAccountStore()
 const editor = ref({})
+const fileInputRef = ref(null)
 const userStore = useUserStore();
 const show = ref(false);
 const percent = ref(0)
@@ -477,25 +479,18 @@ function delAtt(index) {
 
 function chooseFile() {
   hideEmptyCcBcc()
-  const doc = document.createElement("input")
-  doc.setAttribute("type", "file")
-  doc.multiple = true;
-  doc.click()
-  doc.onchange = async (e) => {
+  fileInputRef.value?.click()
+}
 
-    const fileList = e.target.files;
-
-    for (const file of fileList) {
-
-      const size = file.size
-      const filename = file.name
-      const contentType = file.type
-
-      const content = await fileToBase64(file)
-      form.attachments.push({content, filename, size, contentType})
-
-    }
-
+async function onFilesSelected(e) {
+  const fileList = e.target.files;
+  e.target.value = '';
+  for (const file of fileList) {
+    const size = file.size
+    const filename = file.name
+    const contentType = file.type
+    const content = await fileToBase64(file)
+    form.attachments.push({content, filename, size, contentType})
   }
 }
 

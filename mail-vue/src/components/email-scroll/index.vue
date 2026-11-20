@@ -680,6 +680,11 @@ watch(
 watch(() => emailStore.deleteIds, () => {
   if (emailStore.deleteIds) {
     deleteEmail(emailStore.deleteIds)
+    // 正文区正在看的邮件被删了，一起清掉，别留着已删邮件
+    const ids = Array.isArray(emailStore.deleteIds) ? emailStore.deleteIds : [emailStore.deleteIds]
+    if (emailStore.contentData?.email && ids.includes(emailStore.contentData.email.emailId)) {
+      emailStore.contentData.email = null
+    }
   }
 })
 

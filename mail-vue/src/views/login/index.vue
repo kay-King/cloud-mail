@@ -342,7 +342,15 @@ const openSelect = () => {
 }
 
 const getFullEmail = (email) => {
-  return hideLoginDomain.value ? email : email + suffix.value
+  email = (email || '').trim()
+  if (hideLoginDomain.value) return email
+  // 浏览器自动填充/粘贴可能填进完整邮箱：域名在列表里就认下来，别再拼一遍后缀
+  if (email.includes('@')) {
+    const domain = '@' + email.split('@').pop()
+    if (domainList.includes(domain)) suffix.value = domain
+    return email
+  }
+  return email + suffix.value
 }
 
 const getEmailName = (email) => {

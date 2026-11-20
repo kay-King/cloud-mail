@@ -232,6 +232,7 @@ function onImportFiles(e) {
       message: t('importResult', {imported: summary.imported, skipped: summary.skipped, failed: summary.failed}),
       type: summary.failed > 0 ? 'warning' : 'success',
       plain: true,
+      duration: 5000,
     });
     if (summary.imported > 0) {
       emailStore.emailScroll?.refreshList();
