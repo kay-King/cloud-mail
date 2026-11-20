@@ -89,7 +89,10 @@ const starService = {
 		return { list };
 	},
 	async removeByEmailIds(c, emailIds) {
-		await orm(c).delete(star).where(inArray(star.emailId, emailIds)).run();
+		// D1 单条语句最多 100 个绑定参数，inArray 每 id 占 1 个，超 100 个 id 必须分批
+		for (let i = 0; i < emailIds.length; i += 95) {
+			await orm(c).delete(star).where(inArray(star.emailId, emailIds.slice(i, i + 95))).run();
+		}
 	},
 
 	async removeByUserIds(c, userIds) {

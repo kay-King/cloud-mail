@@ -1,28 +1,20 @@
 <template>
   <div v-for="item in rows" style="background: var(--el-bg-color)">
     <div :class="'email-row ' + type ">
-      <!-- 移动端头像占位（与正式行的头像位置一致，防加载完跳动） -->
-      <div v-if="isMobile" class="avatar-slot">
+      <!-- 移动端头像占位（与正式行的头像位置一致，防加载完跳动）；只在窄屏触屏设备显示 -->
+      <div v-if="isMobile && !finePointer" class="avatar-slot">
         <el-skeleton animated>
           <template #template>
             <el-skeleton-item variant="circle" style="width: 40px; height: 40px;"/>
           </template>
         </el-skeleton>
       </div>
-      <el-checkbox v-if="!isMobile" disabled :class=" props.type === 'all-email' ? 'all-email-checkbox' : 'checkbox'"
+      <el-checkbox v-if="finePointer" disabled :class=" props.type === 'all-email' ? 'all-email-checkbox' : 'checkbox'"
       ></el-checkbox>
       <div class="pc-star" v-if="showStar">
         <Icon style="color: var(--el-border-color)" icon="solar:star-line-duotone" width="18" height="18"/>
       </div>
       <div v-if="!showStar"></div>
-      <!-- 桌面端头像占位 -->
-      <div v-if="!isMobile" class="sender-avatar sender-avatar-pc">
-        <el-skeleton animated>
-          <template #template>
-            <el-skeleton-item variant="circle" style="width: 32px; height: 32px;"/>
-          </template>
-        </el-skeleton>
-      </div>
       <div class="title" :class="accountShow ? 'title-column' : 'title-column'">
 
         <div class="email-sender">
@@ -119,12 +111,31 @@ const props = defineProps({
   isMobile: {
     type: Boolean,
     default: false
+  },
+  // 与正式行同一套分流标准：头像只在“窄屏 + 触屏”时显示，复选框只在鼠标设备显示；
+  // 只按宽度分流会在 1366px 笔记本等设备上与正式行不一致，加载完跳动
+  finePointer: {
+    type: Boolean,
+    default: false
   }
 })
 import {Icon} from "@iconify/vue";
 </script>
 
 <style scoped lang="scss">
+
+/* 头像槽：父组件 email-scroll 的 scoped 样式进不到子组件内部元素，骨架自己的
+   对齐边距须在这里写一份（与正式行的 .avatar-slot 一致：40px 圆 + 左右边距） */
+.avatar-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin: 0 12px 0 15px;
+}
 
 .phone-star {
   display: none;

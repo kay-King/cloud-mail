@@ -69,12 +69,11 @@ function generateKeyB64() {
 	return bytesToBase64(crypto.getRandomValues(new Uint8Array(KEY_LEN)));
 }
 
+// 存当前钥匙：写失败直接抛错，绝不能吞掉——用一把没落盘的钥匙加密，
+// 附件会永久解不开（decrypt 在当前钥匙 + 历史里都找不到）。调用方（加密/轮换）
+// 收到错误后本次操作直接失败，附件不入库、钥匙不切换。
 async function setCurrentKey(c, b64) {
-	try {
-		await c.env.kv.put(KvConst.ATT_CURRENT_KEY, b64);
-	} catch (e) {
-		console.error('Failed to store attachment current key', e);
-	}
+	await c.env.kv.put(KvConst.ATT_CURRENT_KEY, b64);
 }
 
 // 只读当前钥匙，不生成、不写 KV（供解密与状态查询用，避免读操作产生副作用）
@@ -91,7 +90,8 @@ async function readCurrentKeyB64(c) {
 }
 
 // 取当前钥匙：KV 里有就用 KV 的；没有则把 secret 搬进 KV（旧部署迁移）；
-// 两者都没有就随机生成一把存进 KV
+// 两者都没有就随机生成一把存进 KV。存 KV 失败时抛错（setCurrentKey 不再吞错），
+// 调用方加密直接失败，不会用没落盘的钥匙加密。
 async function getCurrentKeyB64(c) {
 	let kvKey = null;
 	try {
@@ -232,6 +232,35 @@ function isEncrypted(bytes) {
 	return startsWith(bytes, MAGIC_V1_BYTES) || startsWith(bytes, MAGIC_V2_BYTES);
 }
 
+// 单个附件大小上限 100MB：Worker 内存只有 128MB，AES-GCM 加解密必须全量进内存，
+// 超大附件会在加密/解密时 OOM。上传时前后端都拦（写信窗口选文件时 + att-service），
+// 下载时加密对象超限直接拒绝（明文对象走流式短路不占内存，不受此限）。
+// 加密后对象比原文大 28 字节（魔术头 4 + 钥匙标记 8 + IV 12 + GCM tag 16），
+// 下载校验放宽 1MB，避免 100MB 整的文件加密后刚好超限下不回来。
+const MAX_ATT_BYTES = 100 * 1024 * 1024;
+const MAX_ENCRYPTED_BYTES = MAX_ATT_BYTES + 1024 * 1024;
+
+// 只读 Response 前 4 字节判断是否加密：true=加密，false=明文，null=读不到（走全量兜底）。
+// 读的是 clone 的流，原 Response 的 body 不动，明文时可直接原样返回、不进内存。
+async function peekEncrypted(content) {
+	try {
+		const reader = content.clone().body.getReader();
+		const bytes = [];
+		while (bytes.length < MAGIC_V2_BYTES.length) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			for (let i = 0; i < value.length && bytes.length < MAGIC_V2_BYTES.length; i++) bytes.push(value[i]);
+		}
+		// 发取消信号让底层源停止拉数据，但不 await：某些环境下 cancel 的 promise
+		// 可能不 resolve，await 会拖住解密（Node 实测会挂住）
+		reader.cancel().catch(() => {});
+		if (bytes.length < MAGIC_V2_BYTES.length) return false;
+		return isEncrypted(new Uint8Array(bytes));
+	} catch (e) {
+		return null;
+	}
+}
+
 // 解析密文头：v2 带钥匙标记，v1 不带；明文返回 null
 function parseHeader(bytes) {
 	if (startsWith(bytes, MAGIC_V2_BYTES)) {
@@ -290,6 +319,9 @@ const attCrypto = {
 
 	isEncrypted,
 
+	// 单个附件大小上限（字节），供上传校验共用
+	MAX_ATT_BYTES,
+
 	getCurrentKeyB64,
 
 	readCurrentKeyB64,
@@ -317,11 +349,18 @@ const attCrypto = {
 		return fingerprint(b64);
 	},
 
-	// 重新生成钥匙：生成一把新的当当前钥匙，旧钥匙留在历史里，旧附件不受影响
+	// 重新生成钥匙：生成一把新的当当前钥匙，旧钥匙留在历史里，旧附件不受影响。
+	// 顺序是先记历史、再切当前钥匙，两步任一写失败都直接抛错、中断轮换：
+	// 历史写失败时当前钥匙还是旧的；当前钥匙写失败时新钥匙只在历史里躺着、无人使用。
+	// 历史里同时补上旧的当前钥匙，防止历史读失败导致旧钥匙丢失。
 	async rotateKey(c) {
 		const generated = generateKeyB64();
+		const prev = await readCurrentKeyB64(c);
+		const history = await getHistory(c);
+		if (prev && !history.includes(prev)) history.push(prev);
+		if (!history.includes(generated)) history.unshift(generated);
+		await setHistory(c, history);
 		await setCurrentKey(c, generated);
-		await ensureKeyRecorded(c, generated);
 		return generated;
 	},
 
@@ -343,9 +382,28 @@ const attCrypto = {
 		return encryptBytes(cryptoKey, keyId, plain);
 	},
 
-	// 解密：非附件/备份 key 或无魔术头的明文对象原样返回字节；CMA2 按标记直找对应钥匙，
-	// 找不到标记时回退到逐个试；CMA1 无标记，直接按历史从新到旧逐个试
+	// 解密：非附件/备份 key 或无魔术头的明文对象原样返回；CMA2 按标记直找对应钥匙，
+	// 找不到标记时回退到逐个试；CMA1 无标记，直接按历史从新到旧逐个试。
+	// 返回值：解密后的 Uint8Array，或流式短路时原样返回的 Response（调用方须处理两种类型）。
+	// 流式短路：Response 输入时，非附件/备份 key 直接返回原 Response 不缓冲；附件/备份 key
+	// 先只读前 4 字节，明文同样原样返回；加密对象先看 Content-Length，超 100MB 直接拒绝
+	// （AES-GCM 解密必须全量进内存，超大文件会把 Worker 的 128MB 内存撑爆）。
 	async decrypt(c, key, content) {
+		if (content instanceof Response) {
+			if (!isEncryptedKey(key)) {
+				return content;
+			}
+			const encrypted = await peekEncrypted(content);
+			if (encrypted === false) {
+				return content;
+			}
+			if (encrypted === true) {
+				const len = Number(content.headers.get('Content-Length'));
+				if (Number.isFinite(len) && len > MAX_ENCRYPTED_BYTES) {
+					throw new Error('Attachment is too large to decrypt (over 100MB)');
+				}
+			}
+		}
 		const bytes = await toUint8Array(content);
 		if (!isEncryptedKey(key)) {
 			return bytes;

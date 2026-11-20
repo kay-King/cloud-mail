@@ -98,23 +98,25 @@ const backupStorageService = {
 		});
 	},
 
+	// 返回实际存到的目的地类型，调用方记进备份清单；读/删时按条目记录的类型走，
+	// 切换备份类型后旧备份仍找得到（见 backup-service.runBackup/downloadLatest）
 	async putObj(c, key, content) {
 		const type = await this.effectiveType(c);
 		if (type === 'kv') {
 			await c.env.kv.put(key, content);
-			return;
+			return type;
 		}
 		if (type === 'webdav') {
 			const cfg = await this.config(c);
 			await webdavService.putObj(this.webdavConfig(cfg), key, content);
-			return;
+			return type;
 		}
 		if (type === 'r2') {
 			if (c.env.r2) {
 				await c.env.r2.put(key, content, {
 					httpMetadata: { contentType: 'application/octet-stream' }
 				});
-				return;
+				return type;
 			}
 			const cfg = await this.config(c);
 			const r2 = this.r2ApiConfig(cfg);
@@ -125,7 +127,7 @@ const backupStorageService = {
 				Body: content,
 				ContentType: 'application/octet-stream'
 			}));
-			return;
+			return type;
 		}
 		const cfg = await this.config(c);
 		const client = await this.client(c);
@@ -135,10 +137,12 @@ const backupStorageService = {
 			Body: content,
 			ContentType: 'application/octet-stream'
 		}));
+		return type;
 	},
 
-	async getObj(c, key) {
-		const type = await this.effectiveType(c);
+	// type：清单条目记录的存入时目的地；不传（旧条目没有 type 字段）时回落到当前生效类型
+	async getObj(c, key, type) {
+		type = type || await this.effectiveType(c);
 		if (type === 'kv') {
 			const buf = await c.env.kv.get(key, 'arrayBuffer');
 			return buf ? new Uint8Array(buf) : null;
@@ -169,8 +173,9 @@ const backupStorageService = {
 		}
 	},
 
-	async deleteObj(c, key) {
-		const type = await this.effectiveType(c);
+	// type：清单条目记录的存入时目的地；不传（旧条目没有 type 字段）时回落到当前生效类型
+	async deleteObj(c, key, type) {
+		type = type || await this.effectiveType(c);
 		if (type === 'kv') {
 			await c.env.kv.delete(key);
 			return;

@@ -172,6 +172,7 @@
             <skeletonBlock v-else-if="item.expand === 'loading'"
                            :rows="1"
                            :is-mobile="isMobile"
+                           :fine-pointer="uiStore.finePointer"
                            :showStar="showStar"
                            :accountShow="accountShow"
                            :showStatus="showStatus"
@@ -185,6 +186,7 @@
       <skeletonBlock v-if="firstLoad && showFirstLoading"
                        :rows="20"
                        :is-mobile="isMobile"
+                       :fine-pointer="uiStore.finePointer"
                        :showStar="showStar"
                        :accountShow="accountShow"
                        :showStatus="showStatus"
@@ -193,6 +195,7 @@
       <skeletonBlock v-if="loading"
                        :rows="skeletonRows"
                        :is-mobile="isMobile"
+                       :fine-pointer="uiStore.finePointer"
                        :showStar="showStar"
                        :accountShow="accountShow"
                        :showStatus="showStatus"
@@ -1714,14 +1717,6 @@ function renderHighlight(value) {
     user-select: none;
     -webkit-user-select: none;
     transition: transform 0.15s ease;
-  }
-
-  /* 桌面端头像 32px，跟在星标后面、名字前面 */
-  .sender-avatar-pc {
-    width: 32px;
-    height: 32px;
-    font-size: 14px;
-    margin-right: 12px;
   }
 
   /* 品牌头像：白底圆圈 + 品牌 logo（细边框在白底列表上勾出圆圈轮廓） */

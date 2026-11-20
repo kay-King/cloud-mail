@@ -79,7 +79,7 @@
   function showLoading(text) {
     showState('<div class="state"><div class="spinner"></div><div>' + text + '</div></div>');
   }
-  function showUnsupported(msg, detail) {
+  function showUnsupported(msg, detail, showDownload) {
     var el = document.createElement('div');
     el.className = 'state';
     var big = document.createElement('div'); big.className = 'big'; big.textContent = '\uD83D\uDCC4';
@@ -90,6 +90,12 @@
       var d = document.createElement('div'); d.className = 'detail';
       d.textContent = detail;
       el.appendChild(d);
+    }
+    // showDownload=false 时不给下载按钮：src 本身不可信时连下载入口也不留
+    if (showDownload === false) {
+      view.innerHTML = '';
+      view.appendChild(el);
+      return;
     }
     var btn = document.createElement('button'); btn.textContent = '下载查看';
     btn.onclick = function () { document.getElementById('btn-download').click(); };
@@ -122,6 +128,22 @@
   }
 
   if (!src) { showUnsupported('缺少文件地址，无法预览'); return; }
+  // 同源校验：站内调用传的永远是本站附件地址（相对路径 /attachments/…，或本站同源绝对地址；
+  // 后端 refresh() 把 r2Domain 强制置空，附件 URL 没有跨域分支）。非同源 src 一律拒绝，
+  // 否则任意人可构造本站链接、借「附件预览」的标题与顶栏展示第三方页面（钓鱼伪装）。
+  // new URL 带 base 解析：相对地址解析为本站同源；javascript:/data: 等解析后 origin 为 null，直接拒绝。
+  var srcOk = false;
+  try {
+    srcOk = new URL(src, location.href).origin === location.origin;
+  } catch (e) {
+    srcOk = false;
+  }
+  if (!srcOk) {
+    document.getElementById('btn-download').style.display = 'none';
+    document.getElementById('btn-print').style.display = 'none';
+    showUnsupported('该文件地址不受支持，无法预览', null, false);
+    return;
+  }
   var ext = extOf(name);
 
   if (IMAGE_EXTS.indexOf(ext) >= 0) {
@@ -131,6 +153,9 @@
     view.appendChild(img);
   } else if (ext === 'pdf') {
     var fr = document.createElement('iframe');
+    // 纵深防御：iframe 完全沙箱化（不放行脚本与同源），即使 src 校验被绕过，
+    // 框内页面也跑不了脚本、碰不到父页面；浏览器内置 PDF 查看器不受影响
+    fr.setAttribute('sandbox', '');
     fr.src = src;
     view.appendChild(fr);
   } else if (TEXT_EXTS.indexOf(ext) >= 0) {

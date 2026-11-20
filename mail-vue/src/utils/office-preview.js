@@ -76,6 +76,7 @@ export function loadOfficeLib(kind) {
 
 // 打开独立预览窗口（新标签页）：文件地址是公开的内容哈希 URL，无需登录。
 // 注意用 /preview 而不是 /preview.html：Workers 静态资源会把 .html 请求 307 到去后缀路径。
+// （2026-11-20 实测确认：/preview.html 返回 307 Location: /preview，/preview 返回 200 与 preview.html 内容）
 export function openPreviewWindow(row, url) {
   const href = `${BASE}preview?src=${encodeURIComponent(url)}&name=${encodeURIComponent(row.filename || '')}`
   window.open(href, '_blank', 'noopener')

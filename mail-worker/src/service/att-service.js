@@ -4,6 +4,8 @@ import { email } from '../entity/email';
 import { account } from '../entity/account';
 import { and, eq, isNull, inArray, desc, like, or, sql } from 'drizzle-orm';
 import r2Service from './r2-service';
+import attCrypto from './att-crypto';
+import BizError from '../error/biz-error';
 import constant from '../const/constant';
 import fileUtils from '../utils/file-utils';
 import { attConst } from '../const/entity-const';
@@ -169,7 +171,15 @@ const attService = {
 		const attDataList = [];
 
 		for (let att of attList) {
+			// 单个附件上限 100MB：先按 base64 长度粗筛（base64 约为原文的 4/3），超限直接拒绝，
+			// 避免解码后再占一份内存；前端选文件时已拦过一次，这里是后端兜底
+			if (typeof att.content === 'string' && att.content.length > attCrypto.MAX_ATT_BYTES * 4 / 3) {
+				throw new BizError('单个附件不能超过 100MB', 400);
+			}
 			att.buff = fileUtils.base64ToUint8Array(att.content);
+			if (att.buff.length > attCrypto.MAX_ATT_BYTES) {
+				throw new BizError('单个附件不能超过 100MB', 400);
+			}
 			// key 只用内容哈希，不带扩展名，避免从对象名泄露文件类型
 			att.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(att.buff);
 			const attData = { userId, accountId, emailId };
@@ -201,6 +211,10 @@ const attService = {
 			attData.type = attConst.type.EMBED;
 			if (!attData.buff) {
 				continue;
+			}
+			// 正文内嵌图同样受 100MB 上限约束（与写信附件同一道后端校验）
+			if (attData.buff.length > attCrypto.MAX_ATT_BYTES) {
+				throw new BizError('单个附件不能超过 100MB', 400);
 			}
 			await r2Service.putObj(c, attData.key, attData.buff, {
 				contentType: isDangerousAttType(attData.mimeType)

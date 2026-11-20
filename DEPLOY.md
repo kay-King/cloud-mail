@@ -79,6 +79,8 @@
    - 名字 `jwt_secret`，值粘贴你编的随机字符串（字母+数字，至少 16 位，不能含 `? % # / \`），记好这个值，后面初始化要用
 4. 点 **Save**（或 Deploy）保存
 
+可选：想让初始化时自动创建管理员账号（跳过第 5 步手动注册），再加一个普通变量 `password`，值就是管理员的初始密码。初始化时如果 `admin` 那个邮箱还没有账号，会用这个密码自动建一个；不设 `password` 就按第 5 步手动注册。
+
 注意：`domain` 和 `admin` 必须在注册管理员账号之前设好，否则注册时会报错。
 
 ### 第 4 步：初始化数据库
@@ -96,6 +98,8 @@ https://你的域名/api/init/你的JWT_SECRET
 ### 第 5 步：注册管理员账号
 
 打开邮箱地址，点「创建账号」，用 `admin` 那个邮箱注册、设密码——这个账号就是管理员。
+
+如果第 3 步设了 `password` 变量，初始化时已经自动创建了管理员账号，直接用 `admin` 邮箱 + 那个密码登录即可，不用注册。
 
 之后继续看下面的「部署后必做」。
 
@@ -146,6 +150,7 @@ https://你的域名/api/init/你的JWT_SECRET
 | Secret 名 | 填什么 |
 |---|---|
 | `CUSTOM_DOMAIN` | 后台访问域名，例如 `mail.example.com`；填了之后用这个地址打开邮箱，不填就用 workers.dev 地址 |
+| `PASSWORD` | 管理员初始密码；填了之后初始化时自动用 `ADMIN` 邮箱创建管理员账号（不用再手动注册），不填则按第 5 步手动注册 |
 | `D1_DATABASE_ID` / `KV_NAMESPACE_ID` | 已有数据库的 ID；不填则工作流自动创建 |
 | `R2_BUCKET_NAME` | R2 存储桶名；不填则不用 R2（附件默认存 KV） |
 
@@ -162,6 +167,7 @@ https://你的域名/api/init/你的JWT_SECRET
 - 填了 `CUSTOM_DOMAIN`：打开 `https://mail.example.com`（换成你填的）
 - 没填：去 dash.cloudflare.com → Workers & Pages → cloud-mail，里面有 workers.dev 地址，点开就是
 - 打开后点「创建账号」，用 `ADMIN` 那个邮箱注册、设密码——这个账号就是管理员
+- 如果填了 `PASSWORD`：初始化时已经自动创建了管理员账号，直接用 `ADMIN` 邮箱 + 那个密码登录即可，不用注册
 
 之后继续看下面的「部署后必做」。
 

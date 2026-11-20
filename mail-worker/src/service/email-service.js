@@ -1725,19 +1725,26 @@ const emailService = {
 	},
 
 	// 批量取邮件行（删前取通知所需字段，含已软删的）
-	selectByIds(c, emailIds) {
+	// D1 单条语句最多 100 个绑定参数（2026-11-20 实测：100 个通过，101 个报 too many SQL variables）；
+	// inArray 每 id 占 1 个参数，超 100 个 id 必须分批（与 clearSpam/cleanSpam 的 batchSize=95 同一个口径）
+	async selectByIds(c, emailIds) {
 		const ids = emailIds.map(Number).filter(n => !isNaN(n));
 		if (ids.length === 0) return [];
-		return orm(c).select({
-			emailId: email.emailId,
-			userId: email.userId,
-			accountId: email.accountId,
-			subject: email.subject,
-			sendEmail: email.sendEmail,
-			name: email.name,
-			type: email.type,
-			createTime: email.createTime,
-		}).from(email).where(inArray(email.emailId, ids)).all();
+		const rows = [];
+		for (let i = 0; i < ids.length; i += 95) {
+			const chunk = await orm(c).select({
+				emailId: email.emailId,
+				userId: email.userId,
+				accountId: email.accountId,
+				subject: email.subject,
+				sendEmail: email.sendEmail,
+				name: email.name,
+				type: email.type,
+				createTime: email.createTime,
+			}).from(email).where(inArray(email.emailId, ids.slice(i, i + 95))).all();
+			rows.push(...chunk);
+		}
+		return rows;
 	},
 
 	async latest(c, params, userId) {
@@ -1776,23 +1783,34 @@ const emailService = {
 
 	// 取同一批发送的全部邮件 id（发件份 + 收件份），供全部邮件成对删除用
 	// 配对 key 与列表去重一致：发件人 + 主题 + 创建时间（秒）+ 收件人名单
+	// D1 单条语句最多 100 个绑定参数：配对查询每 id 占 4 个参数，26 个 id 就超限；
+	// 按每批 20 个 id 分批查（首查 20 参数，配对查至多 80 参数），结果汇总去重
 	async expandToSendGroup(c, emailIds) {
-		const rows = await orm(c).select({
-			sendEmail: email.sendEmail,
-			subject: email.subject,
-			createTime: email.createTime,
-			recipient: email.recipient,
-		}).from(email).where(inArray(email.emailId, emailIds)).all();
-		if (rows.length === 0) return emailIds;
-		const group = await orm(c).select({ emailId: email.emailId }).from(email).where(
-			or(...rows.map(row => and(
-				eq(email.sendEmail, row.sendEmail),
-				eq(email.subject, row.subject),
-				eq(email.createTime, row.createTime),
-				eq(email.recipient, row.recipient),
-			)))
-		).all();
-		return [...new Set(group.map(g => g.emailId))];
+		const allGroupIds = new Set();
+		let foundAny = false;
+		for (let i = 0; i < emailIds.length; i += 20) {
+			const chunkIds = emailIds.slice(i, i + 20);
+			const rows = await orm(c).select({
+				sendEmail: email.sendEmail,
+				subject: email.subject,
+				createTime: email.createTime,
+				recipient: email.recipient,
+			}).from(email).where(inArray(email.emailId, chunkIds)).all();
+			if (rows.length === 0) continue;
+			foundAny = true;
+			const group = await orm(c).select({ emailId: email.emailId }).from(email).where(
+				or(...rows.map(row => and(
+					eq(email.sendEmail, row.sendEmail),
+					eq(email.subject, row.subject),
+					eq(email.createTime, row.createTime),
+					eq(email.recipient, row.recipient),
+				)))
+			).all();
+			for (const g of group) allGroupIds.add(g.emailId);
+		}
+		// 全部 id 在库里都不存在时返回原 id（与改前一致：调用方继续走删除流程，各步都是空操作）
+		if (!foundAny) return emailIds;
+		return [...allGroupIds];
 	},
 
 	async physicsDelete(c, params) {
@@ -1800,7 +1818,10 @@ const emailService = {
 		emailIds = emailIds.split(',').map(Number);
 		await attService.removeByEmailIds(c, emailIds);
 		await starService.removeByEmailIds(c, emailIds);
-		await orm(c).delete(email).where(inArray(email.emailId, emailIds)).run();
+		// 删除语句也按 95 分批：成对删除展开后 id 数可能翻倍，单条 inArray 超 100 个参数会报 too many SQL variables
+		for (let i = 0; i < emailIds.length; i += 95) {
+			await orm(c).delete(email).where(inArray(email.emailId, emailIds.slice(i, i + 95))).run();
+		}
 		return emailIds;
 	},
 

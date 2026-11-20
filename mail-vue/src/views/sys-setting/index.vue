@@ -2894,6 +2894,7 @@ function editSetting(settingForm, refreshStatus = true) {
     webhookShow.value = false
     addVerifyCountShow.value = false
     regVerifyCountShow.value = false
+    loginVerifyCountShow.value = false
     noticePopupShow.value = false
     addS3Show.value = false
     backupS3Show.value = false

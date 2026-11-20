@@ -158,15 +158,17 @@ const backupService = {
 					uploadData = new TextEncoder().encode(JSON.stringify(this.slimBackupForKv(backup)));
 				}
 				const encrypted = await attCrypto.encrypt(c, key, uploadData);
-				await backupStorageService.putObj(c, key, encrypted);
+				// putObj 返回实际存到的目的地类型，记进清单；以后读/删都按条目记录的类型走，
+				// 切换备份类型后旧备份仍找得到（旧条目没有 type 字段，读写时回落到当前生效类型）
+				const usedType = await backupStorageService.putObj(c, key, encrypted);
 				const list = await this.listBackups(c);
-				list.unshift({ key, time: now.getTime(), size: plain.length });
+				list.unshift({ key, time: now.getTime(), size: plain.length, type: usedType });
 				const pruned = list.splice(KEEP_COUNT);
 				await c.env.kv.put(LIST_KEY, JSON.stringify(list));
 				await c.env.kv.put(LAST_RUN_KEY, String(now.getTime()));
 				for (const old of pruned) {
 					try {
-						await backupStorageService.deleteObj(c, old.key);
+						await backupStorageService.deleteObj(c, old.key, old.type);
 					} catch (e) {
 						console.error('Failed to prune backup', old.key, e);
 					}
@@ -236,26 +238,53 @@ const backupService = {
 		const list = await this.listBackups(c);
 		if (list.length === 0) return null;
 		const latest = list[0];
-		const encrypted = await backupStorageService.getObj(c, latest.key);
+		const encrypted = await backupStorageService.getObj(c, latest.key, latest.type);
 		if (!encrypted) return null;
 		const plain = await attCrypto.decrypt(c, latest.key, encrypted);
 		return { key: latest.key, time: latest.time, data: plain };
 	},
 
-	// 从备份 JSON 恢复：D1 各表先清后插（批量单事务执行，任一失败整体回滚），
-	// KV 逐键写回，最后刷新设置缓存。备份里没有的表/键保持不动。
+	// 从备份 JSON 恢复：D1 各表先清后插，KV 逐键写回，最后刷新设置缓存。备份里没有的表/键保持不动。
+	// 原子性说明（不要再写“单事务整体回滚”）：D1 的 batch() 只保证单次调用内原子，跨调用不原子，
+	// 所以恢复是按表原子的——每张表的 DELETE + 全部 INSERT 尽量放进同一次 batch()，一张表失败时
+	// 前面的表已恢复、后面的表还没动，报错里会带出失败的表名；超大表（语句超 1000 条）按行分批，
+	// 但执行前已做过结构预校验（备份列必须在当前表里存在），分批失败只可能是数据问题。
 	async restoreBackup(c, backup) {
 		if (!backup || backup.version !== 1 || !backup.d1 || !Array.isArray(backup.d1.tables) || !backup.kv || typeof backup.kv !== 'object') {
 			throw new BizError('不是有效的备份文件', 400);
 		}
 		const db = c.env.db;
-		const statements = [];
-		let rowCount = 0;
 		const nameRe = /^[A-Za-z_][A-Za-z0-9_]*$/;
+		// 先校验全部表名与列名合法（任何一行不合法都直接抛错，此时还没动任何数据）
 		for (const table of backup.d1.tables) {
 			if (!table || !nameRe.test(table.name) || !Array.isArray(table.rows)) {
 				throw new BizError('备份数据不合法', 400);
 			}
+			for (const row of table.rows) {
+				for (const col of Object.keys(row)) {
+					if (!nameRe.test(col)) throw new BizError('备份数据不合法', 400);
+				}
+			}
+		}
+		// 结构预校验：备份里每张表的列必须在当前库里存在；表不存在时由 CREATE 建表（列与备份一致，不用校验）。
+		// 校验失败直接抛错，任何表都还没动——避免某张表清掉后插入才发现列对不上。
+		for (const table of backup.d1.tables) {
+			const colsRes = await db.prepare(`SELECT name FROM pragma_table_info('${table.name}')`).all();
+			const existing = (colsRes.results || []).map(r => r.name);
+			if (existing.length === 0) continue;
+			const colSet = new Set(existing);
+			for (const row of table.rows) {
+				for (const col of Object.keys(row)) {
+					if (!colSet.has(col)) {
+						throw new BizError(`备份数据不合法：表 ${table.name} 没有 ${col} 列`, 400);
+					}
+				}
+			}
+		}
+		const BATCH_SIZE = 1000;
+		let rowCount = 0;
+		for (const table of backup.d1.tables) {
+			const statements = [];
 			// 备份里有建表语句时先确保表存在（防备份来自更新版本）
 			if (typeof table.sql === 'string' && /^CREATE TABLE/i.test(table.sql)) {
 				statements.push(db.prepare(table.sql.replace(/^CREATE TABLE/i, 'CREATE TABLE IF NOT EXISTS')));
@@ -263,9 +292,6 @@ const backupService = {
 			statements.push(db.prepare(`DELETE FROM "${table.name}"`));
 			for (const row of table.rows) {
 				const cols = Object.keys(row);
-				for (const col of cols) {
-					if (!nameRe.test(col)) throw new BizError('备份数据不合法', 400);
-				}
 				if (cols.length === 0) continue;
 				const placeholders = cols.map(() => '?').join(', ');
 				const values = cols.map(k => {
@@ -276,10 +302,14 @@ const backupService = {
 				statements.push(db.prepare(`INSERT INTO "${table.name}" ("${cols.join('", "')}") VALUES (${placeholders})`).bind(...values));
 				rowCount++;
 			}
-		}
-		const BATCH_SIZE = 1000;
-		for (let i = 0; i < statements.length; i += BATCH_SIZE) {
-			await db.batch(statements.slice(i, i + BATCH_SIZE));
+			try {
+				for (let i = 0; i < statements.length; i += BATCH_SIZE) {
+					await db.batch(statements.slice(i, i + BATCH_SIZE));
+				}
+			} catch (e) {
+				// 带出表名：调用方能知道是哪张表失败（它之前的表已恢复，之后的表还没动）
+				throw new Error(`恢复表 ${table.name} 失败：${e.message || e}`);
+			}
 		}
 		// 自增序号重建：删掉 sqlite_sequence 里对应行，SQLite 下次插入时按 MAX(id)+1 推导；失败不影响恢复
 		try {

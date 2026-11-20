@@ -136,7 +136,7 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="together">
-                    {{ $t(form.sendType === 'forward' ? 'forward' : 'send') }}
+                    {{ togetherSendLabel }}
                   </el-dropdown-item>
                   <el-dropdown-item command="divide">
                     {{ separateSendLabel }}
@@ -286,12 +286,19 @@ async function loadBookContacts() {
     bookContacts.value = []
   }
 }
-const separateSendLabel = computed(() => t(form.sendType === 'forward' ? 'separateForward' : 'separateSend'))
-const sendButtonLabel = computed(() => {
-  if (form.manyType === 'divide') return separateSendLabel.value
+const togetherSendLabel = computed(() => {
   if (form.sendType === 'reply') return t('reply')
   if (form.sendType === 'forward') return t('forward')
   return t('send')
+})
+const separateSendLabel = computed(() => {
+  if (form.sendType === 'reply') return t('separateReply')
+  if (form.sendType === 'forward') return t('separateForward')
+  return t('separateSend')
+})
+const sendButtonLabel = computed(() => {
+  if (form.manyType === 'divide') return separateSendLabel.value
+  return togetherSendLabel.value
 })
 
 function clearCcBcc() {
@@ -488,6 +495,12 @@ async function onFilesSelected(e) {
   e.target.value = '';
   for (const file of fileList) {
     const size = file.size
+    // 单个附件上限 100MB：Worker 内存只有 128MB，超大附件加密/解密会 OOM；
+    // 超限直接跳过（转 base64 之前就拦，不浪费时间与内存），后端 saveSendAtt 还有一道同样的校验
+    if (size > 100 * 1024 * 1024) {
+      ElMessage({ message: t('attTooLarge'), type: 'error', plain: true })
+      continue
+    }
     const filename = file.name
     const contentType = file.type
     const content = await fileToBase64(file)

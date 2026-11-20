@@ -43,6 +43,8 @@ html.dark[data-brand="gmail"] {
   --aside-hover-bg: rgba(255, 255, 255, 0.08);
   --settings-page-background: #202124;
   --email-hover-background: #2d2e30;
+  --light-ill: #262727;
+  --login-switch-color: rgb(102, 177, 255);
 }
 
 /* ---------- Outlook 风：Fluent 蓝 + Segoe UI + 方正圆角 ---------- */
@@ -85,6 +87,8 @@ html.dark[data-brand="outlook"] {
   --aside-hover-bg: rgba(255, 255, 255, 0.08);
   --settings-page-background: #1f1f1f;
   --email-hover-background: #2b2b2b;
+  --light-ill: #262727;
+  --login-switch-color: rgb(102, 177, 255);
 }
 
 /* ---------- QQ 邮箱风：经典亮蓝 + 浅蓝侧栏 ---------- */
@@ -127,6 +131,8 @@ html.dark[data-brand="qq"] {
   --aside-hover-bg: rgba(255, 255, 255, 0.08);
   --settings-page-background: #1a1a1a;
   --email-hover-background: #262626;
+  --light-ill: #262727;
+  --login-switch-color: rgb(102, 177, 255);
 }
 
 /* ---------- Apple Mail 风：iOS 蓝 + 极简浅灰 + 大圆角 ---------- */
@@ -169,6 +175,8 @@ html.dark[data-brand="apple"] {
   --aside-hover-bg: rgba(255, 255, 255, 0.08);
   --settings-page-background: #1c1c1e;
   --email-hover-background: #2c2c2e;
+  --light-ill: #262727;
+  --login-switch-color: rgb(102, 177, 255);
 }
 
 /* ---------- 163 邮箱风：网易红 + 浅灰 ---------- */
@@ -211,6 +219,8 @@ html.dark[data-brand="163"] {
   --aside-hover-bg: rgba(255, 255, 255, 0.06);
   --settings-page-background: #141414;
   --email-hover-background: #262626;
+  --light-ill: #262727;
+  --login-switch-color: rgb(102, 177, 255);
 }
 
 /* ---------- Yahoo 风：雅虎紫 + 淡紫灰 ---------- */
@@ -253,4 +263,6 @@ html.dark[data-brand="yahoo"] {
   --aside-hover-bg: rgba(255, 255, 255, 0.06);
   --settings-page-background: #14101a;
   --email-hover-background: #241d30;
+  --light-ill: #262727;
+  --login-switch-color: rgb(102, 177, 255);
 }

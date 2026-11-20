@@ -286,7 +286,9 @@ const r2Service = {
 			}
 		}
 
-		return new Response(plain, { headers });
+		// decrypt 可能返回两种类型：解密后的 Uint8Array，或明文短路时原样返回的 Response；
+		// Response 时传 body 流进新 Response，继续流式传输、不进内存
+		return new Response(plain instanceof Response ? plain.body : plain, { headers });
 	},
 
 	/**

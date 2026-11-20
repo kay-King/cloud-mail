@@ -245,6 +245,7 @@ const senderAvatar = computed(() => avatarLetter(email.value?.name, email.value?
 
 watch(() => email.value?.emailId, () => {
   senderInContacts.value = false
+  userMarkedUnread = false
 })
 
 async function onSenderCardShow() {
@@ -278,6 +279,10 @@ watch(() => accountStore.currentAccountId, () => {
 })
 
 let readRequesting = false
+// 用户手动标为未读的标记：置位后 tryMarkRead 不再把这封邮件标回已读，
+// 防止详情数据晚到时监听触发 tryMarkRead、悄悄撤销用户的标未读；
+// 切换查看的邮件或详情页卸载时清除
+let userMarkedUnread = false
 
 function contentWidth(el) {
   const range = document.createRange()
@@ -305,7 +310,7 @@ function updateSenderWrap() {
 
 
 function tryMarkRead() {
-  if (!emailStore.contentData.showUnread || readRequesting) return
+  if (!emailStore.contentData.showUnread || readRequesting || userMarkedUnread) return
   const current = email.value
   if (!current?.emailId || current.unread !== EmailUnreadEnum.UNREAD) return
 
@@ -333,6 +338,8 @@ const handleMarkUnread = () => {
   const current = email.value
   if (!current?.emailId || current.unread !== EmailUnreadEnum.READ) return
   const emailId = current.emailId
+  // 先置标志：详情数据晚到触发的 tryMarkRead 监听会跳过，不再把这封标回已读
+  userMarkedUnread = true
   current.unread = EmailUnreadEnum.UNREAD
   if (emailStore.detailMap[emailId]) {
     emailStore.detailMap[emailId].unread = EmailUnreadEnum.UNREAD
@@ -371,6 +378,7 @@ onUnmounted(() => {
   emailStore.contentData.showUnread = false;
   emailStore.contentData.showSpam = false;
   readRequesting = false
+  userMarkedUnread = false
   window.removeEventListener('keydown', handleKeyDown);
   senderResizeObserver?.disconnect()
 })

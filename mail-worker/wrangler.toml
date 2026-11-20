@@ -63,6 +63,7 @@ new_sqlite_classes = ["MailHub"]
 #orm_log = false			# SQL logging
 #domain = "[\"example.com\"]"	# Mail domains; multiple allowed, e.g. ["example1.com","example2.com"]
 #admin = "admin@example.com"		# Admin email, e.g. admin@example.com; register with this email after deploy
+#password = ""				# Admin password; used on init if the admin user does not exist
 #cf_account_id = ""		#Cloudflare 账号 ID，只影响转发自动添加；不配也能用转发
 
 [build]

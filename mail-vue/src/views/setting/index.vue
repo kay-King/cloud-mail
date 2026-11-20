@@ -93,7 +93,7 @@
       </div>
       <div class="forward-rule-summary">
         <span class="forward-rule-summary-text">{{ blackListSummary }}</span>
-        <el-button @click="openBlackList">{{ $t('blackListSettings') }}</el-button>
+        <el-button @click="openBlackList" :disabled="blackListLoadFailed">{{ $t('blackListSettings') }}</el-button>
       </div>
     </div>
     <div class="preference-item">
@@ -262,6 +262,9 @@ const forwardLoading = ref(false)
 const personalBlackList = ref({ blackFrom: [], blackSubject: [], blackContent: [] })
 const blackListLoading = ref(false)
 const blackListShow = ref(false)
+// 加载失败标志：加载失败时 personalBlackList 仍是初始空值，打开弹窗保存会清空服务端已有
+// 黑名单；失败后禁止打开弹窗与保存（跟侧边栏弹窗的 fail-safe 一个做法）
+const blackListLoadFailed = ref(false)
 const blackListDraft = ref({ blackFrom: [], blackSubject: [], blackContent: [] })
 const blackListSummary = computed(() => {
   const total = personalBlackList.value.blackFrom.length + personalBlackList.value.blackSubject.length + personalBlackList.value.blackContent.length
@@ -275,10 +278,17 @@ onMounted(() => {
       blackSubject: data.blackSubject ? data.blackSubject.split(',').filter(Boolean) : [],
       blackContent: data.blackContent ? data.blackContent.split(',').filter(Boolean) : []
     }
+  }).catch(() => {
+    // 加载失败时置标志，弹窗与保存都会拦截（失败提示由 axios 拦截器统一弹出）
+    blackListLoadFailed.value = true
   })
 })
 
 function openBlackList() {
+  if (blackListLoadFailed.value) {
+    ElMessage({ message: t('blackListLoadFailed'), type: 'error', plain: true })
+    return
+  }
   blackListDraft.value = {
     blackFrom: [...personalBlackList.value.blackFrom],
     blackSubject: [...personalBlackList.value.blackSubject],
@@ -288,6 +298,11 @@ function openBlackList() {
 }
 
 function savePersonalBlackList() {
+  // 纵深防御：加载失败时草稿是空值，绝不能写回服务端
+  if (blackListLoadFailed.value) {
+    ElMessage({ message: t('blackListLoadFailed'), type: 'error', plain: true })
+    return
+  }
   blackListLoading.value = true
   setSpamBlocklist({
     blackFrom: blackListDraft.value.blackFrom + '',
