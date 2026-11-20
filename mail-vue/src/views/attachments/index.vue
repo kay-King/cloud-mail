@@ -43,7 +43,7 @@
     </div>
 
     <el-table :data="list" v-loading="loading" @selection-change="onSelectionChange"
-              :empty-text="$t('noAttachments')" class="att-table" v-if="!isMobile">
+              :empty-text="loaded ? $t('noAttachments') : ' '" class="att-table" v-if="!isMobile">
       <el-table-column type="selection" width="40"/>
       <el-table-column :label="$t('fileName')" :min-width="isMobile ? 150 : 240">
         <template #default="{row}">
@@ -140,6 +140,7 @@ const category = ref('all')
 const list = ref([])
 const total = ref(0)
 const loading = ref(true)
+const loaded = ref(false)
 const loadingMore = ref(false)
 const noMore = ref(false)
 const sending = ref(false)
@@ -252,6 +253,7 @@ function fetchList(append = false) {
   }).finally(() => {
     loading.value = false
     loadingMore.value = false
+    loaded.value = true
   })
 }
 

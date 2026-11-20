@@ -1458,26 +1458,28 @@ function renderHighlight(value) {
       grid-template-columns: 1fr;
       gap: 4px;
       padding-right: 15px;
-    }
-    .email-status {
-      flex-direction: row;
-      gap: 5px;
-    }
-    .name {
-      grid-template-columns: auto auto 1fr;
-      > span:last-child {
-        display: flex;
+      .email-sender {
+        .email-status {
+          flex-direction: row;
+          gap: 5px;
+        }
+        .name {
+          grid-template-columns: auto auto 1fr;
+          > span:last-child {
+            display: flex;
+          }
+        }
+        .phone-time {
+          display: block;
+        }
       }
-    }
-    .phone-time {
-      display: block;
-    }
-    .email-text {
-      grid-template-columns: 1fr;
-    }
-    .email-content {
-      padding-left: 0;
-      margin-top: 0;
+      .email-text {
+        grid-template-columns: 1fr;
+        .email-content {
+          padding-left: 0;
+          margin-top: 0;
+        }
+      }
     }
     .email-right {
       display: none;

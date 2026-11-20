@@ -11,7 +11,7 @@
       <el-button type="primary" @click="openAdd">{{ $t('addContact') }}</el-button>
     </div>
 
-    <el-table :data="list" v-loading="loading" :empty-text="$t('noContacts')" class="contacts-table" v-if="!isMobile">
+    <el-table :data="list" v-loading="loading" :empty-text="loaded ? $t('noContacts') : ' '" class="contacts-table" v-if="!isMobile">
       <el-table-column :label="$t('contactName')" min-width="160">
         <template #default="{row}">
           <div class="name-cell">
@@ -89,6 +89,7 @@ const uiStore = useUiStore()
 
 const list = ref([])
 const loading = ref(true)
+const loaded = ref(false)
 const total = ref(0)
 const keyword = ref('')
 const page = ref(1)
@@ -120,6 +121,7 @@ function load() {
     total.value = data.total
   }).finally(() => {
     loading.value = false
+    loaded.value = true
   })
 }
 
