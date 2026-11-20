@@ -1,7 +1,8 @@
 import {useUserStore} from "@/store/user.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useAccountStore} from "@/store/account.js";
-import {loginUserInfo} from "@/request/my.js";
+import {useSidebarStore} from "@/store/sidebar.js";
+import {loginUserInfo, bootstrap} from "@/request/my.js";
 import {permsToRouter} from "@/perm/perm.js";
 import router from "@/router";
 import {websiteConfig} from "@/request/setting.js";
@@ -41,12 +42,39 @@ async function loadUserWithRetry(userStore) {
     }
 }
 
+// 启动合并接口失败时返回 null，调用方改走以前的分开请求
+async function loadBootstrap() {
+    try {
+        return await bootstrap();
+    } catch (e) {
+        console.error('启动合并接口失败，改走分开请求', e);
+        return null;
+    }
+}
+
 export async function init() {
     document.title = '\u200B'
 
     const settingStore = useSettingStore();
     const userStore = useUserStore();
     const accountStore = useAccountStore();
+    const sidebarStore = useSidebarStore();
+
+    // 网站配置 + 用户信息写进各 store（user 为 null 时只写配置，不注册路由，跟以前降级一致）
+    function applyStartup(setting, user) {
+        settingStore.settings = setting;
+        settingStore.domainList = setting.domainList || [];
+        document.title = setting.title || 'Cloud Mail';
+        if (user) {
+            accountStore.currentAccountId = user.account.accountId;
+            accountStore.currentAccount = user.account;
+            userStore.user = user;
+            const routers = permsToRouter(user.permKeys);
+            routers.forEach(routerData => {
+                router.addRoute('layout', routerData);
+            });
+        }
+    }
 
     const token = localStorage.getItem('token');
     if (!settingStore.lang) {
@@ -58,26 +86,19 @@ export async function init() {
     i18n.global.locale.value = settingStore.lang
 
     if (token) {
-        const [setting, user] = await Promise.all([loadWebsiteConfig(), loadUserWithRetry(userStore)]);
-        settingStore.settings = setting;
-        settingStore.domainList = setting.domainList || [];
-        document.title = setting.title || 'Cloud Mail';
-
-        if (user) {
-            accountStore.currentAccountId = user.account.accountId;
-            accountStore.currentAccount = user.account;
-            userStore.user = user;
-
-            const routers = permsToRouter(user.permKeys);
-            routers.forEach(routerData => {
-                router.addRoute('layout', routerData);
-            });
+        // 启动只发一次请求：网站配置 + 用户信息 + 侧边栏配置 + 未读数一次拿完；
+        // 失败时改走以前的分开请求，侧边栏照旧由 layout 自己去拉
+        const boot = await loadBootstrap();
+        if (boot) {
+            applyStartup(boot.setting || {...FALLBACK_SETTING}, boot.user);
+            if (boot.sidebarConfig && boot.sidebarUnread) {
+                sidebarStore.seed(boot.sidebarConfig, boot.sidebarUnread);
+            }
+        } else {
+            const [setting, user] = await Promise.all([loadWebsiteConfig(), loadUserWithRetry(userStore)]);
+            applyStartup(setting, user);
         }
-
     } else {
-        const setting = await loadWebsiteConfig();
-        settingStore.settings = setting;
-        settingStore.domainList = setting.domainList || [];
-        document.title = setting.title || 'Cloud Mail';
+        applyStartup(await loadWebsiteConfig(), null);
     }
 }
