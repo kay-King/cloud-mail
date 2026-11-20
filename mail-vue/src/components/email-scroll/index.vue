@@ -1,7 +1,9 @@
 <template>
   <div class="email-container">
     <div class="header-actions">
+      <!-- 移动端默认不显示全选框，进入选择模式（长按勾选）后才出现 -->
       <el-checkbox
+          v-if="!isMobile || selectMode"
           v-model="checkAll"
           :indeterminate="isIndeterminate"
           :disabled="!emailList.length || loading"
@@ -62,8 +64,17 @@
                  v-if="!item.expand"
                  :key="item.emailId"
                  @contextmenu="handleContextmenu($event, item)"
+                 @touchstart="onRowTouchStart($event, item)"
+                 @touchmove="onRowTouchMove"
+                 @touchend="onRowTouchEnd"
+                 @touchcancel="onRowTouchEnd"
             >
-              <el-checkbox :class=" props.type === 'all-email' ? 'all-email-checkbox' : 'checkbox'"
+              <!-- 移动端：头像与复选框共用一个位置，默认显示头像，长按进入选择模式后显示复选框 -->
+              <div v-if="isMobile" class="avatar-slot">
+                <el-checkbox v-if="selectMode" v-model="item.checked" :disabled="!item.checked && isSelectMax" @click.stop></el-checkbox>
+                <div v-else class="sender-avatar" :style="{ background: item.avatarColor }">{{ item.avatarLetter }}</div>
+              </div>
+              <el-checkbox v-if="!isMobile" :class=" props.type === 'all-email' ? 'all-email-checkbox' : 'checkbox'"
                            v-model="item.checked"
                            :disabled="!item.checked && isSelectMax"
                            @click.stop></el-checkbox>
@@ -74,6 +85,8 @@
                 </div>
               </el-tooltip>
               <div v-if="!showStar"></div>
+              <!-- 桌面端发件人头像 -->
+              <div v-if="!isMobile" class="sender-avatar sender-avatar-pc" :style="{ background: item.avatarColor }">{{ item.avatarLetter }}</div>
               <div class="title" :class="accountShow ? 'title-column' : 'title-column'">
 
                 <div class="email-sender" :style=" (showStatus ? 'gap: 10px;' : '') + (isUnreadRow(item) ? 'font-weight: bold' : '')">
@@ -147,6 +160,7 @@
             </div>
             <skeletonBlock v-else-if="item.expand === 'loading'"
                            :rows="1"
+                           :is-mobile="isMobile"
                            :showStar="showStar"
                            :accountShow="accountShow"
                            :showStatus="showStatus"
@@ -159,6 +173,7 @@
         </UseVirtualList>
       <skeletonBlock v-if="firstLoad && showFirstLoading"
                        :rows="20"
+                       :is-mobile="isMobile"
                        :showStar="showStar"
                        :accountShow="accountShow"
                        :showStatus="showStatus"
@@ -166,6 +181,7 @@
                        :type="type"/>
       <skeletonBlock v-if="loading"
                        :rows="skeletonRows"
+                       :is-mobile="isMobile"
                        :showStar="showStar"
                        :accountShow="accountShow"
                        :showStatus="showStatus"
@@ -465,6 +481,8 @@ const rightClickEmail = ref({});
 const MAX_SELECT_COUNT = 95;
 const checkedEmailCount = ref(0);
 const isSelectMax = computed(() => checkedEmailCount.value >= MAX_SELECT_COUNT);
+// 选择模式：有任意邮件被勾选时进入（移动端长按勾选第一封即进入；全部取消勾选即退出）
+const selectMode = computed(() => checkedEmailCount.value > 0);
 let timer = null
 const position = ref(
     DOMRect.fromRect({
@@ -650,6 +668,12 @@ function visibleChange(e) {
 }
 
 const handleContextmenu = (event, email) => {
+
+  // 触屏长按是用来进入选择模式的，不弹右键菜单；仍要 preventDefault 拦掉系统长按菜单
+  if (touchActive) {
+    event.preventDefault();
+    return;
+  }
 
   if (props.type === 'draft') {
     return
@@ -1010,6 +1034,9 @@ function toggleRowChecked(email) {
 
 function jumpDetails(email) {
 
+  // 长按勾选后手指抬起会合成一次 click，直接放行会把刚勾上的又取消掉
+  if (Date.now() < suppressClickUntil) return;
+
   if (dropdownShow.value) {
     dropdownRef.value.handleClose();
     return;
@@ -1095,10 +1122,59 @@ function getEmailList(refresh = false) {
   })
 }
 
+// 发件人头像：首字母 + 按发件身份哈希取色的圆底（Gmail/Outlook 同款做法，不联网、不取品牌图）
+const AVATAR_COLORS = ['#7C4DFF', '#009688', '#FF7043', '#5C6BC0', '#26A69A', '#EC407A', '#AB47BC', '#42A5F5', '#66BB6A', '#FFA726', '#8D6E63', '#78909C'];
+function avatarFor(email) {
+  const name = (email.name || '').trim();
+  const addr = (email.sendEmail || email.toEmail || '').trim();
+  const first = name ? Array.from(name)[0] : (addr ? addr[0] : '?');
+  const key = (name + '|' + addr).toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  return { letter: first.toUpperCase(), color: AVATAR_COLORS[hash % AVATAR_COLORS.length] };
+}
+
+// 移动端长按进入选择模式（Gmail 做法：默认无复选框，长按勾选）
+let longPressTimer = null;
+let touchStartX = 0, touchStartY = 0;
+let touchActive = false;
+let suppressClickUntil = 0;
+function onRowTouchStart(e, email) {
+  if (!isMobile.value) return;
+  touchActive = true;
+  const t = e.touches[0];
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+  clearTimeout(longPressTimer);
+  longPressTimer = setTimeout(() => {
+    longPressTimer = null;
+    if (!email.checked && isSelectMax.value) return;
+    email.checked = true;
+    suppressClickUntil = Date.now() + 600;
+    if (navigator.vibrate) navigator.vibrate(10);
+  }, 500);
+}
+function onRowTouchMove(e) {
+  if (!longPressTimer) return;
+  const t = e.touches[0];
+  if (Math.abs(t.clientX - touchStartX) > 10 || Math.abs(t.clientY - touchStartY) > 10) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+}
+function onRowTouchEnd() {
+  clearTimeout(longPressTimer);
+  longPressTimer = null;
+  setTimeout(() => { touchActive = false; }, 500);
+}
+
 function handleList(list) {
   list.forEach(email => {
     email.formatCreateTime = fromNow(email.createTime);
     email.test = t('received')
+    const av = avatarFor(email);
+    email.avatarLetter = av.letter;
+    email.avatarColor = av.color;
     const statusIconMap = {
       0: { icon: 'ic:round-mark-email-read', color: '#51C76B', content: t('received') },
       1: { icon: 'bi:send-arrow-up-fill',  color: 'var(--el-color-primary)', content: t('sent') },
@@ -1283,6 +1359,7 @@ function renderHighlight(value) {
   @media (pointer: coarse) {
     /* 触屏 */
     user-select: none;
+    -webkit-touch-callout: none;
   }
   &.all-email {
     height: 65px;
@@ -1346,6 +1423,44 @@ function renderHighlight(value) {
     }
   }
 
+  /* 发件人头像：移动端 40px，与复选框共用一个位置（长按进入选择模式时互换，不移位） */
+  .avatar-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin: 0 12px 0 15px;
+    .el-checkbox {
+      margin-right: 0;
+    }
+  }
+
+  .sender-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    font-weight: 600;
+    flex-shrink: 0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* 桌面端头像 32px，跟在星标后面、名字前面 */
+  .sender-avatar-pc {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    margin-right: 12px;
+  }
+
   .title-column {
     @media (max-width: 1366px) {
       grid-template-columns: 1fr !important;
@@ -1384,6 +1499,9 @@ function renderHighlight(value) {
         display: grid;
         gap: 5px;
         grid-template-columns: auto auto 1fr;
+        /* 发件人名字加大加粗（照手机邮箱 App 的列表样式，未读时外层再加粗到 700） */
+        font-size: 16px;
+        font-weight: 600;
 
         > span:last-child {
           display: flex;

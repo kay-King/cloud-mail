@@ -1,12 +1,28 @@
 <template>
   <div v-for="item in rows" style="background: var(--el-bg-color)">
     <div :class="'email-row ' + type ">
-      <el-checkbox disabled :class=" props.type === 'all-email' ? 'all-email-checkbox' : 'checkbox'"
+      <!-- 移动端头像占位（与正式行的头像位置一致，防加载完跳动） -->
+      <div v-if="isMobile" class="avatar-slot">
+        <el-skeleton animated>
+          <template #template>
+            <el-skeleton-item variant="circle" style="width: 40px; height: 40px;"/>
+          </template>
+        </el-skeleton>
+      </div>
+      <el-checkbox v-if="!isMobile" disabled :class=" props.type === 'all-email' ? 'all-email-checkbox' : 'checkbox'"
       ></el-checkbox>
       <div class="pc-star" v-if="showStar">
         <Icon style="color: var(--el-border-color)" icon="solar:star-line-duotone" width="18" height="18"/>
       </div>
       <div v-if="!showStar"></div>
+      <!-- 桌面端头像占位 -->
+      <div v-if="!isMobile" class="sender-avatar sender-avatar-pc">
+        <el-skeleton animated>
+          <template #template>
+            <el-skeleton-item variant="circle" style="width: 32px; height: 32px;"/>
+          </template>
+        </el-skeleton>
+      </div>
       <div class="title" :class="accountShow ? 'title-column' : 'title-column'">
 
         <div class="email-sender">
@@ -99,6 +115,10 @@ const props = defineProps({
   type: {
     type: String,
     default: ''
+  },
+  isMobile: {
+    type: Boolean,
+    default: false
   }
 })
 import {Icon} from "@iconify/vue";
