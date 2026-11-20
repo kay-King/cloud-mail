@@ -233,6 +233,7 @@ const zh = {
     storageLimit: '上限',
     deleted: '删除',
     selectDeleted: '已删除',
+    movedToTrash: '已移入回收站',
     active: '正常',
     emailSource: '邮件来源',
     userGrowth: '用户增长',

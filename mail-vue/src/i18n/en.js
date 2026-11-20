@@ -233,6 +233,7 @@ const en = {
     storageLimit: 'Limit',
     deleted: 'Deleted',
     selectDeleted: 'Deleted',
+    movedToTrash: 'Moved to trash',
     active: 'Active',
     emailSource: 'Email Source',
     userGrowth: 'User Growth',

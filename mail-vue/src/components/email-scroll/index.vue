@@ -1108,7 +1108,7 @@ function handleList(list) {
     };
 
     if (email.isDel) {
-      email.isDelContent = t('selectDeleted');
+      email.isDelContent = t('movedToTrash');
     }
     email.statusIcon = statusIconMap[email.status];
     applyHighlight(email);
