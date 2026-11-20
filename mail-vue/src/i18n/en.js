@@ -178,6 +178,8 @@ const en = {
     starIt: 'Star',
     unstar: 'Unstar',
     removeAttachment: 'Remove attachment',
+    addAttachment: 'Add attachment',
+    close: 'Close',
     generateCode: 'Generate random code',
     clearUnused: 'Clear unused',
     restoreSelected: 'Restore selected emails',

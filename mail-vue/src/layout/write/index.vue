@@ -10,9 +10,9 @@
           <span class="sender-name">{{ form.name }}</span>
           <span class="send-email"><{{ form.sendEmail }}></span>
         </div>
-        <div @click="close" style="cursor: pointer;">
+        <button type="button" class="close-btn" @click="close" :aria-label="$t('close')">
           <Icon icon="material-symbols-light:close-rounded" width="22" height="22"/>
-        </div>
+        </button>
       </div>
       <div class="container">
         <div class="address-fields">
@@ -112,9 +112,9 @@
         <el-input v-model="form.subject" :placeholder="t('subject')" size="large"  @focus="hideEmptyCcBcc" style="padding-bottom: 4px" />
         <tinyEditor :def-value="defValue" ref="editor" @change="change" @focus="focusChange" />
         <div class="button-item">
-          <div class="att-add" @click="chooseFile">
+          <button type="button" class="att-add" @click="chooseFile" :aria-label="$t('addAttachment')">
             <Icon icon="iconamoon:attachment-fill" width="24" height="24"/>
-          </div>
+          </button>
           <input ref="fileInputRef" type="file" multiple style="display: none" @change="onFilesSelected"/>
           <div class="att-clear" @click="clearContent">
             <Icon icon="icon-park-outline:clear-format" width="24" height="24 "/>
@@ -927,6 +927,16 @@ function close() {
       }
     }
 
+    .close-btn {
+      background: transparent;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      color: inherit;
+    }
+
     .container {
       height: 100%;
       display: grid;
@@ -998,6 +1008,12 @@ function close() {
 
         .att-add {
           cursor: pointer;
+          background: transparent;
+          border: none;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          color: inherit;
         }
 
         .att-clear {

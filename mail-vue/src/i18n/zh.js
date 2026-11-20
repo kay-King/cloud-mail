@@ -178,6 +178,8 @@ const zh = {
     starIt: '标为星标',
     unstar: '取消星标',
     removeAttachment: '移除附件',
+    addAttachment: '添加附件',
+    close: '关闭',
     generateCode: '随机生成',
     clearUnused: '清除未使用',
     restoreSelected: '恢复选中邮件',
