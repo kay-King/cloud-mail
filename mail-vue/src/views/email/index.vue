@@ -83,7 +83,7 @@ function markSpamEmails(emailIds) {
       type: 'success',
       plain: true
     })
-    emailStore.deleteIds = Array.isArray(emailIds) ? emailIds : [emailIds];
+    emailStore.pushDeleteIds(Array.isArray(emailIds) ? emailIds : [emailIds]);
     // 标垃圾会改变垃圾箱未读数，「有未读时显示」的垃圾箱靠它决定显隐
     sidebarStore.refreshUnread()
   })

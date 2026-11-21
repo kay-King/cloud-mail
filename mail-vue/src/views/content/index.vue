@@ -256,7 +256,7 @@ function onNotifyDialogConfirm(opts) {
       plain: true,
     })
     // 成对删除时后端返回实际删掉的全部 id（含副本），列表按它移除
-    emailStore.deleteIds = Array.isArray(deletedIds) && deletedIds.length ? deletedIds : [email.value.emailId]
+    emailStore.pushDeleteIds(Array.isArray(deletedIds) && deletedIds.length ? deletedIds : [email.value.emailId])
   })
   handleBack()
 }
@@ -554,7 +554,7 @@ const handleDelete = () => {
           type: 'success',
           plain: true,
         })
-        emailStore.deleteIds = [email.value.emailId]
+        emailStore.pushDeleteIds([email.value.emailId])
         sidebarStore.refreshUnread()
       })
     } else if (emailStore.contentData.delType === 'trash') {
@@ -565,7 +565,7 @@ const handleDelete = () => {
           type: 'success',
           plain: true,
         })
-        emailStore.deleteIds = [email.value.emailId]
+        emailStore.pushDeleteIds([email.value.emailId])
         sidebarStore.refreshUnread()
       })
     } else  {
@@ -576,7 +576,7 @@ const handleDelete = () => {
           type: 'success',
           plain: true,
         })
-        emailStore.deleteIds = [email.value.emailId]
+        emailStore.pushDeleteIds([email.value.emailId])
         sidebarStore.refreshUnread()
       })
     }
@@ -592,7 +592,7 @@ const handleRestore = () => {
       type: 'success',
       plain: true,
     })
-    emailStore.deleteIds = [email.value.emailId]
+    emailStore.pushDeleteIds([email.value.emailId])
     sidebarStore.refreshUnread()
     handleBack()
   })
@@ -605,7 +605,7 @@ const handleMarkSpam = () => {
       type: 'success',
       plain: true,
     })
-    emailStore.deleteIds = [email.value.emailId]
+    emailStore.pushDeleteIds([email.value.emailId])
     sidebarStore.refreshUnread()
     handleBack()
   })
@@ -618,7 +618,7 @@ const handleUnspam = () => {
       type: 'success',
       plain: true,
     })
-    emailStore.deleteIds = [email.value.emailId]
+    emailStore.pushDeleteIds([email.value.emailId])
     sidebarStore.refreshUnread()
     handleBack()
   })

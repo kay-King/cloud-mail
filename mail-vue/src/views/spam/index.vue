@@ -126,7 +126,7 @@ function unmarkSpamEmails(emailIds) {
       type: 'success',
       plain: true
     })
-    emailStore.deleteIds = Array.isArray(emailIds) ? emailIds : [emailIds];
+    emailStore.pushDeleteIds(Array.isArray(emailIds) ? emailIds : [emailIds]);
     // 移出垃圾箱会改变垃圾箱未读数
     sidebarStore.refreshUnread()
   })

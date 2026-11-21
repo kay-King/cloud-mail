@@ -642,7 +642,7 @@ function afterDeleteSuccess(emailIds, deletedIds) {
     type: 'success',
     plain: true
   })
-  emailStore.deleteIds = Array.isArray(deletedIds) && deletedIds.length ? deletedIds : emailIds;
+  emailStore.pushDeleteIds(Array.isArray(deletedIds) && deletedIds.length ? deletedIds : emailIds);
   // 删掉未读邮件会改变侧边栏未读数，立即刷新，不用等切页面
   sidebarStore.refreshUnread()
 }
@@ -862,41 +862,41 @@ watch(
 );
 
 
-// 撤销删除时本视图已本地把行放回去了，跳过这次 deleteIds 信号（别的视图照常处理）
-// 注意：watch 默认异步执行，赋值 deleteIds 时标记已先置上，回调跑到时正好跳过
-let ignoreDeleteIdsOnce = false
+// 撤销删除/乐观删除时本视图已本地处理过这些 id：信号里只跳过这几封，别的 id 照常处理
+// （原来是布尔标志，同一批信号里别的 id 会被连带跳过；连续两次赋值时第二次的标志
+// 还会被第一次的回调消费掉）。注意：watch 默认异步执行，赋值 deleteIds 时标记已先置上，
+// 回调跑到时正好跳过；回调里用掉的标记随手清掉，不留给下一次信号
+const ignoreDeleteIds = new Set()
 watch(() => emailStore.deleteIds, () => {
-  if (ignoreDeleteIdsOnce) {
-    ignoreDeleteIdsOnce = false
-    return
+  if (!emailStore.deleteIds) return
+  const allIds = Array.isArray(emailStore.deleteIds) ? emailStore.deleteIds : [emailStore.deleteIds]
+  const ids = allIds.filter(id => !ignoreDeleteIds.has(id))
+  allIds.forEach(id => ignoreDeleteIds.delete(id))
+  if (!ids.length) return
+  // 滑出删除的行已拼掉，顺手清掉残留的滑动状态（否则恢复后同 id 的行会带着偏移渲染）
+  if (swipeState.emailId && ids.includes(swipeState.emailId)) {
+    swipeState.emailId = null;
+    swipeState.offset = 0;
+    swipeState.dragging = false;
   }
-  if (emailStore.deleteIds) {
-    // 滑出删除的行已拼掉，顺手清掉残留的滑动状态（否则恢复后同 id 的行会带着偏移渲染）
-    if (swipeState.emailId && Array.isArray(emailStore.deleteIds) && emailStore.deleteIds.includes(swipeState.emailId)) {
-      swipeState.emailId = null;
-      swipeState.offset = 0;
-      swipeState.dragging = false;
+  if (props.type === 'all-email') {
+    // 全部邮件含已删邮件（带回收站角标）：删/恢复只改行状态不改归属，
+    // 本地拼掉行是错的（刷新后行又回来）；真删后配对的发件份还会冒头，
+    // 本地拼行也加不回来。直接静默重拉，以服务端为准；
+    // 拉不到（正有请求在跑/网络失败）就标脏，下次切回来再拉。
+    getEmailList(true, true).then(ok => { if (!ok) needsRefresh = true }).catch(() => { needsRefresh = true })
+  } else {
+    const removed = deleteEmail(ids)
+    // 这次操作没动我这个列表（removed 为 0），说明邮件是被移进/移出别的视图了
+    // （比如在垃圾箱点「不是垃圾」，邮件回到收件箱）：这个列表下次切回来时要重拉，
+    // 否则还显示旧数据。删掉的行已经当场拼掉了（removed > 0），不用重拉。
+    if (removed === 0) {
+      needsRefresh = true
     }
-    if (props.type === 'all-email') {
-      // 全部邮件含已删邮件（带回收站角标）：删/恢复只改行状态不改归属，
-      // 本地拼掉行是错的（刷新后行又回来）；真删后配对的发件份还会冒头，
-      // 本地拼行也加不回来。直接静默重拉，以服务端为准；
-      // 拉不到（正有请求在跑/网络失败）就标脏，下次切回来再拉。
-      getEmailList(true, true).then(ok => { if (!ok) needsRefresh = true }).catch(() => { needsRefresh = true })
-    } else {
-      const removed = deleteEmail(emailStore.deleteIds)
-      // 这次操作没动我这个列表（removed 为 0），说明邮件是被移进/移出别的视图了
-      // （比如在垃圾箱点「不是垃圾」，邮件回到收件箱）：这个列表下次切回来时要重拉，
-      // 否则还显示旧数据。删掉的行已经当场拼掉了（removed > 0），不用重拉。
-      if (removed === 0) {
-        needsRefresh = true
-      }
-    }
-    // 正文区正在看的邮件被删了，一起清掉，别留着已删邮件
-    const ids = Array.isArray(emailStore.deleteIds) ? emailStore.deleteIds : [emailStore.deleteIds]
-    if (emailStore.contentData?.email && ids.includes(emailStore.contentData.email.emailId)) {
-      emailStore.contentData.email = null
-    }
+  }
+  // 正文区正在看的邮件被删了，一起清掉，别留着已删邮件
+  if (emailStore.contentData?.email && ids.includes(emailStore.contentData.email.emailId)) {
+    emailStore.contentData.email = null
   }
 })
 
@@ -1302,7 +1302,7 @@ function rightDelete(emailId, { silent = false } = {}) {
             plain: true
           })
         }
-        emailStore.deleteIds = [emailId];
+        emailStore.pushDeleteIds([emailId]);
         // 删掉未读邮件会改变侧边栏未读数，立即刷新（左滑删除也走这里）
         sidebarStore.refreshUnread()
         return true
@@ -1317,7 +1317,7 @@ function rightDelete(emailId, { silent = false } = {}) {
         plain: true
       })
     }
-    emailStore.deleteIds = [emailId];
+    emailStore.pushDeleteIds([emailId]);
     // 删掉未读邮件会改变侧边栏未读数，立即刷新（左滑删除也走这里）
     sidebarStore.refreshUnread()
     return true
@@ -1684,8 +1684,10 @@ function swipeToggleRead(email) {
 const undoToast = reactive({ visible: false, text: '', action: null, emailId: null, email: null, index: -1 })
 // 撤销恢复动效：刚插回来的行带 row-restored 类长出来（0.28s），跑完清除
 const restoredEmailId = ref(null)
-// 乐观删除进行中的接口：撤销要等它落定后再发恢复（否则恢复先落、删除后落，邮件最后还是进了回收站）
-let pendingDelete = null
+// 乐观删除进行中的接口（每封一个槽位）：撤销要等它落定后再发恢复（否则恢复先落、
+// 删除后落，邮件最后还是进了回收站）；连续左滑删两封时单槽位会被后一次覆盖，
+// 先一次的 finally 还会把后一次的句柄清掉，撤销就抢跑，所以按 emailId 分槽
+const pendingDeletes = new Map()
 let restoreAnimTimer = null
 let undoToastTimer = null
 const UNDO_TOAST_MS = 5000
@@ -1748,8 +1750,8 @@ function handleUndoToast() {
     const restoreServer = () => emailRestore([emailId]).then(() => {
       sidebarStore.refreshUnread()
       setTimeout(() => {
-        ignoreDeleteIdsOnce = true
-        emailStore.deleteIds = [emailId]
+        ignoreDeleteIds.add(emailId)
+        emailStore.pushDeleteIds([emailId])
       }, 350)
     }).catch(e => {
       console.error(e)
@@ -1771,7 +1773,8 @@ function handleUndoToast() {
       ElMessage({ message: t('restoreFailedMsg'), type: 'error', plain: true })
     })
     restoreLocal()
-    if (pendingDelete) pendingDelete.then(restoreServer)
+    const pending = pendingDeletes.get(emailId)
+    if (pending) pending.then(restoreServer)
     else restoreServer()
   } else if (action === 'markRead') {
     emailUnread(emailId)
@@ -1903,10 +1906,10 @@ function onRowTouchEnd() {
               swipeState.dragging = false
             }
             showUndoToast('delete', email.emailId, email, undoIndex)
-            pendingDelete = props.emailDelete([email.emailId]).then(() => {
+            const deletePromise = props.emailDelete([email.emailId]).then(() => {
               sidebarStore.refreshUnread()
-              ignoreDeleteIdsOnce = true
-              emailStore.deleteIds = [email.emailId]
+              ignoreDeleteIds.add(email.emailId)
+              emailStore.pushDeleteIds([email.emailId])
             }).catch(() => {
               // 删失败：行放回去、提示条收掉、告诉用户没删成
               if (swipeState.emailId === email.emailId) {
@@ -1922,7 +1925,11 @@ function onRowTouchEnd() {
               undoToast.visible = false
               ElMessage({ message: t('delFailedMsg'), type: 'error', plain: true })
             })
-            pendingDelete.finally(() => { pendingDelete = null })
+            pendingDeletes.set(email.emailId, deletePromise)
+            deletePromise.finally(() => {
+              // 只清自己的槽位：连续删两封时，先一次的 finally 不能把后一次的句柄清掉
+              if (pendingDeletes.get(email.emailId) === deletePromise) pendingDeletes.delete(email.emailId)
+            })
           }
         } else {
           // 标已读/未读：先记方向（swipeToggleRead 会立刻翻转本地状态），动作发出后行滑回来并弹出撤销提示

@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
+import { nextTick } from 'vue'
 import { EmailUnreadEnum } from '@/enums/email-enum.js'
 import { sanitizeEmailHtml } from '@/utils/email-html.js'
+
+// deleteIds 暂存集合：deleteIds 是全站「归属变更」信号，同一 tick 内多次直接赋值会
+// 合并成一次 watch 回调，后赋的值盖掉先赋的（F5）。push 时先并入集合再整体赋值，
+// 下一个 tick 清掉集合（watch 在 flush 里跑，nextTick 在 flush 之后，清集合不影响已赋值的数组）
+const pendingDeleteIds = new Set();
 
 export const useEmailStore = defineStore('email', {
     state: () => ({
@@ -33,6 +39,13 @@ export const useEmailStore = defineStore('email', {
         pick: ['contentData'],
     },
     actions: {
+        // 发归属变更信号：同一 tick 内的多次 push 合并成一个数组发出去，不互相覆盖
+        pushDeleteIds(ids) {
+            const list = Array.isArray(ids) ? ids : [ids];
+            list.forEach(id => pendingDeleteIds.add(id));
+            this.deleteIds = [...pendingDeleteIds];
+            nextTick(() => pendingDeleteIds.clear());
+        },
         setSearchParams(params) {
             this.searchParams = {
                 ...this.searchParams,

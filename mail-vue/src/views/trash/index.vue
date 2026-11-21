@@ -102,7 +102,7 @@ function restoreEmails(emailIds) {
       type: 'success',
       plain: true
     })
-    emailStore.deleteIds = Array.isArray(emailIds) ? emailIds : [emailIds];
+    emailStore.pushDeleteIds(Array.isArray(emailIds) ? emailIds : [emailIds]);
     sidebarStore.refreshUnread()
   })
 }

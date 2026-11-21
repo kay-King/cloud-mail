@@ -98,7 +98,7 @@ function markSpamEmails(emailIds) {
       type: 'success',
       plain: true
     })
-    emailStore.deleteIds = receivedIds;
+    emailStore.pushDeleteIds(receivedIds);
     sidebarStore.refreshUnread()
   })
 }

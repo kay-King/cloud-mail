@@ -55,7 +55,7 @@ export function applyRemoteOp(payload, { pullLatest } = {}) {
     // 归属变化走现成的 deleteIds 信号：收件箱/星标等拼掉行，全部邮件静默重拉，
     // 移进来的邮件（恢复/取消标垃圾）靠标脏后切回来重拉
     if (ids.length) {
-      emailStore.deleteIds = [...ids];
+      emailStore.pushDeleteIds(ids);
     }
     if (op === 'restore' || op === 'unspam') {
       // 恢复/取消标垃圾的邮件回到了收件箱：deleteIds 只会拼掉各列表里已有的行，
