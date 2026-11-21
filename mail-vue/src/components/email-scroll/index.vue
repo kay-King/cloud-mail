@@ -433,6 +433,15 @@
     <delete-notify-dialog v-model="notifyDialog.visible" :message="notifyDialog.message"
                           :show-notify="notifyDialog.showNotify" :has-pair="notifyDialog.hasPair"
                           @confirm="onNotifyDialogConfirm"/>
+    <!-- 左滑/右滑后的撤销提示条（Gmail 式 snackbar）：动作已立即执行，5 秒内可点撤销反向操作；
+         只保留最新一次操作，再滑一封就替换掉上一次；放根节点末尾，不进虚拟列表、不被裁掉 -->
+    <transition name="undo-toast">
+      <div v-if="undoToast.visible" class="undo-toast">
+        <Icon icon="fluent:checkmark-20-regular" width="20" height="20" class="undo-toast-icon" />
+        <span class="undo-toast-text">{{ undoToast.text }}</span>
+        <button class="undo-toast-btn" @click="handleUndoToast">{{ $t('undo') }}</button>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -442,7 +451,7 @@ import skeletonBlock from "@/components/email-scroll/skeleton/index.vue"
 import deleteNotifyDialog from "@/components/delete-notify-dialog/index.vue"
 import {computed, onActivated, reactive, ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import {useEmailStore} from "@/store/email.js";
-import {emailExport, downloadExport} from "@/request/email.js";
+import {emailExport, downloadExport, emailRestore} from "@/request/email.js";
 import {contactAdd, contactSuggest} from "@/request/contact.js";
 import {avatarLetter} from "@/utils/avatar.js";
 import {useUserStore} from "@/store/user.js";
@@ -1138,7 +1147,8 @@ function rightExport(emailId) {
   doExport([emailId]);
 }
 
-function rightDelete(emailId) {
+// silent：左滑删除时不弹成功提示，改由撤销提示条接手（右键菜单仍弹提示）
+function rightDelete(emailId, { silent = false } = {}) {
 
   if (props.type === 'all-email' || props.type === 'trash') {
     if (props.type === 'all-email') {
@@ -1157,11 +1167,13 @@ function rightDelete(emailId) {
       type: 'warning'
     }).then(() => {
       return props.emailDelete([emailId]).then(() => {
-        ElMessage({
-          message: t('delSuccessMsg'),
-          type: 'success',
-          plain: true
-        })
+        if (!silent) {
+          ElMessage({
+            message: t('delSuccessMsg'),
+            type: 'success',
+            plain: true
+          })
+        }
         emailStore.deleteIds = [emailId];
         // 删掉未读邮件会改变侧边栏未读数，立即刷新（左滑删除也走这里）
         sidebarStore.refreshUnread()
@@ -1170,11 +1182,13 @@ function rightDelete(emailId) {
     }).catch(() => false)
   }
   return props.emailDelete([emailId]).then(() => {
-    ElMessage({
-      message: t('delSuccessMsg'),
-      type: 'success',
-      plain: true
-    })
+    if (!silent) {
+      ElMessage({
+        message: t('delSuccessMsg'),
+        type: 'success',
+        plain: true
+      })
+    }
     emailStore.deleteIds = [emailId];
     // 删掉未读邮件会改变侧边栏未读数，立即刷新（左滑删除也走这里）
     sidebarStore.refreshUnread()
@@ -1519,9 +1533,10 @@ function swipeStyle(item) {
   return { transform: `translateX(${swipeState.offset}px)` }
 }
 // 左滑删除：走右键单封删除的现有流程（全部邮件视图里含确认框与管理员删他人邮件的通知弹窗，不能绕过）
-// 返回 Promise：删成功 true，取消/失败 false（滑动动画靠它决定行滑回来还是保持滑出）
+// 返回 Promise：删成功 true，取消/失败 false（滑动动画靠它决定行滑回来还是保持滑出；
+// 成功时由调用方弹撤销提示条，所以这里 silent，不弹成功提示）
 function swipeDelete(email) {
-  return rightDelete(email.emailId)
+  return rightDelete(email.emailId, { silent: true })
 }
 // 右滑标已读/未读切换：走现有 handler（视图层成功后会刷新侧边栏未读数）
 function swipeToggleRead(email) {
@@ -1529,6 +1544,38 @@ function swipeToggleRead(email) {
     emailRead(email.emailId)
   } else {
     emailUnread(email.emailId)
+  }
+}
+// 左滑/右滑后的撤销提示条：动作已立即执行，提示 5 秒内点撤销就反向操作；
+// 只保留最新一次操作（再滑一封就替换掉上一次，之前那次就此定案）；超时后提示消失。
+const undoToast = reactive({ visible: false, text: '', action: null, emailId: null })
+let undoToastTimer = null
+const UNDO_TOAST_MS = 5000
+function showUndoToast(action, emailId) {
+  clearTimeout(undoToastTimer)
+  undoToast.action = action
+  undoToast.emailId = emailId
+  undoToast.text = action === 'delete' ? t('undoDeleted')
+    : action === 'markRead' ? t('undoMarkedRead') : t('undoMarkedUnread')
+  undoToast.visible = true
+  undoToastTimer = setTimeout(() => { undoToast.visible = false }, UNDO_TOAST_MS)
+}
+function handleUndoToast() {
+  clearTimeout(undoToastTimer)
+  const { action, emailId } = undoToast
+  undoToast.visible = false
+  undoToast.action = null
+  undoToast.emailId = null
+  if (action === 'delete') {
+    // 撤销删除：把刚进回收站的邮件恢复回来，再静默重拉列表让行回来
+    emailRestore([emailId]).then(() => {
+      sidebarStore.refreshUnread()
+      silentRefresh()
+    }).catch(e => console.error(e))
+  } else if (action === 'markRead') {
+    emailUnread(emailId)
+  } else if (action === 'markUnread') {
+    emailRead(emailId)
   }
 }
 function onRowTouchStart(e, email) {
@@ -1623,17 +1670,21 @@ function onRowTouchEnd() {
       swipeState.offset = dir * swipeRowWidth;
       window.setTimeout(() => {
         if (dir < 0) {
-          // 删除：行保持滑出状态，等接口成功后拼掉行；取消/失败则滑回来
+          // 删除：行保持滑出状态，等接口成功后拼掉行并弹出撤销提示；取消/失败则滑回来
           Promise.resolve(swipeDelete(email)).then(done => {
-            if (!done && swipeState.emailId === email.emailId) {
+            if (done) {
+              showUndoToast('delete', email.emailId)
+            } else if (swipeState.emailId === email.emailId) {
               swipeState.emailId = null;
               swipeState.offset = 0;
               swipeState.dragging = false;
             }
           });
         } else {
-          // 标已读/未读：动作发出后行滑回来
+          // 标已读/未读：先记方向（swipeToggleRead 会立刻翻转本地状态），动作发出后行滑回来并弹出撤销提示
+          const wasUnread = email.unread === EmailUnreadEnum.UNREAD
           swipeToggleRead(email);
+          showUndoToast(wasUnread ? 'markRead' : 'markUnread', email.emailId)
           if (swipeState.emailId === email.emailId) {
             swipeState.emailId = null;
             swipeState.offset = 0;
@@ -1985,6 +2036,52 @@ function renderHighlight(value) {
   background: var(--el-color-primary);
   justify-content: flex-start;
   padding-left: 24px;
+}
+
+/* 撤销提示条：深底白字，照用户发的参考图（勾 + 文案 + 右侧撤销）；
+   bottom 留 96px，避开右下角的写信悬浮按钮 */
+.undo-toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 96px;
+  max-width: 480px;
+  margin: 0 auto;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #2b2b2b;
+  color: #fff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+}
+.undo-toast-icon {
+  flex-shrink: 0;
+}
+.undo-toast-text {
+  font-size: 14px;
+  flex: 1;
+  min-width: 0;
+}
+.undo-toast-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 4px 8px;
+  margin: -4px -8px -4px 0;
+  cursor: pointer;
+}
+.undo-toast-enter-active, .undo-toast-leave-active {
+  transition: opacity .25s, transform .25s;
+}
+.undo-toast-enter-from, .undo-toast-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
 }
 
 :deep(.email-row) {
