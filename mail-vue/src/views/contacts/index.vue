@@ -1,7 +1,7 @@
 <template>
   <div class="contacts-page">
     <div class="contacts-header">
-      <div class="contacts-title">{{ $t('contacts') }}<span v-if="total > 0" class="contacts-count">{{ total }}</span></div>
+      <div v-if="total > 0" class="contacts-title">{{ $t('contactsCount', {total}) }}</div>
       <el-input v-model="keyword" :placeholder="$t('searchContacts')" clearable class="contacts-search"
                 @keyup.enter="onSearch" @clear="onSearch">
         <template #prefix>
@@ -209,17 +209,11 @@ function writeTo(row) {
   flex-wrap: wrap;
 }
 
+/* 标题已在顶栏显示，这里只留计数（共 N 位），不再重复「通讯录」 */
 .contacts-title {
-  font-size: 17px;
-  font-weight: 600;
-  margin-right: auto;
-}
-
-.contacts-count {
-  margin-left: 8px;
   font-size: 13px;
-  font-weight: 400;
   color: var(--secondary-text-color);
+  margin-right: auto;
 }
 
 .contacts-search {

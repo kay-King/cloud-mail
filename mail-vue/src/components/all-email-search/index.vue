@@ -381,6 +381,10 @@ onBeforeUnmount(() => {
 }
 
 @media (min-width: 768px) {
+  /* 桌面端搜索框左缘下限 260px：账号栏折叠时不再回到 left: -1 盖住左上角的 ☰（原版同款问题） */
+  .all-email-search {
+    left: 260px;
+  }
   .all-email-search.account-show {
     left: 259px;
   }

@@ -571,6 +571,10 @@ path[fill="#ffdda1"] {
     display: flex;
     align-items: center;
     height: 38px;
+    /* 桌面端与邮件列表顶栏等高 43px（按钮 27px + 上下各 8px 内边距），两行分隔线对齐；移动端保持 38px */
+    @media (min-width: 768px) {
+      height: 43px;
+    }
     box-shadow: var(--header-actions-border);
     padding-left: 10px;
     padding-right: 10px;
@@ -594,7 +598,7 @@ path[fill="#ffdda1"] {
 
   .scrollbar {
     width: 100%;
-    height: calc(100% - 38px);
+    height: calc(100% - 43px); /* 桌面端 head-opt 43px；移动端下面 media query 用 98px 覆盖 */
     overflow: auto;
     @media (max-width: 767px) {
       height: calc(100% - 98px);
