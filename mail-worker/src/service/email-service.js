@@ -321,6 +321,14 @@ const emailService = {
 			if (searchType === 'recipientAddress') {
 				conditions.push(sql`${email.toEmail} COLLATE NOCASE LIKE ${searchText}`);
 			}
+
+			// 往来邮件：对方发来的（发件地址是对方）或我发给对方的（收件地址是对方）
+			if (searchType === 'correspondent') {
+				conditions.push(or(
+					sql`${email.sendEmail} COLLATE NOCASE LIKE ${searchText}`,
+					sql`${email.toEmail} COLLATE NOCASE LIKE ${searchText}`,
+				));
+			}
 		}
 
 		const timeCond = this.createTimeCondition({ startDate, endDate, userId });
@@ -400,6 +408,14 @@ const emailService = {
 
 			if (searchType === 'senderAddress') {
 				conditions.push(sql`${email.sendEmail} COLLATE NOCASE LIKE ${searchText}`);
+			}
+
+			// 往来邮件：对方发来的或我发给对方的（发件人卡片「查看往来邮件」用）
+			if (searchType === 'correspondent') {
+				conditions.push(or(
+					sql`${email.sendEmail} COLLATE NOCASE LIKE ${searchText}`,
+					sql`${email.toEmail} COLLATE NOCASE LIKE ${searchText}`,
+				));
 			}
 
 			if (searchType === 'user') {

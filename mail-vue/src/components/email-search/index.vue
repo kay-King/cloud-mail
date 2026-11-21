@@ -112,6 +112,7 @@ const savedSearchSummary = computed(() => {
     sender: 'searchSummarySender',
     senderAddress: 'searchSummarySenderAddress',
     recipientAddress: 'searchSummaryRecipientAddress',
+    correspondent: 'searchSummaryCorrespondent',
   }
 
   if (text) {

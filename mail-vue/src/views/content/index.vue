@@ -111,11 +111,16 @@
                         <div class="sender-card-email">{{ email.sendEmail }}</div>
                       </div>
                     </div>
-                    <el-button v-if="!senderInContacts" type="primary" size="small" :loading="senderCardAdding" class="sender-card-btn" @click="addSenderFromCard">
-                      <Icon icon="fluent:person-add-20-regular" width="16" height="16" style="margin-right: 4px"/>{{ $t('addToContacts') }}
-                    </el-button>
-                    <div v-else class="sender-card-added">
-                      <Icon icon="fluent:checkmark-20-regular" width="16" height="16"/>{{ $t('alreadyInContacts') }}
+                    <div class="sender-card-actions">
+                      <el-button v-if="!senderInContacts" type="primary" size="small" :loading="senderCardAdding" class="sender-card-btn" @click="addSenderFromCard">
+                        <Icon icon="fluent:person-add-20-regular" width="16" height="16" style="margin-right: 4px"/>{{ $t('addToContacts') }}
+                      </el-button>
+                      <div v-else class="sender-card-added">
+                        <Icon icon="fluent:checkmark-20-regular" width="16" height="16"/>{{ $t('alreadyInContacts') }}
+                      </div>
+                      <el-button size="small" class="sender-card-btn" @click="viewExchangedEmails">
+                        <Icon icon="fluent:mail-20-regular" width="16" height="16" style="margin-right: 4px"/>{{ $t('viewExchangedEmails') }}
+                      </el-button>
                     </div>
                   </div>
                 </el-popover>
@@ -186,6 +191,8 @@ import {contactAdd, contactSuggest} from "@/request/contact.js";
 import {avatarLetter} from "@/utils/avatar.js";
 import {Icon} from "@iconify/vue";
 import {useEmailStore} from "@/store/email.js";
+import {useAllEmailStore} from "@/store/all-email.js";
+import {hasPerm} from "@/perm/perm.js";
 import {useSidebarStore} from "@/store/sidebar.js";
 import {useUserStore} from "@/store/user.js";
 import {useAccountStore} from "@/store/account.js";
@@ -215,6 +222,7 @@ const uiStore = useUiStore();
 const settingStore = useSettingStore();
 const accountStore = useAccountStore();
 const emailStore = useEmailStore();
+const allEmailStore = useAllEmailStore();
 const sidebarStore = useSidebarStore();
 const userStore = useUserStore();
 const router = useRouter()
@@ -301,6 +309,20 @@ async function addSenderFromCard() {
   senderCardAdding.value = false
 }
 
+// 查看往来邮件：管理员走全部邮件（收发两边都有，一次看全）；
+// 普通用户没有全部邮件权限，只看收件箱里对方的来信
+function viewExchangedEmails() {
+  const addr = String(email.value?.sendEmail || '').trim()
+  if (!addr) return
+  if (hasPerm('all-email:query')) {
+    allEmailStore.setSearchParams({type: 'correspondent', text: addr, status: 'all', startDate: '', endDate: ''})
+    router.push({name: 'all-email'})
+  } else {
+    emailStore.setSearchParams({type: 'correspondent', text: addr, startDate: '', endDate: ''})
+    router.push({name: 'email'})
+  }
+}
+
 watch(() => accountStore.currentAccountId, () => {
   handleBack()
 })
@@ -341,10 +363,8 @@ function tryMarkRead() {
   const current = email.value
   if (!current?.emailId || current.unread !== EmailUnreadEnum.UNREAD) return
 
-  // 等详情数据就绪（detailMap 已写入，或正文已有内容）再标已读
-  const full = emailStore.detailMap[current.emailId]
-  const detailReady = !!full || !!(current.content || current.text)
-  if (!detailReady) return
+  // 点开即标已读，不等详情数据：详情靠完整列表预取，慢网上可能十几秒才到、
+  // 失败了更是一直不到，等它就导致点开看了还是未读；点开本身就是已读的意思
 
   readRequesting = true
   const emailId = current.emailId
@@ -680,10 +700,15 @@ const handleUnspam = () => {
     color: var(--el-text-color-secondary);
     overflow-wrap: anywhere;
   }
+  .sender-card-actions {
+    display: flex;
+    gap: 8px;
+  }
   .sender-card-btn {
-    width: 100%;
+    flex: 1;
   }
   .sender-card-added {
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -838,6 +863,9 @@ const handleUnspam = () => {
           flex-wrap: wrap;
           align-items: center;
           column-gap: 6px;
+          /* 只占文字的宽度：原来是块级元素撑满整行，鼠标放到行内空白处也会弹出名片 */
+          width: fit-content;
+          max-width: 100%;
 
           &.can-card {
             cursor: pointer;

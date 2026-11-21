@@ -2,9 +2,9 @@
   <div class="email-container" :class="{ 'three-pane': threePane }">
     <div class="list-col">
     <div class="header-actions">
-      <!-- 触屏端默认不显示全选框，进入选择模式（长按勾选）后才出现；电脑端（鼠标）一直显示 -->
+      <!-- 全选框一直显示（触屏与电脑端一样）：点它就能全选，不用先长按进选择模式；
+           触屏端 CSS 已按勾选框常驻调过（16px 左移 + header-left 19px），图标对齐不动 -->
       <el-checkbox
-          v-if="uiStore.finePointer || selectMode"
           v-model="checkAll"
           :indeterminate="isIndeterminate"
           :disabled="!emailList.length || loading"
@@ -15,8 +15,8 @@
            的内容列起头（头像左距 15 + 头像 40 + 右间距 16 = 71）；电脑端仍用各视图传的 actionLeft -->
       <div class="header-left" :style="{ paddingLeft: uiStore.finePointer ? actionLeft : '19px' }">
 
-        <!-- 勾选时收起刷新：选中时刷新用不到，还容易误触丢了勾选 -->
-        <el-tooltip effect="dark" :hide-after="0" :content="$t('refresh')" v-if="checkedEmailCount === 0">
+        <!-- 刷新常驻显示（勾选时也不收起） -->
+        <el-tooltip effect="dark" :hide-after="0" :content="$t('refresh')">
           <Icon class="icon reload" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="refresh"/>
         </el-tooltip>
         <!-- 批量操作顺序：标已读、标未读、删除、[各视图专属图标]、导出；

@@ -137,6 +137,7 @@ const savedSearchSummary = computed(() => {
     senderAddress: 'searchSummarySenderAddress',
     user: 'searchSummaryUser',
     account: 'searchSummaryAccount',
+    correspondent: 'searchSummaryCorrespondent',
   }
 
   if (text) {
