@@ -73,17 +73,17 @@
           <span>{{ props.type === 'trash' ? $t('deleteForever') : $t('delete') }}</span>
         </button>
         <slot name="first"></slot>
-        <button class="toolbar-btn" v-if="uiStore.finePointer && props.type !== 'draft' && props.type !== 'spam'"
+        <button class="toolbar-btn" v-if="uiStore.finePointer && props.type !== 'draft' && props.type !== 'spam' && props.type !== 'trash'"
                 @click="handleExport">
           <Icon icon="fluent:arrow-download-20-regular" width="16" height="16"/>
           <span>{{ $t('export') }}</span>
         </button>
         <!-- 触屏 ⋮ 更多菜单：只剩导出——删除是顶栏直接按钮、标垃圾在「标记为」下拉里，
              再放菜单就是重复（2026-11-21 用户指出收件箱重复后去掉）；常驻显示，未勾选时点开
-             菜单、点具体操作时提示「未选中邮件」；电脑端不出现；草稿箱与垃圾邮件视图菜单是
-             空的，不显示 ⋮；
+             菜单、点具体操作时提示「未选中邮件」；电脑端不出现；草稿箱、垃圾邮件与回收站视
+             图菜单是空的，不显示 ⋮（回收站不要导出，菜单只剩导出就等于是空的）；
              bottom-start：⋮ 在顶栏左侧，菜单左缘对齐触发器，不会超出屏幕左缘 -->
-        <el-dropdown v-if="!uiStore.finePointer && props.type !== 'spam' && props.type !== 'draft'" trigger="click" placement="bottom-start">
+        <el-dropdown v-if="!uiStore.finePointer && props.type !== 'spam' && props.type !== 'draft' && props.type !== 'trash'" trigger="click" placement="bottom-start">
           <Icon class="icon" icon="fluent:more-vertical-20-regular" width="20" height="20" />
           <template #dropdown>
             <el-dropdown-menu>
@@ -411,7 +411,7 @@
               </div>
             </template>
           </el-dropdown-item>
-          <el-dropdown-item v-if="props.type !== 'draft'" @click="rightExport(rightClickEmail.emailId)">
+          <el-dropdown-item v-if="props.type !== 'draft' && props.type !== 'trash'" @click="rightExport(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
                 <Icon icon="fluent:arrow-download-20-regular" width="20" height="20" />
