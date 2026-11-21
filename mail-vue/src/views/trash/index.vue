@@ -11,7 +11,6 @@
   >
     <template #first>
       <button v-perm="'email:delete'" class="toolbar-btn"
-              :class="{ 'icon-disabled': selectedIds.length === 0 }"
               @click="handleRestoreSelected">
         <Icon icon="fluent:arrow-undo-20-regular" width="16" height="16"/>
         <span>{{ $t('restore') }}</span>
@@ -101,9 +100,11 @@ function restoreEmails(emailIds) {
 
 function handleRestoreSelected() {
   const emailIds = selectedIds.value
-  if (emailIds.length > 0) {
-    restoreEmails(emailIds)
+  if (emailIds.length === 0) {
+    ElMessage({message: t('noSelectedEmail'), type: 'warning', plain: true})
+    return
   }
+  restoreEmails(emailIds)
 }
 
 </script>

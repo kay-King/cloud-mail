@@ -236,8 +236,10 @@ router.afterEach((to) => {
     // 切换文件夹时清空正文区，不残留上一个文件夹的邮件；放 afterEach 是因为它每次导航都跑，
     // 不受 keep-alive 停用影响（放 email-scroll 的 watch 里不可靠）。去设置/通讯录等页面
     // 再回来不清空（lastListRoute 只记邮件列表路由，首次为 null 时只记录不清空）。
+    // 往来邮件视图不在名单里：它是从详情页点进来的，详情页读的是 contentData（地址栏没邮件 ID），
+    // 进来就清空的话点返回会落到空白详情；不记它，返回时正文还在。
     const emailStore = useEmailStore()
-    if (['email', 'send', 'star', 'all-email', 'trash', 'spam', 'exchanged'].includes(to.name)) {
+    if (['email', 'send', 'star', 'all-email', 'trash', 'spam'].includes(to.name)) {
         if (emailStore.lastListRoute !== null && to.name !== emailStore.lastListRoute) {
             emailStore.contentData.email = null
         }

@@ -19,13 +19,14 @@
              批量操作顺序：刷新、标记为、删除、[各视图专属按钮]、导出；
              标记为下拉收进标已读/标未读/星标/取消星标/标为垃圾，没任何可标记的视图不显示；
              删除与导出只在电脑端直接显示、触屏上收进 ⋮ 菜单（垃圾邮件视图的 ⋮ 菜单
-             是空的，删除在触屏上也直接显示） -->
+             是空的，删除在触屏上也直接显示）；
+             未勾选时按钮不置灰、都可点，点了提示「未选中邮件」（用户 2026-11-21 要求） -->
         <button class="toolbar-btn" @click="refresh">
           <Icon icon="fluent:arrow-clockwise-20-regular" width="16" height="16"/>
           <span>{{ $t('refresh') }}</span>
         </button>
-        <el-dropdown v-if="hasMarkActions" :disabled="checkedEmailCount === 0" trigger="click" placement="bottom-start">
-          <button class="toolbar-btn" :class="{ 'icon-disabled': checkedEmailCount === 0 }">
+        <el-dropdown v-if="hasMarkActions" trigger="click" placement="bottom-start">
+          <button class="toolbar-btn">
             <Icon icon="fluent:tag-20-regular" width="16" height="16"/>
             <span>{{ $t('markAs') }}</span>
             <Icon icon="fluent:chevron-down-16-regular" width="14" height="14"/>
@@ -66,25 +67,22 @@
           </template>
         </el-dropdown>
         <button v-perm="'email:delete'" class="toolbar-btn" v-if="uiStore.finePointer || props.type === 'spam'"
-                :class="{ 'icon-disabled': checkedEmailCount === 0 }"
                 @click="handleDelete">
           <Icon icon="hugeicons:delete-02" width="16" height="16"/>
           <span>{{ props.type === 'trash' ? $t('deleteForever') : $t('delete') }}</span>
         </button>
         <slot name="first"></slot>
         <button class="toolbar-btn" v-if="uiStore.finePointer && props.type !== 'draft' && props.type !== 'spam'"
-                :class="{ 'icon-disabled': checkedEmailCount === 0 }"
                 @click="handleExport">
           <Icon icon="fluent:arrow-download-20-regular" width="16" height="16"/>
           <span>{{ $t('export') }}</span>
         </button>
         <!-- 触屏 ⋮ 更多菜单：删除/标垃圾/导出收进来，顶栏只留标已读/标未读 + ⋮；
-             常驻显示，未勾选时禁用态（半透明、点不开）；电脑端不出现；垃圾邮件视图
+             常驻显示，未勾选时点开菜单、点具体操作时提示「未选中邮件」；电脑端不出现；垃圾邮件视图
              菜单是空的，不显示 ⋮；
              bottom-start：⋮ 在顶栏左侧，菜单左缘对齐触发器，不会超出屏幕左缘 -->
         <el-dropdown v-if="!uiStore.finePointer && props.type !== 'spam'" trigger="click" placement="bottom-start">
-          <Icon class="icon" icon="fluent:more-vertical-20-regular" width="20" height="20"
-                :class="{ 'icon-disabled': checkedEmailCount === 0 }" />
+          <Icon class="icon" icon="fluent:more-vertical-20-regular" width="20" height="20" />
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item v-perm="'email:delete'" @click="handleDelete">
@@ -112,13 +110,14 @@
 
       <div class="header-right">
         <span class="email-count" v-if="displayTotal">{{ checkedEmailCount > 0 ? $t('emailSelectedCount', {count: checkedEmailCount}) : $t('emailCount', {total: displayTotal}) }}</span>
-        <el-tooltip effect="dark" :hide-after="0" :content="threePane ? $t('switchToListMode') : $t('switchToReadingPane')">
-          <Icon v-if="uiStore.finePointer && props.type !== 'draft'" class="more-icon icon" width="18" height="18"
-                :icon="threePane ? 'fluent:list-20-regular' : 'fluent:panel-right-20-regular'"
+        <!-- 三栏下两个切换按钮移到阅读栏右上角（见 .reading-pane-toggles），这里只留计数 -->
+        <el-tooltip v-if="uiStore.finePointer && props.type !== 'draft' && !threePane" effect="dark" :hide-after="0" :content="$t('switchToReadingPane')">
+          <Icon class="more-icon icon" width="18" height="18"
+                icon="fluent:panel-right-20-regular"
                 @click="toggleReadingPane"/>
         </el-tooltip>
-        <el-tooltip effect="dark" :hide-after="0" :content="$t('toggleAccountPanel')">
-          <Icon v-if="showAccountIcon" class="more-icon icon" width="16" height="16" icon="akar-icons:dot-grid-fill"
+        <el-tooltip v-if="showAccountIcon && !threePane" effect="dark" :hide-after="0" :content="$t('toggleAccountPanel')">
+          <Icon class="more-icon icon" width="16" height="16" icon="akar-icons:dot-grid-fill"
                 @click="changeAccountShow"/>
         </el-tooltip>
       </div>
@@ -286,6 +285,18 @@
     </div>
     <!-- 三栏阅读：列表右边直接看正文；只在邮件列表路由下渲染，离开列表路由时卸载，避免与整页详情重复挂载 -->
     <div class="reading-pane" v-if="threePane && isListRoute">
+      <!-- 三栏下两个切换按钮放阅读栏右上角（跟列表模式下位于窗口右上角一致）；
+           绝对定位叠在正文工具栏行里（那行右侧是空的），没选中邮件时也还在 -->
+      <div class="reading-pane-toggles">
+        <el-tooltip v-if="uiStore.finePointer && props.type !== 'draft'" effect="dark" :hide-after="0" :content="$t('switchToListMode')">
+          <Icon class="icon" width="18" height="18" icon="fluent:list-20-regular"
+                @click="toggleReadingPane"/>
+        </el-tooltip>
+        <el-tooltip v-if="showAccountIcon" effect="dark" :hide-after="0" :content="$t('toggleAccountPanel')">
+          <Icon class="icon" width="16" height="16" icon="akar-icons:dot-grid-fill"
+                @click="changeAccountShow"/>
+        </el-tooltip>
+      </div>
       <ContentView v-if="emailStore.contentData.email?.emailId" pane />
       <div v-else class="reading-empty">
         <Icon icon="fluent:mail-20-regular" width="48" height="48" />
@@ -969,13 +980,24 @@ function changeAccountShow() {
   uiStore.accountShow = !uiStore.accountShow;
 }
 
+// 未勾选时点批量操作：按钮不置灰（用户 2026-11-21 要求），直接弹提示；各批量操作入口都先过这一关
+function requireSelection() {
+  if (getSelectedMailsIds().length === 0) {
+    ElMessage({message: t('noSelectedEmail'), type: 'warning', plain: true})
+    return false
+  }
+  return true
+}
+
 const handleRead = () => {
+  if (!requireSelection()) return
   const emailIds = getSelectedMailsIds();
   props.emailRead(emailIds);
   localRead(emailIds);
 }
 
 const handleUnread = () => {
+  if (!requireSelection()) return
   const emailIds = getSelectedMailsIds();
   props.emailUnread(emailIds);
   localUnread(emailIds);
@@ -983,9 +1005,9 @@ const handleUnread = () => {
 
 // 触屏 ⋮ 菜单里的标为垃圾邮件：批量版的 rightSpam（收件箱视图传了 emailSpam 才有这项）
 function handleSpamSelected() {
-  const emailIds = getSelectedMailsIds();
-  if (emailIds.length === 0 || !props.emailSpam) return;
-  props.emailSpam(emailIds);
+  if (!props.emailSpam) return;
+  if (!requireSelection()) return
+  props.emailSpam(getSelectedMailsIds());
 }
 
 // 「标记为」下拉有没有可点的项：标已读/未读（垃圾视图不要）、星标/取消星标、标为垃圾，
@@ -999,6 +1021,7 @@ const hasMarkActions = computed(() => {
 // 成功后同步星标视图，失败回滚该封）；星标 API 是单封接口，批量只能逐封调
 function handleStarSelected() {
   if (!props.starAdd) return
+  if (!requireSelection()) return
   emailList.filter(e => e.checked && !e.isStar).forEach(email => {
     email.isStar = 1
     props.starAdd(email.emailId).then(() => {
@@ -1013,6 +1036,7 @@ function handleStarSelected() {
 
 function handleUnstarSelected() {
   if (!props.starCancel) return
+  if (!requireSelection()) return
   emailList.filter(e => e.checked && e.isStar).forEach(email => {
     email.isStar = 0
     props.starCancel(email.emailId).then(() => {
@@ -1116,9 +1140,8 @@ function doExport(emailIds) {
 }
 
 function handleExport() {
-  const emailIds = getSelectedMailsIds();
-  if (emailIds.length === 0) return;
-  doExport(emailIds);
+  if (!requireSelection()) return
+  doExport(getSelectedMailsIds());
 }
 
 function rightExport(emailId) {
@@ -1192,6 +1215,7 @@ async function copyCode(code) {
 }
 
 function handleDelete() {
+  if (!requireSelection()) return
   if (props.type === 'all-email') {
     const emailIds = getSelectedMailsIds();
     const showNotify = isAdminDelNotifyEnabled() && involvesOtherUser(emailIds)
@@ -1863,6 +1887,22 @@ function renderHighlight(value) {
   overflow: hidden;
   border-left: 1px solid var(--el-border-color-lighter);
   min-width: 0;
+  position: relative;
+}
+
+/* 三栏下两个切换按钮（切回列表 + 账号栏）：放阅读栏右上角，叠在正文工具栏行里
+   （top 9px + 高 20px，跟正文工具栏的图标行对齐；那行右侧是空的，不会撞上） */
+.reading-pane-toggles {
+  position: absolute;
+  top: 9px;
+  right: 15px;
+  height: 20px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--el-text-color-primary);
+  cursor: pointer;
 }
 
 .reading-empty {
@@ -2342,8 +2382,8 @@ function renderHighlight(value) {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 15px;
-  padding: 8px 15px;
+  gap: 8px;
+  padding: 8px 10px;
   box-shadow: var(--header-actions-border);
 
   /* 全选框：Element Plus 默认高 32px 还带 30px 右边距，勾选时一出现就把顶栏撑高；
@@ -2353,23 +2393,11 @@ function renderHighlight(value) {
     margin-right: 0;
   }
 
-  /* 触屏端间距收紧：勾选时顶栏按钮多，省出空间防换行；电脑端不动 */
+  /* 触屏端只留勾选框左移 16px（中心线对准下面邮件行的头像中心 12 + 16 + 7 = 35 = 15 + 20）；
+     按钮间距全站统一（gap 8px、内边距 8px 10px），触屏/电脑端/三栏不再各写一套 */
   @media (pointer: coarse) {
-    gap: 10px;
-    padding: 8px 12px;
-
-    /* 勾选框左移 16px：中心线对准下面邮件行的头像中心（12 + 16 + 7 = 35 = 15 + 20）；
-       配合 header-left 的 19px 左内边距，第一个图标左缘对准内容列起头（15 + 40 + 16 = 71） */
     .el-checkbox {
       margin-left: 16px;
-    }
-
-    .header-left {
-      column-gap: 14px;
-    }
-
-    .more-icon {
-      margin-left: 10px;
     }
   }
 
@@ -2378,7 +2406,7 @@ function renderHighlight(value) {
     flex-wrap: wrap;
     align-items: center;
     position: relative;
-    column-gap: 20px;
+    column-gap: 8px;
     row-gap: 8px;
     /* 左内边距由模板里的 :style 绑定定（触屏 19px 对齐内容列、电脑端用 actionLeft），这里不写 */
     color: var(--el-text-color-primary);;
@@ -2412,25 +2440,11 @@ function renderHighlight(value) {
 
   .more-icon {
     margin-top: 8px;
-    margin-left: 15px;
+    margin-left: 8px;
   }
 }
 
-/* 三栏阅读时列表列只有 380px 宽：顶栏常驻 6 个图标（刷新 + 5 个批量操作）+ 计数 + 两个切换，
-   按 20px 间距会溢出、标未读换到第二行，勾选后刷新一收又变回单行，顶栏高度来回跳；
-   三栏下收紧间距（与触屏同档），未勾选/勾选都是一行、等高。宽屏列表不受影响。 */
-.email-container.three-pane .header-actions {
-  gap: 10px;
-  padding: 8px 12px;
-
-  .header-left {
-    column-gap: 12px;
-  }
-
-  .more-icon {
-    margin-left: 10px;
-  }
-}
+/* 顶栏间距全站统一写在 .header-actions 基准值里，三栏/触屏不再另写一套（2026-11-21） */
 
 .del-status {
   color: var(--el-color-info);

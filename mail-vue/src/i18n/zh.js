@@ -42,6 +42,7 @@ const zh = {
     starSelected: '星标邮件',
     unstarSelected: '取消星标',
     export: '导出',
+    noSelectedEmail: '未选中邮件',
     moveToInbox: '移回收件箱',
     emptySpam: '清空',
     sortByTime: '按时间排序',

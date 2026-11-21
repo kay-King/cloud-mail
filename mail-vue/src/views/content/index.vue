@@ -81,17 +81,17 @@
           <div class="email-info">
             <div class="address-meta">
               <div class="send"><span class="send-source">{{$t('from')}}</span>
-                <!-- 发件人卡片（Gmail 式）：悬停/点发件人弹出，显示头像、名字、邮箱再决定加不加；已发送的发件人是自己，不弹 -->
+                <!-- 发件人卡片（Gmail 式）：悬停/点发件人弹出，显示头像、名字、邮箱再决定加不加；
+                     已发送的发件人是自己，卡片照样弹（能看往来邮件），只不显示「添加到通讯录」 -->
                 <el-popover
                     placement="bottom-start"
                     :width="300"
                     :trigger="['hover', 'click']"
                     :show-after="300"
-                    :disabled="email.type !== 0"
                     @show="onSenderCardShow"
                 >
                   <template #reference>
-                    <div class="send-name" ref="sendNameRef" :class="{ 'is-wrapped': senderWrapped, 'can-card': email.type === 0 }">
+                    <div class="send-name can-card" ref="sendNameRef" :class="{ 'is-wrapped': senderWrapped }">
                       <span class="send-name-title">{{ email.name }}</span>
                       <span class="send-email"><{{ email.sendEmail }}></span>
                       <span class="sent-via" v-if="sentViaEmail">
@@ -112,10 +112,10 @@
                       </div>
                     </div>
                     <div class="sender-card-actions">
-                      <el-button v-if="!senderInContacts" type="primary" size="small" :loading="senderCardAdding" class="sender-card-btn" @click="addSenderFromCard">
+                      <el-button v-if="email.type === 0 && !senderInContacts" type="primary" size="small" :loading="senderCardAdding" class="sender-card-btn" @click="addSenderFromCard">
                         <Icon icon="fluent:person-add-20-regular" width="16" height="16" style="margin-right: 4px"/>{{ $t('addToContacts') }}
                       </el-button>
-                      <div v-else class="sender-card-added">
+                      <div v-else-if="email.type === 0" class="sender-card-added">
                         <Icon icon="fluent:checkmark-20-regular" width="16" height="16"/>{{ $t('alreadyInContacts') }}
                       </div>
                       <el-button size="small" class="sender-card-btn" @click="viewExchangedEmails">

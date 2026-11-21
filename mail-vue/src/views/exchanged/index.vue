@@ -17,6 +17,7 @@
                    :email-read="handleListRead"
                    :email-unread="handleListUnread"
                    :show-unread="true"
+                   :show-status="true"
                    :highlight-text="address"
                    actionLeft="4px"
                    @jump="jumpContent"

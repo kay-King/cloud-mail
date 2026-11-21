@@ -13,7 +13,6 @@
   >
     <template #first>
       <button v-perm="'email:delete'" class="toolbar-btn"
-              :class="{ 'icon-disabled': selectedIds.length === 0 }"
               @click="handleUnspamSelected">
         <Icon icon="fluent:arrow-undo-20-regular" width="16" height="16"/>
         <span>{{ $t('moveToInbox') }}</span>
@@ -120,9 +119,11 @@ function unmarkSpamEmails(emailIds) {
 
 function handleUnspamSelected() {
   const emailIds = selectedIds.value
-  if (emailIds.length > 0) {
-    unmarkSpamEmails(emailIds)
+  if (emailIds.length === 0) {
+    ElMessage({message: t('noSelectedEmail'), type: 'warning', plain: true})
+    return
   }
+  unmarkSpamEmails(emailIds)
 }
 
 function handleClearSpam() {

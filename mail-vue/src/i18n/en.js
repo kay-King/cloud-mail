@@ -42,6 +42,7 @@ const en = {
     starSelected: 'Star emails',
     unstarSelected: 'Unstar emails',
     export: 'Export',
+    noSelectedEmail: 'No emails selected',
     moveToInbox: 'Move to inbox',
     emptySpam: 'Empty',
     sortByTime: 'Sort by time',

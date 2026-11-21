@@ -281,13 +281,6 @@ html[data-theme-to="light"]::view-transition-old(root) {
   }
 }
 
-/* 批量操作图标禁用态：未勾选邮件时常驻显示，但半透明、点不动、hover 也没效果
-   （pointer-events: none 让鼠标/触摸事件直接穿透，tooltip 也不会弹出来） */
-.icon-disabled {
-  opacity: 0.4;
-  pointer-events: none;
-}
-
 /* 顶栏文字按钮（电脑端与手机端通用）：图标 + 文字，比纯图标一眼看得出是干什么的；
    163 邮箱那种样式——浅边框圆角按钮，hover 时边框与文字变品牌蓝；
    各视图 slot 里的专属按钮（恢复/移回收件箱/清空/邮件清除）也用这个类，所以放全局；
@@ -296,7 +289,7 @@ html[data-theme-to="light"]::view-transition-old(root) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 10px;
+  padding: 2px 7px;
   border: 1px solid var(--el-border-color);
   border-radius: 6px;
   background: transparent;
@@ -316,7 +309,7 @@ html[data-theme-to="light"]::view-transition-old(root) {
   display: none;
 }
 .email-container.three-pane .toolbar-btn {
-  padding: 3px 6px;
+  padding: 2px 6px;
 }
 
 /* HugeIcons 是 24 格、描边 1.5，渲染成 20px 时等效 1.25px；Fluent 20-regular 看似 1.5px，
