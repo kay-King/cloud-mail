@@ -60,7 +60,7 @@
             placement="bottom"
         >
           <template #reference>
-            <Icon class="warning" icon="fluent:warning-20-regular" width="18" height="18"/>
+            <Icon class="help-icon" icon="fluent:question-circle-20-regular" width="18" height="18"/>
           </template>
           <div style="font-weight: bold;;margin-bottom: 2px;">{{ t('emailInterception') }}</div>
           <div>{{ t('emailInterceptionDesc') }}</div>
@@ -469,7 +469,7 @@ window.onresize = () => {
   }
 }
 
-.warning {
+.help-icon {
   position: relative;
   left: 5px;
   top: 2px;

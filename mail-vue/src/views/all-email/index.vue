@@ -97,6 +97,7 @@ const clearLoading = ref(false)
 let pullTimer = null
 
 onMounted(() => {
+  emailStore.allEmailScroll = sysEmailScroll;
   // 全部邮件实时：连共享 hub，含无人收件；重连后补拉
   allEmailWs.start({
     isEnabled: () => isAutoRefreshEnabled(settingStore.settings.autoRefresh),

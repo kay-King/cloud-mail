@@ -773,12 +773,20 @@ watch(
 
 watch(() => emailStore.deleteIds, () => {
   if (emailStore.deleteIds) {
-    const removed = deleteEmail(emailStore.deleteIds)
-    // 这次操作没动我这个列表（removed 为 0），说明邮件是被移进/移出别的视图了
-    // （比如在垃圾箱点「不是垃圾」，邮件回到收件箱）：这个列表下次切回来时要重拉，
-    // 否则还显示旧数据。删掉的行已经当场拼掉了（removed > 0），不用重拉。
-    if (removed === 0) {
-      needsRefresh = true
+    if (props.type === 'all-email') {
+      // 全部邮件含已删邮件（带回收站角标）：删/恢复只改行状态不改归属，
+      // 本地拼掉行是错的（刷新后行又回来）；真删后配对的发件份还会冒头，
+      // 本地拼行也加不回来。直接静默重拉，以服务端为准；
+      // 拉不到（正有请求在跑/网络失败）就标脏，下次切回来再拉。
+      getEmailList(true, true).then(ok => { if (!ok) needsRefresh = true }).catch(() => { needsRefresh = true })
+    } else {
+      const removed = deleteEmail(emailStore.deleteIds)
+      // 这次操作没动我这个列表（removed 为 0），说明邮件是被移进/移出别的视图了
+      // （比如在垃圾箱点「不是垃圾」，邮件回到收件箱）：这个列表下次切回来时要重拉，
+      // 否则还显示旧数据。删掉的行已经当场拼掉了（removed > 0），不用重拉。
+      if (removed === 0) {
+        needsRefresh = true
+      }
     }
     // 正文区正在看的邮件被删了，一起清掉，别留着已删邮件
     const ids = Array.isArray(emailStore.deleteIds) ? emailStore.deleteIds : [emailStore.deleteIds]
@@ -1314,7 +1322,7 @@ function getEmailList(refresh = false, silent = false) {
 
     handleList(list);
     emailList.push(...list);
-    if (refresh) scrollbarRef.value?.setScrollTop(0);
+    if (refresh && !silent) scrollbarRef.value?.setScrollTop(0);
 
     noLoading.value = data.list.length < queryParam.size;
     followLoading.value = data.list.length >= queryParam.size;
