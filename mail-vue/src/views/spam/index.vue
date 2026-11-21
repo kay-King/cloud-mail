@@ -25,6 +25,21 @@
         <span>{{ $t('emptySpam') }}</span>
       </button>
     </template>
+    <!-- 顶栏窄了专属按钮被收进 ⋮ 时的菜单项（跟顶栏按钮同一个操作） -->
+    <template #overflow>
+      <el-dropdown-item v-perm="'email:delete'" @click="handleUnspamSelected">
+        <div class="right-dropdown-item">
+          <Icon icon="fluent:arrow-undo-20-regular" width="20" height="20"/>
+          <span>{{ $t('moveToInbox') }}</span>
+        </div>
+      </el-dropdown-item>
+      <el-dropdown-item v-if="spamCount > 0" v-perm="'email:delete'" @click="handleClearSpam">
+        <div class="right-dropdown-item">
+          <Icon icon="fluent:broom-20-regular" width="20" height="20"/>
+          <span>{{ $t('emptySpam') }}</span>
+        </div>
+      </el-dropdown-item>
+    </template>
   </emailScroll>
 </template>
 

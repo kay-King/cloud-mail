@@ -16,6 +16,15 @@
         <span>{{ $t('restore') }}</span>
       </button>
     </template>
+    <!-- 顶栏窄了恢复按钮被收进 ⋮ 时的菜单项（跟顶栏按钮同一个操作） -->
+    <template #overflow>
+      <el-dropdown-item v-perm="'email:delete'" @click="handleRestoreSelected">
+        <div class="right-dropdown-item">
+          <Icon icon="fluent:arrow-undo-20-regular" width="20" height="20"/>
+          <span>{{ $t('restore') }}</span>
+        </div>
+      </el-dropdown-item>
+    </template>
   </emailScroll>
 </template>
 

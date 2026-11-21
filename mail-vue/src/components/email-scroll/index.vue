@@ -13,19 +13,29 @@
       </el-checkbox>
       <!-- 触屏端左内边距 19px：配合勾选框的 16px 左移，第一个图标左缘对准下面邮件行
            的内容列起头（头像左距 15 + 头像 40 + 右间距 16 = 71）；电脑端仍用各视图传的 actionLeft -->
-      <div class="header-left" :style="{ paddingLeft: uiStore.finePointer ? actionLeft : '19px' }">
+      <div ref="headerLeftRef" class="header-left" :style="{ paddingLeft: uiStore.finePointer ? actionLeft : '19px' }">
 
         <!-- 顶栏按钮都带文字（电脑端与手机端一样），一眼看得出是干什么的；
-             批量操作顺序：刷新、标记为、删除、[各视图专属按钮]、导出；
+             批量操作顺序：刷新、删除、标记为、[各视图专属按钮]、导出（删除在标记为
+             左边：收的顺序是从右往左，删除常用、要比标记为晚收）；
              标记为下拉收进标已读/标未读/星标/取消星标/标为垃圾，没任何可标记的视图不显示；
-             删除与导出只在电脑端直接显示、触屏上收进 ⋮ 菜单（垃圾邮件视图的 ⋮ 菜单
-             是空的，删除在触屏上也直接显示）；
+             窄了放不下一行就从右往左依次收进 ⋮ 菜单（收的顺序：导出 → 专属按钮 →
+             标记为 → 删除，刷新永远不收），窗口变宽再自动放出来；量的是这一行实际
+             渲染宽度，不是窗口宽度，三栏窄列、电脑窄窗口、手机宽字体都按实测走
+             （用户 2026-11-21 定的规矩，见下面 tucked/updateTuck）；
              未勾选时按钮不置灰、都可点，点了提示「未选中邮件」（用户 2026-11-21 要求） -->
         <button class="toolbar-btn" @click="refresh">
           <Icon icon="fluent:arrow-clockwise-20-regular" width="16" height="16"/>
           <span>{{ $t('refresh') }}</span>
         </button>
-        <el-dropdown v-if="hasMarkActions" trigger="click" placement="bottom-start">
+        <!-- 删除按钮电脑手机都有（2026-11-21 用户指出手机端缺了它）：原来只在电脑端显示，
+             触屏 ⋮ 菜单里的删除又已拿掉，手机上批量删除只能左滑单封删 -->
+        <button v-if="!tucked.delete" v-perm="'email:delete'" class="toolbar-btn"
+                @click="handleDelete">
+          <Icon icon="hugeicons:delete-02" width="16" height="16"/>
+          <span>{{ props.type === 'trash' ? $t('deleteForever') : $t('delete') }}</span>
+        </button>
+        <el-dropdown v-if="hasMarkActions && !tucked.mark" trigger="click" placement="bottom-start">
           <button class="toolbar-btn">
             <Icon icon="fluent:tag-20-regular" width="16" height="16"/>
             <span>{{ $t('markAs') }}</span>
@@ -67,39 +77,63 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <!-- 删除按钮电脑手机都有（2026-11-21 用户指出手机端缺了它）：原来只在电脑端显示，
-             触屏 ⋮ 菜单里的删除又已拿掉，手机上批量删除只能左滑单封删 -->
-        <button v-perm="'email:delete'" class="toolbar-btn"
-                @click="handleDelete">
-          <Icon icon="hugeicons:delete-02" width="16" height="16"/>
-          <span>{{ props.type === 'trash' ? $t('deleteForever') : $t('delete') }}</span>
-        </button>
-        <slot name="first"></slot>
-        <button class="toolbar-btn" v-if="uiStore.finePointer && props.type !== 'draft' && props.type !== 'spam' && props.type !== 'trash'"
+        <template v-if="!tucked.slot"><slot name="first"></slot></template>
+        <button class="toolbar-btn" v-if="uiStore.finePointer && props.type !== 'draft' && props.type !== 'spam' && props.type !== 'trash' && !tucked.export"
                 @click="handleExport">
           <Icon icon="fluent:arrow-download-20-regular" width="16" height="16"/>
           <span>{{ $t('export') }}</span>
         </button>
-        <!-- 触屏 ⋮ 更多菜单：导出 + 全部邮件的邮件清除（清除是低频管理操作，放顶栏会把
-             全部邮件顶栏挤成两行，2026-11-21 用户截图指出后收进菜单；删除是顶栏直接按钮、
-             标垃圾在「标记为」下拉里，再放菜单就是重复）；常驻显示，未勾选时点开菜单、点具
-             体操作时提示「未选中邮件」；电脑端不出现；草稿箱、垃圾邮件与回收站视图菜单是空
-             的，不显示 ⋮（回收站不要导出，菜单只剩导出就等于是空的）；
+        <!-- ⋮ 更多菜单：放不下顶栏的按钮从右往左依次收进来（见 tucked/updateTuck），
+             触屏上导出本来就在菜单里（顶栏没它的位置）；菜单里没任何项时 ⋮ 不显示；
+             未勾选时点开菜单、点具体操作时提示「未选中邮件」；
              bottom-start：⋮ 在顶栏左侧，菜单左缘对齐触发器，不会超出屏幕左缘 -->
-        <el-dropdown v-if="!uiStore.finePointer && props.type !== 'spam' && props.type !== 'draft' && props.type !== 'trash'" trigger="click" placement="bottom-start">
+        <el-dropdown v-if="showMoreMenu" trigger="click" placement="bottom-start">
           <Icon class="icon" icon="fluent:more-vertical-20-regular" width="20" height="20" />
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item v-if="props.type !== 'draft'" @click="handleExport">
+              <el-dropdown-item v-if="showExportItem" @click="handleExport">
                 <div class="right-dropdown-item">
                   <Icon icon="fluent:arrow-download-20-regular" width="20" height="20" />
                   <span>{{ $t('exportSelected') }}</span>
                 </div>
               </el-dropdown-item>
-              <el-dropdown-item v-if="props.type === 'all-email'" @click="emit('clear-email')">
+              <!-- 各视图专属按钮收进来时的菜单项（父视图的 #overflow 插槽，顶栏按钮被收时显示） -->
+              <template v-if="tucked.slot"><slot name="overflow"></slot></template>
+              <!-- 「标记为」被收进来时，它的 5 个操作直接平铺成菜单项（下拉套下拉点起来别扭） -->
+              <el-dropdown-item v-if="tucked.mark && showUnread && props.emailRead && props.type !== 'spam'" v-perm="'email:delete'" @click="handleRead">
                 <div class="right-dropdown-item">
-                  <Icon icon="fluent:broom-20-regular" width="20" height="20" />
-                  <span>{{ $t('clearEmail') }}</span>
+                  <Icon icon="fluent:mail-read-20-regular" width="20" height="20"/>
+                  <span>{{ $t('markAsRead') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="tucked.mark && showUnread && props.emailUnread && props.type !== 'spam'" v-perm="'email:delete'" @click="handleUnread">
+                <div class="right-dropdown-item">
+                  <Icon icon="fluent:mail-unread-20-regular" width="20" height="20"/>
+                  <span>{{ $t('markAsUnread') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="tucked.mark && props.starAdd && props.allowStar" @click="handleStarSelected">
+                <div class="right-dropdown-item">
+                  <Icon icon="fluent:star-20-regular" width="20" height="20"/>
+                  <span>{{ $t('starSelected') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="tucked.mark && props.starCancel" @click="handleUnstarSelected">
+                <div class="right-dropdown-item">
+                  <Icon icon="fluent:star-off-20-regular" width="20" height="20"/>
+                  <span>{{ $t('unstarSelected') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="tucked.mark && props.emailSpam" v-perm="'email:delete'" @click="handleSpamSelected">
+                <div class="right-dropdown-item">
+                  <Icon icon="hugeicons:mail-block-01" class="icon-huge icon-spam-badge" width="20" height="20"/>
+                  <span>{{ $t('spam') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="tucked.delete" v-perm="'email:delete'" @click="handleDelete">
+                <div class="right-dropdown-item">
+                  <Icon icon="hugeicons:delete-02" width="20" height="20"/>
+                  <span>{{ props.type === 'trash' ? $t('deleteForever') : $t('delete') }}</span>
                 </div>
               </el-dropdown-item>
             </el-dropdown-menu>
@@ -458,7 +492,7 @@
 import {Icon} from "@iconify/vue";
 import skeletonBlock from "@/components/email-scroll/skeleton/index.vue"
 import deleteNotifyDialog from "@/components/delete-notify-dialog/index.vue"
-import {computed, onActivated, reactive, ref, watch, nextTick, onMounted, onUnmounted } from "vue";
+import {computed, onActivated, reactive, ref, watch, nextTick, onMounted, onUnmounted, useSlots } from "vue";
 import {useEmailStore} from "@/store/email.js";
 import {emailExport, downloadExport, emailRestore} from "@/request/email.js";
 import {contactAdd, contactSuggest} from "@/request/contact.js";
@@ -534,7 +568,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['jump', 'refresh-before', 'refresh-success', 'delete-draft', 'right-search', 'clear-email'])
+const emit = defineEmits(['jump', 'refresh-before', 'refresh-success', 'delete-draft', 'right-search'])
 
 const {t} = useI18n()
 const settingStore = useSettingStore()
@@ -736,6 +770,8 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(timer)
   window.removeEventListener('popstate', onSelectPopstate)
+  tuckObserver.disconnect()
+  cancelAnimationFrame(tuckRaf)
 })
 
 getEmailList()
@@ -1031,6 +1067,72 @@ const hasMarkActions = computed(() => {
   return (props.showUnread && (props.emailRead || props.emailUnread) && props.type !== 'spam')
     || !!props.starAdd || !!props.starCancel || !!props.emailSpam
 })
+
+// 顶栏按钮按实际宽度自动收进 ⋮ 菜单（用户 2026-11-21 定的规矩）：放不下一行时从右
+// 往左依次收（导出 → 专属按钮 → 标记为 → 删除，刷新永远不收），窗口变宽再自动放
+// 出来。量的是 .header-left 的实际渲染宽度（scrollWidth 对 clientWidth），不是窗口
+// 宽度，所以三栏窄列、电脑窄窗口、手机宽字体都按实测走，不用写死断点；
+// 专属按钮是一组一起收（垃圾邮件的移回收件箱和清空同进同出），省得父视图逐个判断。
+const headerLeftRef = ref(null)
+const slots = useSlots()
+const tucked = reactive({ export: false, slot: false, mark: false, delete: false })
+const TUCK_ORDER = ['export', 'slot', 'mark', 'delete']
+// 各按钮当前是否在顶栏上渲染（没渲染的就不用收）：导出只在电脑端顶栏有，专属按钮
+// 看父视图有没有传 #first，标记为看有没有可标记的操作，删除一直有
+const tuckableVisible = computed(() => ({
+  export: uiStore.finePointer && !['draft', 'spam', 'trash'].includes(props.type),
+  slot: !!slots.first,
+  mark: hasMarkActions.value,
+  delete: true,
+}))
+// ⋮ 菜单里的导出项：触屏常驻（顶栏没它的位置），电脑端只在导出被收进来时出现
+const showExportItem = computed(() =>
+  !['draft', 'spam', 'trash'].includes(props.type) && (!uiStore.finePointer || tucked.export))
+// ⋮ 触发器：菜单里有任何一项就显示（电脑窄窗口、手机、三栏窄列都一样，不分设备）
+const showMoreMenu = computed(() =>
+  showExportItem.value
+  || (tucked.slot && !!slots.overflow)
+  || (tucked.mark && hasMarkActions.value)
+  || tucked.delete)
+let tuckRaf = 0
+let tuckRunning = false
+let tuckQueued = false
+async function updateTuck() {
+  const el = headerLeftRef.value
+  if (!el || tuckRunning) return
+  tuckRunning = true
+  try {
+    // 先全部放出来量满宽，再从右往左一个一个收，直到放得下；每收一个都重测，
+    // ⋮ 触发器出现后占的宽度也算在内，不会收少了
+    tucked.export = tucked.slot = tucked.mark = tucked.delete = false
+    await nextTick()
+    for (let i = 0; i < TUCK_ORDER.length; i++) {
+      if (el.scrollWidth <= el.clientWidth + 1) break
+      const key = TUCK_ORDER.find(k => !tucked[k] && tuckableVisible.value[k])
+      if (!key) break
+      tucked[key] = true
+      await nextTick()
+    }
+  } finally {
+    tuckRunning = false
+    if (tuckQueued) { tuckQueued = false; scheduleTuck() }
+  }
+}
+function scheduleTuck() {
+  if (tuckRunning) { tuckQueued = true; return }
+  cancelAnimationFrame(tuckRaf)
+  tuckRaf = requestAnimationFrame(updateTuck)
+}
+// 顶栏宽度一变就重算（窗口拉窄拉宽、三栏切换、切视图）；keyCount 换 key 重挂载时
+// ref 会先变 null 再变新元素，watch 里重新监听新元素
+const tuckObserver = new ResizeObserver(() => scheduleTuck())
+watch(headerLeftRef, (el, prevEl) => {
+  if (prevEl) tuckObserver.unobserve(prevEl)
+  if (el) { tuckObserver.observe(el); scheduleTuck() }
+})
+// 计数文字变宽（共 7 封 → 共 43 封）也会挤顶栏，顶栏本身宽度没变、ResizeObserver
+// 听不到，单独 watch；标记为有没有、触屏还是鼠标变了也重算
+watch([displayTotal, hasMarkActions, () => uiStore.finePointer], () => scheduleTuck())
 
 // 「标记为」菜单里的批量星标/取消星标：逐封走单封 starChange 的逻辑（乐观更新行状态，
 // 成功后同步星标视图，失败回滚该封）；星标 API 是单封接口，批量只能逐封调
@@ -2506,11 +2608,14 @@ function renderHighlight(value) {
 
   .header-left {
     display: flex;
-    flex-wrap: wrap;
+    /* 永远不换行：放不下的按钮由 tucked/updateTuck 从右往左收进 ⋮ 菜单；
+       min-width: 0 让 1fr 列能被压窄，scrollWidth 才能量出真实溢出 */
+    flex-wrap: nowrap;
+    overflow: hidden;
+    min-width: 0;
     align-items: center;
     position: relative;
     column-gap: 8px;
-    row-gap: 8px;
     /* 左内边距由模板里的 :style 绑定定（触屏 19px 对齐内容列、电脑端用 actionLeft），这里不写 */
     color: var(--el-text-color-primary);;
   }

@@ -14,7 +14,6 @@
                  :time-sort="params.timeSort"
                  :item-height="65"
                  @jump="jumpContent"
-                 @clear-email="openBathDelete"
                  @refresh-success="onRefreshSuccess"
                  @right-search="rightSearch"
                  :highlight-text="allEmailStore.searchParams.text"
@@ -22,11 +21,19 @@
 
     >
       <template #first>
-        <!-- 手机端不显示顶栏按钮，改走 ⋮ 菜单里的邮件清除（顶栏放不下会挤成两行） -->
-        <button v-if="uiStore.finePointer" class="toolbar-btn" @click="openBathDelete">
+        <button class="toolbar-btn" @click="openBathDelete">
           <Icon icon="fluent:broom-20-regular" width="16" height="16"/>
           <span>{{ $t('clearEmail') }}</span>
         </button>
+      </template>
+      <!-- 顶栏窄了邮件清除被收进 ⋮ 时的菜单项（跟顶栏按钮同一个操作） -->
+      <template #overflow>
+        <el-dropdown-item @click="openBathDelete">
+          <div class="right-dropdown-item">
+            <Icon icon="fluent:broom-20-regular" width="20" height="20"/>
+            <span>{{ $t('clearEmail') }}</span>
+          </div>
+        </el-dropdown-item>
       </template>
     </emailScroll>
     <el-dialog v-model="showBathDelete" :title="$t('clearEmail')" width="335"
