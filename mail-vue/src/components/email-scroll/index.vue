@@ -860,7 +860,14 @@ watch(
 );
 
 
+// 撤销删除时本视图已本地把行放回去了，跳过这次 deleteIds 信号（别的视图照常处理）
+// 注意：watch 默认异步执行，赋值 deleteIds 时标记已先置上，回调跑到时正好跳过
+let ignoreDeleteIdsOnce = false
 watch(() => emailStore.deleteIds, () => {
+  if (ignoreDeleteIdsOnce) {
+    ignoreDeleteIdsOnce = false
+    return
+  }
   if (emailStore.deleteIds) {
     // 滑出删除的行已拼掉，顺手清掉残留的滑动状态（否则恢复后同 id 的行会带着偏移渲染）
     if (swipeState.emailId && Array.isArray(emailStore.deleteIds) && emailStore.deleteIds.includes(swipeState.emailId)) {
@@ -1667,13 +1674,15 @@ function swipeToggleRead(email) {
 }
 // 左滑/右滑后的撤销提示条：动作已立即执行，提示 5 秒内点撤销就反向操作；
 // 只保留最新一次操作（再滑一封就替换掉上一次，之前那次就此定案）；超时后提示消失。
-const undoToast = reactive({ visible: false, text: '', action: null, emailId: null })
+const undoToast = reactive({ visible: false, text: '', action: null, emailId: null, email: null, index: -1 })
 let undoToastTimer = null
 const UNDO_TOAST_MS = 5000
-function showUndoToast(action, emailId) {
+function showUndoToast(action, emailId, email = null, index = -1) {
   clearTimeout(undoToastTimer)
   undoToast.action = action
   undoToast.emailId = emailId
+  undoToast.email = email
+  undoToast.index = index
   undoToast.text = action === 'delete' ? t('undoDeleted')
     : action === 'markRead' ? t('undoMarkedRead') : t('undoMarkedUnread')
   undoToast.visible = true
@@ -1681,15 +1690,38 @@ function showUndoToast(action, emailId) {
 }
 function handleUndoToast() {
   clearTimeout(undoToastTimer)
-  const { action, emailId } = undoToast
+  const { action, emailId, email, index } = undoToast
   undoToast.visible = false
   undoToast.action = null
   undoToast.emailId = null
+  undoToast.email = null
+  undoToast.index = -1
   if (action === 'delete') {
-    // 撤销删除：把刚进回收站的邮件恢复回来，再静默重拉列表让行回来
+    // 撤销删除：服务端恢复后本地把行放回去，不整列重拉——静默重拉会清空
+    // 再重建所有行，虚拟列表全量重渲染，手机上看就是卡一下（用户 2026-11-21 反馈）；
+    // 同时发 deleteIds 信号让别的视图跟着更新（收件箱等下次切回来重拉），
+    // 本视图已本地恢复、跳过这次信号（ignoreDeleteIdsOnce）
     emailRestore([emailId]).then(() => {
       sidebarStore.refreshUnread()
-      silentRefresh()
+      ignoreDeleteIdsOnce = true
+      emailStore.deleteIds = [emailId]
+      if (props.type === 'all-email') {
+        // 全部邮件里行没走、只是多了回收站角标：本地把角标摘掉即可
+        const row = emailList.find(e => e.emailId === emailId)
+        if (row) {
+          row.isDel = 0
+          row.isDelContent = ''
+        } else {
+          silentRefresh()
+        }
+      } else if (email && !emailList.some(e => e.emailId === emailId)) {
+        const at = Math.max(0, Math.min(index < 0 ? emailList.length : index, emailList.length))
+        emailList.splice(at, 0, email)
+        if (noLoading.value) total.value = emailList.length
+        else total.value++
+      } else if (!email) {
+        silentRefresh()
+      }
     }).catch(e => console.error(e))
   } else if (action === 'markRead') {
     emailUnread(emailId)
@@ -1790,9 +1822,11 @@ function onRowTouchEnd() {
       window.setTimeout(() => {
         if (dir < 0) {
           // 删除：行保持滑出状态，等接口成功后拼掉行并弹出撤销提示；取消/失败则滑回来
+          // 先记下行原来的位置：撤销时把行原样插回去，不用整列重拉
+          const undoIndex = emailList.findIndex(e => e.emailId === email.emailId)
           Promise.resolve(swipeDelete(email)).then(done => {
             if (done) {
-              showUndoToast('delete', email.emailId)
+              showUndoToast('delete', email.emailId, email, undoIndex)
             } else if (swipeState.emailId === email.emailId) {
               swipeState.emailId = null;
               swipeState.offset = 0;
