@@ -1474,9 +1474,9 @@ function onRowTouchMove(e) {
     }
   }
   if (swipeDecision === 'swipe' && swipeEmail) {
-    // 跟手平移：左右最多滑 60% 行宽（再远就拽不动）；右滑只在可标已读/未读时允许
+    // 跟手平移：手指划多远行跟多远，最多滑满整行宽；右滑只在可标已读/未读时允许
     let offset = dx;
-    const maxDrag = swipeRowWidth * 0.6;
+    const maxDrag = swipeRowWidth;
     if (offset < -maxDrag) offset = -maxDrag;
     if (offset > 0) {
       if (!canSwipeRight(swipeEmail)) offset = 0;
