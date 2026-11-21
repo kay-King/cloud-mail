@@ -143,7 +143,7 @@
       </div>
 
       <div class="header-right">
-        <span class="email-count" v-if="displayTotal">{{ checkedEmailCount > 0 ? $t('emailSelectedCount', {count: checkedEmailCount}) : $t('emailCount', {total: displayTotal}) }}</span>
+        <span class="email-count" :class="{ 'count-total': checkedEmailCount === 0 }" v-if="displayTotal">{{ checkedEmailCount > 0 ? $t('emailSelectedCount', {count: checkedEmailCount}) : $t('emailCount', {total: displayTotal}) }}</span>
         <!-- 三栏下两个切换按钮移到阅读栏右上角（见 .reading-pane-toggles），这里只留计数 -->
         <el-tooltip v-if="uiStore.finePointer && props.type !== 'draft' && !threePane" effect="dark" :hide-after="0" :content="$t('switchToReadingPane')">
           <Icon class="more-icon icon" width="18" height="18"
@@ -2638,6 +2638,15 @@ function renderHighlight(value) {
     .email-count {
       white-space: nowrap;
       margin-top: 6px;
+    }
+
+    /* 窄屏手机上不显示「共 N 封」总数（选邮件时的「已选 N 封」照常显示）：
+       366px 宽的手机上顶栏只有 238px，3 按钮 + ⋮ 要 268px，差 30px；藏掉计数
+       腾出约 50px，收件箱与全部邮件都能放下 3 个按钮（用户 2026-11-21 实测反馈） */
+    @media (pointer: coarse) and (max-width: 400px) {
+      .email-count.count-total {
+        display: none;
+      }
     }
   }
 
