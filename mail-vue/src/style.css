@@ -304,6 +304,14 @@ html[data-theme-to="light"]::view-transition-old(root) {
   color: var(--el-color-primary);
 }
 
+/* 触屏窄屏上文字按钮横向内边距 7px→5px：跟顶栏收紧配套（见 email-scroll 的
+   .header-actions 触屏规则），三个按钮少占 12px，收件箱 3 按钮 + ⋮ 能放下 */
+@media (pointer: coarse) {
+  .toolbar-btn {
+    padding: 2px 5px;
+  }
+}
+
 /* 下拉菜单里的图标 + 文字横排：放全局——各视图 #overflow 插槽里的菜单项（邮件清除/
    移回收件箱/清空/恢复）是父视图传进来的内容，scoped 规则盖不到它们，不放全局就
    没有 flex 间距、图标和文字会贴在一起（2026-11-21 用户截图指出邮件清除间距不对） */

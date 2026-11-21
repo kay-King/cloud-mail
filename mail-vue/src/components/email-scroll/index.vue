@@ -84,6 +84,7 @@
           <span>{{ $t('export') }}</span>
         </button>
         <!-- ⋮ 更多菜单：放不下顶栏的按钮从右往左依次收进来（见 tucked/updateTuck），
+             菜单顺序：专属按钮、标记为各操作、删除、导出（导出最少用，放最后）；
              触屏上导出本来就在菜单里（顶栏没它的位置）；菜单里没任何项时 ⋮ 不显示；
              未勾选时点开菜单、点具体操作时提示「未选中邮件」；
              bottom-start：⋮ 在顶栏左侧，菜单左缘对齐触发器，不会超出屏幕左缘 -->
@@ -91,12 +92,6 @@
           <Icon class="icon" icon="fluent:more-vertical-20-regular" width="20" height="20" />
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item v-if="showExportItem" @click="handleExport">
-                <div class="right-dropdown-item more-menu-item">
-                  <Icon icon="fluent:arrow-download-20-regular" width="16" height="16" />
-                  <span>{{ $t('exportSelected') }}</span>
-                </div>
-              </el-dropdown-item>
               <!-- 各视图专属按钮收进来时的菜单项（父视图的 #overflow 插槽，顶栏按钮被收时显示） -->
               <template v-if="tucked.slot"><slot name="overflow"></slot></template>
               <!-- 「标记为」被收进来时，它的 5 个操作直接平铺成菜单项（下拉套下拉点起来别扭） -->
@@ -134,6 +129,12 @@
                 <div class="right-dropdown-item more-menu-item">
                   <Icon icon="hugeicons:delete-02" width="16" height="16"/>
                   <span>{{ props.type === 'trash' ? $t('deleteForever') : $t('delete') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="showExportItem" @click="handleExport">
+                <div class="right-dropdown-item more-menu-item">
+                  <Icon icon="fluent:arrow-download-20-regular" width="16" height="16" />
+                  <span>{{ $t('exportMail') }}</span>
                 </div>
               </el-dropdown-item>
             </el-dropdown-menu>
@@ -2598,9 +2599,12 @@ function renderHighlight(value) {
     margin-right: 0;
   }
 
-  /* 触屏端只留勾选框左移 16px（中心线对准下面邮件行的头像中心 12 + 16 + 7 = 35 = 15 + 20）；
-     按钮间距全站统一（gap 8px、内边距 8px 10px），触屏/电脑端/三栏不再各写一套 */
+  /* 触屏端勾选框左移 16px（中心线对准下面邮件行的头像中心 12 + 16 + 7 = 35 = 15 + 20）；
+     触屏上顶栏再收紧一点（gap 6px、横向内边距 6px）：收件箱 3 按钮 + ⋮ 实测要 280px、
+     顶栏只有 278px，差 2px 就被收掉一个（用户 2026-11-21 实测反馈）；电脑端宽度够，不动 */
   @media (pointer: coarse) {
+    gap: 6px;
+    padding: 8px 6px;
     .el-checkbox {
       margin-left: 16px;
     }
