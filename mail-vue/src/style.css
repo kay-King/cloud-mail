@@ -3,8 +3,6 @@
     padding: 0;
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
-    scrollbar-width: thin;
-    scrollbar-color: var(--dark-border) transparent;
 }
 
 html, body {
@@ -247,16 +245,22 @@ html[data-theme-to="light"]::view-transition-old(root) {
     transition: opacity 80ms linear !important;
 }
 
-/* 全站竖向滚动条收细：各页面原生滚动条统一 6px（el-scrollbar 本身已是 6px，不受影响） */
+/* 全站滚动条：收细到 4px，未滚动时不显示（滑块透明），滚动时出现、停下 1 秒后消失；
+   显示逻辑靠 utils/scrollbar-auto-hide.js：滚动时给滚动元素加 .is-scrolling（el-scrollbar 则加在
+   .el-scrollbar 根节点上），停下 1 秒后摘掉 */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--el-text-color-placeholder);
-  border-radius: 3px;
+  background: transparent;
+  border-radius: 2px;
+  transition: background 0.3s ease;
 }
-::-webkit-scrollbar-thumb:hover {
+.is-scrolling::-webkit-scrollbar-thumb {
+  background: var(--el-text-color-placeholder);
+}
+.is-scrolling::-webkit-scrollbar-thumb:hover {
   background: var(--el-text-color-secondary);
 }
 ::-webkit-scrollbar-track {
@@ -264,7 +268,25 @@ html[data-theme-to="light"]::view-transition-old(root) {
 }
 * {
   scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.is-scrolling {
   scrollbar-color: var(--el-text-color-placeholder) transparent;
+}
+
+/* el-scrollbar：竖条与横条都收细到 4px（选择器比原版多一级，防组件样式后加载盖掉）；
+   不滚动时滑块透明（组件本身鼠标移开就隐藏滑块，这里再补鼠标在区域内但没滚动时也不显示） */
+.el-scrollbar .el-scrollbar__bar.is-vertical {
+  width: 4px;
+}
+.el-scrollbar .el-scrollbar__bar.is-horizontal {
+  height: 4px;
+}
+.el-scrollbar:not(.is-scrolling) .el-scrollbar__bar .el-scrollbar__thumb {
+  opacity: 0;
+}
+.el-scrollbar .el-scrollbar__thumb {
+  transition: opacity 0.3s ease, background-color var(--el-transition-duration);
 }
 
 /* 触屏设备没有悬停手势：提示框点出来就关不掉（手指没有"移开"，mouseleave 不触发，

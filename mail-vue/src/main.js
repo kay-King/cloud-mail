@@ -10,6 +10,7 @@ import 'element-plus/theme-chalk/dark/css-vars.css';
 import 'nprogress/nprogress.css';
 import perm from "@/perm/perm.js";
 import {useUiStore} from "@/store/ui.js";
+import {initScrollbarAutoHide} from "@/utils/scrollbar-auto-hide.js";
 // 启动自救的标记：主文件开始执行即置位；index.html 里的自救脚本 25 秒后检查，
 // 若未置位说明主文件没加载起来（旧缓存页面要旧文件），自动清缓存刷新
 window.__APP_BOOTED__ = true;
@@ -18,6 +19,8 @@ import i18n from "@/i18n/index.js";
 const app = createApp(App).use(pinia)
 // 指针类型会话内同步（二合一设备接/拔鼠标时复选框/三栏跟着变）
 useUiStore().initPointerListener()
+// 滚动条自动隐藏：滚动时显示滑块，停下 1 秒后消失
+initScrollbarAutoHide()
 // 初始化失败也照常挂载，不要停在白屏；init 内部已做降级，这里是最后一道防线
 try {
     await init()
