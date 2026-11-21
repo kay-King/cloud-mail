@@ -159,7 +159,7 @@ export function createWsClient(scope) {
 				clearHeartbeat();
 				return;
 			}
-			if (payload?.type !== 'new_message') {
+			if (payload?.type !== 'new_message' && payload?.type !== 'mail_op') {
 				return;
 			}
 			options?.onMessage?.(payload);

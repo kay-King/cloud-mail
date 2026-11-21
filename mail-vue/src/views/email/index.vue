@@ -44,6 +44,7 @@ import {
   inboxWs,
   isAutoRefreshEnabled,
 } from "@/websocket/client.js";
+import { applyRemoteOp } from "@/websocket/remote-op.js";
 
 defineOptions({
   name: 'email'
@@ -136,6 +137,11 @@ function handleMarkSpamSelected() {
 
 // 推送到达：非「全部收取」时忽略其它账号的信。
 function onWsMessage(event) {
+  // 远端操作事件（另一台设备上删/标已读/星标等）：直接应用到各列表，不走补拉
+  if (event?.type === 'mail_op') {
+    applyRemoteOp(event);
+    return;
+  }
   // 新邮件到达可能改变星标/垃圾箱未读数（未读数是按用户汇总的，不分当前账号）
   sidebarStore.refreshUnread()
   const allReceive = accountStore.currentAccount.allReceive

@@ -8,6 +8,7 @@ import mailImportService, { MAX_IMPORT_BYTES } from '../service/mail-import-serv
 import accountService from '../service/account-service';
 import userService from '../service/user-service';
 import BizError from '../error/biz-error';
+import { notifyMailOpFromContext } from '../websocket/notify';
 
 async function checkAdmin(c) {
 	const userRow = await userService.selectById(c, userContext.getUserId(c));
@@ -41,32 +42,49 @@ app.get('/email/info', async (c) => {
 });
 
 app.delete('/email/delete', async (c) => {
-	await emailService.delete(c, c.req.query(), userContext.getUserId(c));
+	const userId = userContext.getUserId(c);
+	const query = c.req.query();
+	await emailService.delete(c, query, userId);
+	notifyMailOpFromContext(c, { op: 'delete', emailIds: query.emailIds, userIds: [userId] });
 	return c.json(result.ok());
 });
 
 app.put('/email/restore', async (c) => {
-	await emailService.restore(c, await c.req.json(), userContext.getUserId(c));
+	const userId = userContext.getUserId(c);
+	const body = await c.req.json();
+	await emailService.restore(c, body, userId);
+	notifyMailOpFromContext(c, { op: 'restore', emailIds: body.emailIds, userIds: [userId] });
 	return c.json(result.ok());
 });
 
 app.put('/email/spam', async (c) => {
-	await emailService.markSpam(c, await c.req.json(), userContext.getUserId(c));
+	const userId = userContext.getUserId(c);
+	const body = await c.req.json();
+	await emailService.markSpam(c, body, userId);
+	notifyMailOpFromContext(c, { op: 'spam', emailIds: body.emailIds, userIds: [userId] });
 	return c.json(result.ok());
 });
 
 app.put('/email/unspam', async (c) => {
-	await emailService.unmarkSpam(c, await c.req.json(), userContext.getUserId(c));
+	const userId = userContext.getUserId(c);
+	const body = await c.req.json();
+	await emailService.unmarkSpam(c, body, userId);
+	notifyMailOpFromContext(c, { op: 'unspam', emailIds: body.emailIds, userIds: [userId] });
 	return c.json(result.ok());
 });
 
 app.delete('/email/clear-spam', async (c) => {
-	await emailService.clearSpam(c, c.req.query(), userContext.getUserId(c));
+	const userId = userContext.getUserId(c);
+	await emailService.clearSpam(c, c.req.query(), userId);
+	notifyMailOpFromContext(c, { op: 'clear-spam', emailIds: [], userIds: [userId] });
 	return c.json(result.ok());
 });
 
 app.delete('/email/physics-delete', async (c) => {
-	await emailService.physicsDeleteByUser(c, c.req.query(), userContext.getUserId(c));
+	const userId = userContext.getUserId(c);
+	const query = c.req.query();
+	await emailService.physicsDeleteByUser(c, query, userId);
+	notifyMailOpFromContext(c, { op: 'delete', emailIds: query.emailIds, userIds: [userId] });
 	return c.json(result.ok());
 });
 
@@ -76,17 +94,26 @@ app.get('/email/attList', async (c) => {
 });
 
 app.post('/email/send', async (c) => {
-	const email = await emailService.send(c, await c.req.json(), userContext.getUserId(c));
+	const userId = userContext.getUserId(c);
+	const email = await emailService.send(c, await c.req.json(), userId);
+	const sentList = Array.isArray(email) ? email : (email?.emails || []);
+	notifyMailOpFromContext(c, { op: 'send', emailIds: sentList.map(e => e.emailId), userIds: [userId] });
 	return c.json(result.ok(email));
 });
 
 app.put('/email/read', async (c) => {
-	await emailService.read(c, await c.req.json(), userContext.getUserId(c));
+	const userId = userContext.getUserId(c);
+	const body = await c.req.json();
+	await emailService.read(c, body, userId);
+	notifyMailOpFromContext(c, { op: 'read', emailIds: body.emailIds, userIds: [userId] });
 	return c.json(result.ok());
 })
 
 app.put('/email/unread', async (c) => {
-	await emailService.unread(c, await c.req.json(), userContext.getUserId(c));
+	const userId = userContext.getUserId(c);
+	const body = await c.req.json();
+	await emailService.unread(c, body, userId);
+	notifyMailOpFromContext(c, { op: 'unread', emailIds: body.emailIds, userIds: [userId] });
 	return c.json(result.ok());
 })
 

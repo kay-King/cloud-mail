@@ -2,9 +2,13 @@ import app from '../hono/hono';
 import starService from '../service/star-service';
 import userContext from '../security/user-context';
 import result from '../model/result';
+import { notifyMailOpFromContext } from '../websocket/notify';
 
 app.post('/star/add', async (c) => {
-	await starService.add(c, await c.req.json(), userContext.getUserId(c));
+	const userId = userContext.getUserId(c);
+	const body = await c.req.json();
+	await starService.add(c, body, userId);
+	notifyMailOpFromContext(c, { op: 'star', emailIds: [body.emailId], userIds: [userId] });
 	return c.json(result.ok());
 });
 
@@ -14,6 +18,9 @@ app.get('/star/list', async (c) => {
 });
 
 app.delete('/star/cancel', async (c) => {
-	await starService.cancel(c, await c.req.query(), userContext.getUserId(c));
+	const userId = userContext.getUserId(c);
+	const query = c.req.query();
+	await starService.cancel(c, query, userId);
+	notifyMailOpFromContext(c, { op: 'unstar', emailIds: [query.emailId], userIds: [userId] });
 	return c.json(result.ok());
 });

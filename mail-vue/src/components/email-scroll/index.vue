@@ -1505,21 +1505,35 @@ function onRowTouchEnd() {
     pressingEmail.pressing = false;
     pressingEmail = null;
   }
-  // 横滑收尾：过阈值执行动作，没过弹回原位；只要行移动过就吞掉随后合成的 click，防误开邮件
+  // 横滑收尾：没过阈值弹回原位；过了阈值先让行滑满整行宽出去（0.2s 过渡），
+  // 行完全滑走后再执行动作——删信的行就此消失，标已读的行随后滑回来。
+  // 只要行移动过就吞掉随后合成的 click，防误开邮件。
   if (swipeDecision === 'swipe' && swipeEmail) {
     const offset = swipeState.offset;
     const email = swipeEmail;
     const threshold = swipeThreshold();
-    swipeState.emailId = null;
-    swipeState.offset = 0;
-    swipeState.dragging = false;
     if (Math.abs(offset) > 10) {
       suppressClickUntil = Date.now() + 600;
     }
-    if (offset <= -threshold) {
-      swipeDelete(email);
-    } else if (offset >= threshold && canSwipeRight(email)) {
-      swipeToggleRead(email);
+    if (offset <= -threshold || (offset >= threshold && canSwipeRight(email))) {
+      const dir = offset < 0 ? -1 : 1;
+      const doAction = offset < 0 ? swipeDelete : swipeToggleRead;
+      // 先把行滑出去：去掉 swiping（恢复 transform 0.2s 过渡），偏移拉满整行宽
+      swipeState.dragging = false;
+      swipeState.offset = dir * swipeRowWidth;
+      window.setTimeout(() => {
+        doAction(email);
+        // 220ms 内用户可能已开始滑另一行，只复位仍属于这封邮件的状态
+        if (swipeState.emailId === email.emailId) {
+          swipeState.emailId = null;
+          swipeState.offset = 0;
+          swipeState.dragging = false;
+        }
+      }, 220);
+    } else {
+      swipeState.emailId = null;
+      swipeState.offset = 0;
+      swipeState.dragging = false;
     }
   }
   swipeEmail = null;

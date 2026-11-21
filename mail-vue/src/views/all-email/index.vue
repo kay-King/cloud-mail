@@ -80,6 +80,7 @@ import {sleep} from "@/utils/time-utils.js";
 import {isAdminDelNotifyEnabled} from "@/utils/admin-notify.js";
 import {useSettingStore} from "@/store/setting.js";
 import {allEmailWs, isAutoRefreshEnabled} from "@/websocket/client.js";
+import { applyRemoteOp } from "@/websocket/remote-op.js";
 
 defineOptions({
   name: 'all-email'
@@ -101,7 +102,7 @@ onMounted(() => {
   // 全部邮件实时：连共享 hub，含无人收件；重连后补拉
   allEmailWs.start({
     isEnabled: () => isAutoRefreshEnabled(settingStore.settings.autoRefresh),
-    onMessage: () => schedulePullLatest(),
+    onMessage: onWsMessage,
     onReconnect: () => schedulePullLatest(),
   });
 })
@@ -120,6 +121,16 @@ watch(() => settingStore.settings.autoRefresh, () => {
 
 function onRefreshSuccess() {
   allEmailWs.retryNow()
+}
+
+function onWsMessage(event) {
+  // 远端操作事件（任一设备上删/标已读/星标等）：直接应用到各列表；
+  // 发信时补拉（发件份是新行，增量拉进来）
+  if (event?.type === 'mail_op') {
+    applyRemoteOp(event, { pullLatest: () => schedulePullLatest() });
+    return;
+  }
+  schedulePullLatest()
 }
 
 const params = reactive({

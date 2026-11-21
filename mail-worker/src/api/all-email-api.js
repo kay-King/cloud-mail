@@ -3,6 +3,7 @@ import emailService from '../service/email-service';
 import adminNotifyService from '../service/admin-notify-service';
 import auditService from '../service/audit-service';
 import result from '../model/result';
+import { notifyMailOpFromContext } from '../websocket/notify';
 
 // 操作记录里的对象摘要：取前 3 个主题，多的折成“等 N 封”
 function subjectDesc(rows) {
@@ -26,6 +27,7 @@ app.delete('/allEmail/delete', async (c) => {
 	}
 	const rows = await emailService.selectByIds(c, emailIds);
 	const list = await emailService.physicsDelete(c, { emailIds: emailIds.join(',') });
+	notifyMailOpFromContext(c, { op: 'delete', emailIds, userIds: [...new Set(rows.map(r => r.userId))] });
 	if (notify && rows.length > 0 && await adminNotifyService.isEnabled(c)) {
 		await adminNotifyService.notifyEmailDeleted(c, rows, reason);
 	}
@@ -40,6 +42,7 @@ app.delete('/allEmail/batchDelete', async (c) => {
 	const notify = query.notify === '1';
 	const reason = (query.reason || '').slice(0, 200);
 	const rows = await emailService.batchDelete(c, query);
+	notifyMailOpFromContext(c, { op: 'delete', emailIds: rows.map(r => r.emailId), userIds: [...new Set(rows.map(r => r.userId))] });
 	if (notify && rows.length > 0 && await adminNotifyService.isEnabled(c)) {
 		await adminNotifyService.notifyEmailDeleted(c, rows, reason);
 	}

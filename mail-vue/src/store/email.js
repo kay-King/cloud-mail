@@ -102,5 +102,16 @@ export const useEmailStore = defineStore('email', {
                 if (item) item.unread = EmailUnreadEnum.UNREAD
             }
         },
+        // 远端星标同步：把各列表里同一封的星标状态改掉（跟 markListRead 一对）；
+        // 星标视图的成员变化（多一行/少一行）由调用方 refreshList 重拉
+        markListStar(emailId, starred) {
+            const scrolls = [this.emailScroll, this.starScroll, this.sendScroll, this.allEmailScroll]
+            for (const scroll of scrolls) {
+                const list = scroll?.emailList
+                if (!list?.length) continue
+                const item = list.find(e => e.emailId === emailId)
+                if (item) item.isStar = starred ? 1 : 0
+            }
+        },
     },
 })
