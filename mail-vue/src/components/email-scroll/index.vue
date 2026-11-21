@@ -1681,6 +1681,8 @@ function swipeToggleRead(email) {
 const undoToast = reactive({ visible: false, text: '', action: null, emailId: null, email: null, index: -1 })
 // 撤销恢复动效：刚插回来的行带 row-restored 类长出来（0.28s），跑完清除
 const restoredEmailId = ref(null)
+// 乐观删除进行中的接口：撤销要等它落定后再发恢复（否则恢复先落、删除后落，邮件最后还是进了回收站）
+let pendingDelete = null
 let restoreAnimTimer = null
 let undoToastTimer = null
 const UNDO_TOAST_MS = 5000
@@ -1704,14 +1706,12 @@ function handleUndoToast() {
   undoToast.email = null
   undoToast.index = -1
   if (action === 'delete') {
-    // 撤销删除：服务端恢复后本地把行放回去，不整列重拉——静默重拉会清空
+    // 撤销删除：本地先把行放回去（带长出来动效），不整列重拉——静默重拉会清空
     // 再重建所有行，虚拟列表全量重渲染，手机上看就是卡一下（用户 2026-11-21 反馈）；
-    // 同时发 deleteIds 信号让别的视图跟着更新（收件箱等下次切回来重拉），
-    // 本视图已本地恢复、跳过这次信号（ignoreDeleteIdsOnce）
-    emailRestore([emailId]).then(() => {
-      sidebarStore.refreshUnread()
-      ignoreDeleteIdsOnce = true
-      emailStore.deleteIds = [emailId]
+    // 服务端恢复等删接口落定后再发（乐观删除的接口可能还在跑，直接恢复会抢跑）；
+    // 恢复成功后等动效跑完（350ms）再发 deleteIds 信号让别的视图更新：它们的重拉
+    // 会抢主线程，跟动效抢同一帧，动效就卡成闪烁；本视图已本地恢复、跳过信号
+    const restoreLocal = () => {
       if (props.type === 'all-email') {
         // 全部邮件里行没走、只是多了回收站角标：本地把角标摘掉即可
         const row = emailList.find(e => e.emailId === emailId)
@@ -1722,6 +1722,8 @@ function handleUndoToast() {
           silentRefresh()
         }
       } else if (email && !emailList.some(e => e.emailId === emailId)) {
+        // 品牌头像重新加载前先显示首字母占位（brandLoaded 是旧值 true，新 img 还没到会闪白圈）
+        email.brandLoaded = false
         const at = Math.max(0, Math.min(index < 0 ? emailList.length : index, emailList.length))
         emailList.splice(at, 0, email)
         restoredEmailId.value = emailId
@@ -1732,7 +1734,35 @@ function handleUndoToast() {
       } else if (!email) {
         silentRefresh()
       }
-    }).catch(e => console.error(e))
+    }
+    const restoreServer = () => emailRestore([emailId]).then(() => {
+      sidebarStore.refreshUnread()
+      setTimeout(() => {
+        ignoreDeleteIdsOnce = true
+        emailStore.deleteIds = [emailId]
+      }, 350)
+    }).catch(e => {
+      console.error(e)
+      // 服务端恢复失败：本地刚放回去的行再拿掉，别留个假的在列表里
+      if (props.type === 'all-email') {
+        const row = emailList.find(e => e.emailId === emailId)
+        if (row) {
+          row.isDel = 1
+          row.isDelContent = t('movedToTrash')
+        }
+      } else {
+        const at = emailList.findIndex(e => e.emailId === emailId)
+        if (at > -1) {
+          emailList.splice(at, 1)
+          if (noLoading.value) total.value = emailList.length
+          else total.value = Math.max(0, total.value - 1)
+        }
+      }
+      ElMessage({ message: t('restoreFailedMsg'), type: 'error', plain: true })
+    })
+    restoreLocal()
+    if (pendingDelete) pendingDelete.then(restoreServer)
+    else restoreServer()
   } else if (action === 'markRead') {
     emailUnread(emailId)
   } else if (action === 'markUnread') {
@@ -1831,19 +1861,52 @@ function onRowTouchEnd() {
       swipeState.offset = dir * swipeRowWidth;
       window.setTimeout(() => {
         if (dir < 0) {
-          // 删除：行保持滑出状态，等接口成功后拼掉行并弹出撤销提示；取消/失败则滑回来
           // 先记下行原来的位置：撤销时把行原样插回去，不用整列重拉
           const undoIndex = emailList.findIndex(e => e.emailId === email.emailId)
-          Promise.resolve(swipeDelete(email)).then(done => {
-            // 回收站里删的是彻底删除、恢复不了，不弹撤销提示（确认弹窗就是兜底）
-            if (done && props.type !== 'trash') {
-              showUndoToast('delete', email.emailId, email, undoIndex)
-            } else if (swipeState.emailId === email.emailId) {
-              swipeState.emailId = null;
-              swipeState.offset = 0;
-              swipeState.dragging = false;
+          if (props.type === 'all-email' || props.type === 'trash') {
+            // 有确认框的视图：先弹窗，确认后再删；取消/失败则行滑回来
+            Promise.resolve(swipeDelete(email)).then(done => {
+              // 回收站里删的是彻底删除、恢复不了，不弹撤销提示（确认弹窗就是兜底）
+              if (done && props.type !== 'trash') {
+                showUndoToast('delete', email.emailId, email, undoIndex)
+              } else if (swipeState.emailId === email.emailId) {
+                swipeState.emailId = null;
+                swipeState.offset = 0;
+                swipeState.dragging = false;
+              }
+            });
+          } else {
+            // 无确认框的视图：乐观删除——行立刻拼掉、提示条立刻出现，接口在后台跑；
+            // 接口慢（0.5-5 秒）时也不让用户干等红底（用户 2026-11-21 反馈左滑后卡一下才有效果）。
+            // 手动拼行不用 deleteEmail：它会触发补拉，补拉回来的总数是删之前的、会把计数盖错
+            const at = emailList.findIndex(e => e.emailId === email.emailId)
+            if (at > -1) {
+              emailList.splice(at, 1)
+              total.value = Math.max(0, total.value - 1)
+              if (noLoading.value) total.value = emailList.length
             }
-          });
+            showUndoToast('delete', email.emailId, email, undoIndex)
+            pendingDelete = props.emailDelete([email.emailId]).then(() => {
+              sidebarStore.refreshUnread()
+              ignoreDeleteIdsOnce = true
+              emailStore.deleteIds = [email.emailId]
+            }).catch(() => {
+              // 删失败：行放回去、提示条收掉、告诉用户没删成
+              if (swipeState.emailId === email.emailId) {
+                swipeState.emailId = null;
+                swipeState.offset = 0;
+                swipeState.dragging = false;
+              }
+              if (!emailList.some(e => e.emailId === email.emailId)) {
+                emailList.splice(Math.max(0, Math.min(undoIndex < 0 ? emailList.length : undoIndex, emailList.length)), 0, email)
+                if (noLoading.value) total.value = emailList.length
+                else total.value++
+              }
+              undoToast.visible = false
+              ElMessage({ message: t('delFailedMsg'), type: 'error', plain: true })
+            })
+            pendingDelete.finally(() => { pendingDelete = null })
+          }
         } else {
           // 标已读/未读：先记方向（swipeToggleRead 会立刻翻转本地状态），动作发出后行滑回来并弹出撤销提示
           const wasUnread = email.unread === EmailUnreadEnum.UNREAD
@@ -2202,16 +2265,18 @@ function renderHighlight(value) {
   padding-left: 24px;
 }
 
-/* 撤销恢复的行：从 0 高长出来 + 淡入，下面的行被往下顶（虚拟列表是流式布局，
-   行高变化会推开下方的行；满高走 --restore-h，跟当前行高一致，跑完类就摘掉） */
+/* 撤销恢复的行：从 0 高长出来，下面的行被往下顶（虚拟列表是流式布局，
+   行高变化会推开下方的行；满高走 --restore-h，跟当前行高一致，跑完类就摘掉）；
+   不做透明度：透明度动画会建合成层、结束拆层时闪一下（用户 2026-11-21 反馈长完闪烁）；
+   fill both 让终态保持到摘类，不留 0.28s 到 0.32s 之间的空隙 */
 .email-row-wrap.row-restored {
   height: auto;
   overflow: hidden;
-  animation: row-restore-in 0.28s ease-out;
+  animation: row-restore-in 0.28s ease-out both;
 }
 @keyframes row-restore-in {
-  from { max-height: 0; opacity: 0; }
-  to { max-height: var(--restore-h, 83px); opacity: 1; }
+  from { max-height: 0; }
+  to { max-height: var(--restore-h, 83px); }
 }
 
 /* 撤销提示条：深底白字，照用户发的参考图（勾 + 文案 + 右侧撤销）；
