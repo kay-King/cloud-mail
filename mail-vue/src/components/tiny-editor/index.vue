@@ -73,7 +73,7 @@ const language = computed(() => {
 })
 
 function clearEditor() {
-  if (editor.value) {
+  if (editor.value && isInitialized.value) {
     editor.value.setContent('');
   }
 }
@@ -189,16 +189,19 @@ function initEditor() {
 
 function focus() {
   nextTick(() => {
-    if (editor.value) editor.value.focus()
+    if (editor.value && isInitialized.value) editor.value.focus()
   })
 }
 
 function getContent() {
-  return editor.value ? editor.value.getContent() : ''
+  // 未初始化完时编辑器不可输入，内容就是 defValue；直接读会报 getRng 错
+  // 且返回空，导致未改动回复也弹存草稿确认
+  if (!editor.value || !isInitialized.value) return props.defValue
+  return editor.value.getContent()
 }
 
 function repaint() {
-  if (editor.value) {
+  if (editor.value && isInitialized.value) {
     editor.value.execCommand('mceRepaint')
   }
 }
