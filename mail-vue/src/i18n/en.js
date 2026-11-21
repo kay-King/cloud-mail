@@ -46,6 +46,7 @@ const en = {
     noSelectedEmail: 'No emails selected',
     undo: 'Undo',
     undoDeleted: '1 email deleted',
+    undoDeletedBatch: '{count} emails deleted',
     undoMarkedRead: '1 email marked as read',
     undoMarkedUnread: '1 email marked as unread',
     moveToInbox: 'Move to inbox',

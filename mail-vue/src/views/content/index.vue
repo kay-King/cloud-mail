@@ -200,7 +200,7 @@
 import ShadowHtml from '@/components/shadow-html/index.vue'
 import deleteNotifyDialog from "@/components/delete-notify-dialog/index.vue"
 import {computed, reactive, ref, watch, onMounted, onUnmounted, nextTick} from "vue";
-import {useRouter} from 'vue-router'
+import {useRouter, useRoute} from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import {emailDelete, emailRead, emailUnread, emailRestore, emailPhysicsDelete, emailExport, downloadExport, emailMarkSpam, emailUnmarkSpam} from "@/request/email.js";
 import {contactAdd, contactSuggest} from "@/request/contact.js";
@@ -239,6 +239,7 @@ const emailStore = useEmailStore();
 const sidebarStore = useSidebarStore();
 const userStore = useUserStore();
 const router = useRouter()
+const route = useRoute()
 
 // 管理员删除通知弹窗：仅全部邮件详情页，删到别人的邮件、或邮件带副本时出现
 const notifyDialog = reactive({
@@ -525,6 +526,21 @@ const handleExport = () => {
   });
 }
 
+// 详情页删除的撤销目标：来源列表 + 该邮件在列表里的行对象与下标；
+// 触屏才给撤销，桌面不给；来源必须是收件箱/已发送/星标/垃圾箱之一，
+// 且地址栏 mailbox 与上次列表路由一致（附件页/往来邮件点进来的详情不算）
+function getDetailUndoTarget() {
+  if (uiStore.finePointer) return null
+  const mailboxView = { inbox: 'email', sent: 'send', starred: 'star', spam: 'spam' }[route.params.mailbox]
+  if (!mailboxView || emailStore.lastListRoute !== mailboxView) return null
+  const scroll = { email: emailStore.emailScroll, send: emailStore.sendScroll, star: emailStore.starScroll, spam: emailStore.spamScroll }[mailboxView]
+  const list = scroll?.emailList
+  if (!list?.length) return null
+  const index = list.findIndex(e => e.emailId === email.value?.emailId)
+  if (index < 0) return null
+  return { view: mailboxView, item: { emailId: email.value.emailId, email: list[index], index } }
+}
+
 const handleDelete = () => {
   const delType = emailStore.contentData.delType
   if (delType !== 'logic' && delType !== 'trash' && delType !== 'spam') {
@@ -548,12 +564,19 @@ const handleDelete = () => {
     type: 'warning'
   }).then(() => {
     if (emailStore.contentData.delType === 'logic' || emailStore.contentData.delType === 'spam') {
+      // 触屏详情页删除加撤销：删之前先把撤销目标取下来（成功后行已拼掉、取不到），
+      // 成功后写进 store 交给列表弹撤销条，代替成功提示
+      const undoTarget = getDetailUndoTarget()
       emailDelete(email.value.emailId).then(() => {
-        ElMessage({
-          message: t('delSuccessMsg'),
-          type: 'success',
-          plain: true,
-        })
+        if (undoTarget) {
+          emailStore.pendingUndo = { view: undoTarget.view, items: [undoTarget.item], ts: Date.now() }
+        } else {
+          ElMessage({
+            message: t('delSuccessMsg'),
+            type: 'success',
+            plain: true,
+          })
+        }
         emailStore.pushDeleteIds([email.value.emailId])
         sidebarStore.refreshUnread()
       })

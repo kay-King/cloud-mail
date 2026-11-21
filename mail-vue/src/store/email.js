@@ -11,6 +11,8 @@ const pendingDeleteIds = new Set();
 export const useEmailStore = defineStore('email', {
     state: () => ({
         deleteIds: 0,
+        // 详情页删除的撤销交接：详情页删成功后写 {view, items, ts}，对应列表收到后弹撤销提示条
+        pendingUndo: null,
         starScroll: null,
         spamScroll: null,
         emailScroll: null,

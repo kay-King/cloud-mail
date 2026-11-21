@@ -46,6 +46,7 @@ const zh = {
     noSelectedEmail: '未选中邮件',
     undo: '撤销',
     undoDeleted: '1封邮件已删除',
+    undoDeletedBatch: '{count}封邮件已删除',
     undoMarkedRead: '1封邮件已标为已读',
     undoMarkedUnread: '1封邮件已标为未读',
     moveToInbox: '移回收件箱',
