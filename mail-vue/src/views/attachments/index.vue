@@ -42,62 +42,69 @@
       </el-select>
     </div>
 
-    <el-table :data="list" v-loading="loading" @selection-change="onSelectionChange"
-              :empty-text="loaded ? $t('noAttachments') : ' '" class="att-table" v-if="!isMobile">
-      <el-table-column type="selection" width="40"/>
-      <el-table-column :label="$t('fileName')" :min-width="isMobile ? 150 : 240">
-        <template #default="{row}">
-          <div class="file-cell" @click="previewAttachment(row)">
-            <Icon v-bind="getIconByName(row.filename)"/>
-            <span class="file-name">{{ row.filename }}</span>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column width="44" v-if="!admin">
-        <template #default="{row}">
-          <Icon v-if="row.isStar" icon="fluent-color:star-16" width="20" height="20"
-                class="star-icon" @click="toggleStar(row)"/>
-          <Icon v-else icon="fluent:star-20-regular" width="20" height="20"
-                class="star-icon" @click="toggleStar(row)"/>
-        </template>
-      </el-table-column>
-      <el-table-column :label="$t('fileSize')" width="100">
-        <template #default="{row}">{{ formatBytes(row.size) }}</template>
-      </el-table-column>
-      <el-table-column :label="$t('ownerEmail')" width="190" show-overflow-tooltip v-if="admin && !isMobile">
-        <template #default="{row}">{{ row.ownerEmail }}</template>
-      </el-table-column>
-      <el-table-column :label="$t('sender')" width="190" show-overflow-tooltip v-if="!isMobile">
-        <template #default="{row}">{{ row.senderName || row.sendEmail }}</template>
-      </el-table-column>
-      <el-table-column :label="$t('subject')" min-width="200" show-overflow-tooltip v-if="!isMobile">
-        <template #default="{row}">
-          <span v-if="admin">{{ row.subject }}</span>
-          <span v-else class="subject-cell" @click="jumpToEmail(row)">{{ row.subject }}</span>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <div class="att-cards" v-else v-loading="loading">
-      <div v-if="list.length === 0 && !loading" class="att-empty">{{ $t('noAttachments') }}</div>
-      <div class="att-card" :class="{selected: isSelected(row)}" v-for="row in list" :key="row.attId"
-           @click="previewAttachment(row)">
-        <div class="card-icon" :class="{checked: isSelected(row)}" @click.stop="toggleSelect(row)">
-          <Icon v-if="!isSelected(row)" v-bind="getIconByName(row.filename)"/>
-          <Icon v-else icon="fluent:checkmark-20-regular" width="22" height="22" color="#fff"/>
-        </div>
-        <div class="card-body">
-          <div class="card-name">{{ row.filename }}</div>
-          <div class="card-meta">{{ formatBytes(row.size) }} · {{ formatCardDate(row.createTime) }}</div>
-          <div class="card-sub" v-if="cardSub(row)" @click.stop="!admin && jumpToEmail(row)">{{ cardSub(row) }}</div>
-        </div>
-        <Icon v-if="!admin" :icon="row.isStar ? 'fluent-color:star-16' : 'fluent:star-20-regular'"
-              width="20" height="20" class="card-star" @click.stop="toggleStar(row)"/>
+    <div class="att-list-wrap">
+      <!-- 加载遮罩：跟用户/角色/操作记录页同一个四点加载图标，居中覆盖列表区（2026-11-21 统一） -->
+      <div class="loading" :class="loading ? 'loading-show' : 'loading-hide'"
+           :style="!loaded ? 'background: transparent' : ''">
+        <Loading/>
       </div>
-    </div>
+      <el-table :data="list" @selection-change="onSelectionChange"
+                :empty-text="loaded ? $t('noAttachments') : ' '" class="att-table" v-if="!isMobile">
+        <el-table-column type="selection" width="40"/>
+        <el-table-column :label="$t('fileName')" :min-width="isMobile ? 150 : 240">
+          <template #default="{row}">
+            <div class="file-cell" @click="previewAttachment(row)">
+              <Icon v-bind="getIconByName(row.filename)"/>
+              <span class="file-name">{{ row.filename }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column width="44" v-if="!admin">
+          <template #default="{row}">
+            <Icon v-if="row.isStar" icon="fluent-color:star-16" width="20" height="20"
+                  class="star-icon" @click="toggleStar(row)"/>
+            <Icon v-else icon="fluent:star-20-regular" width="20" height="20"
+                  class="star-icon" @click="toggleStar(row)"/>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('fileSize')" width="100">
+          <template #default="{row}">{{ formatBytes(row.size) }}</template>
+        </el-table-column>
+        <el-table-column :label="$t('ownerEmail')" width="190" show-overflow-tooltip v-if="admin && !isMobile">
+          <template #default="{row}">{{ row.ownerEmail }}</template>
+        </el-table-column>
+        <el-table-column :label="$t('sender')" width="190" show-overflow-tooltip v-if="!isMobile">
+          <template #default="{row}">{{ row.senderName || row.sendEmail }}</template>
+        </el-table-column>
+        <el-table-column :label="$t('subject')" min-width="200" show-overflow-tooltip v-if="!isMobile">
+          <template #default="{row}">
+            <span v-if="admin">{{ row.subject }}</span>
+            <span v-else class="subject-cell" @click="jumpToEmail(row)">{{ row.subject }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
 
-    <div v-if="loadingMore" class="att-more">{{ $t('loadingMore') }}</div>
-    <div v-else-if="noMore && list.length > 0" class="att-more">{{ $t('noMoreData') }}</div>
+      <div class="att-cards" v-else>
+        <div v-if="list.length === 0 && !loading" class="att-empty">{{ $t('noAttachments') }}</div>
+        <div class="att-card" :class="{selected: isSelected(row)}" v-for="row in list" :key="row.attId"
+             @click="previewAttachment(row)">
+          <div class="card-icon" :class="{checked: isSelected(row)}" @click.stop="toggleSelect(row)">
+            <Icon v-if="!isSelected(row)" v-bind="getIconByName(row.filename)"/>
+            <Icon v-else icon="fluent:checkmark-20-regular" width="22" height="22" color="#fff"/>
+          </div>
+          <div class="card-body">
+            <div class="card-name">{{ row.filename }}</div>
+            <div class="card-meta">{{ formatBytes(row.size) }} · {{ formatCardDate(row.createTime) }}</div>
+            <div class="card-sub" v-if="cardSub(row)" @click.stop="!admin && jumpToEmail(row)">{{ cardSub(row) }}</div>
+          </div>
+          <Icon v-if="!admin" :icon="row.isStar ? 'fluent-color:star-16' : 'fluent:star-20-regular'"
+                width="20" height="20" class="card-star" @click.stop="toggleStar(row)"/>
+        </div>
+      </div>
+
+      <div v-if="loadingMore" class="att-more">{{ $t('loadingMore') }}</div>
+      <div v-else-if="noMore && list.length > 0" class="att-more">{{ $t('noMoreData') }}</div>
+    </div>
     <delete-notify-dialog v-model="notifyDialog.visible" :message="notifyDialog.message"
                           @confirm="onNotifyDialogConfirm"/>
     <att-previewer ref="previewerRef" @star-toggled="onPreviewerStarToggled"/>
@@ -111,6 +118,7 @@ import {ElMessage, ElMessageBox} from "element-plus";
 import {Icon} from "@iconify/vue";
 import deleteNotifyDialog from "@/components/delete-notify-dialog/index.vue";
 import attPreviewer from "@/components/att-previewer/index.vue";
+import Loading from "@/components/loading/index.vue";
 import {attList, attAllList, attStar, attDelete} from "@/request/att.js";
 import {emailInfo} from "@/request/email.js";
 import {formatBytes, fileToBase64} from "@/utils/file-utils.js";
@@ -432,6 +440,9 @@ async function jumpToEmail(row) {
   height: 100%;
   overflow-y: auto;
   box-sizing: border-box;
+  /* 纵向 flex：列表区 flex: 1 撑满剩余高度，加载图标才能居中到内容区正中（跟操作记录页一致） */
+  display: flex;
+  flex-direction: column;
 }
 
 .att-header {
@@ -488,6 +499,36 @@ async function jumpToEmail(row) {
 .att-filter {
   width: 130px;
   margin-left: auto;
+}
+
+.att-list-wrap {
+  position: relative;
+  flex: 1;
+}
+
+/* 加载遮罩：跟用户/角色/操作记录页同一套（四点图标 + 居中 + 蒙层 + 淡入淡出） */
+.loading {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--loadding-background);
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.loading-show {
+  transition: all 200ms ease 200ms;
+  opacity: 1;
+}
+
+.loading-hide {
+  pointer-events: none;
+  transition: var(--loading-hide-transition);
+  opacity: 0;
 }
 
 .att-table {

@@ -394,6 +394,7 @@ onUnmounted(() => {
 }
 
 .scrollbar {
+  position: relative;
   flex: 1;
   overflow-y: auto;
   /* 只许上下滑：overflow-y 设了 auto 后，overflow-x 会跟着变成 auto，
@@ -426,13 +427,27 @@ onUnmounted(() => {
 }
 
 .loading {
+  position: absolute;
   display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 20px 0;
+  background-color: var(--loadding-background);
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.loading-show {
+  transition: all 200ms ease 200ms;
+  opacity: 1;
 }
 
 .loading-hide {
-  display: none;
+  pointer-events: none;
+  transition: var(--loading-hide-transition);
+  opacity: 0;
 }
 
 .loading-more {
