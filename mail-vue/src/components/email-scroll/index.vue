@@ -1747,9 +1747,10 @@ function handleUndoToast() {
         if (!found) silentRefresh()
         return
       }
-      // 批量恢复：按原下标从大到小插，插后面的不影响前面下标
+      // 批量恢复：按原下标从小到大插——先插的都在后面要插的位置之前，目标下标正好对上；
+      // 从大到小插是错的（删时倒序才对，插回去要正序，batch 30 验证 T2c 抓到过：C 被插到了 B 后面）
       const toInsert = items.filter(it => it.email && !emailList.some(e => e.emailId === it.emailId))
-        .sort((a, b) => b.index - a.index)
+        .sort((a, b) => a.index - b.index)
       for (const it of toInsert) {
         // 删时行是滑出去的，swipeState 还指着这封邮件：不先清掉，恢复的行会带着
         // 偏移渲染（红底露着、行在屏幕外），之后才滑回来，看着像倒放（用户 2026-11-21 反馈）
@@ -1760,6 +1761,9 @@ function handleUndoToast() {
         }
         // 品牌头像重新加载前先显示首字母占位（brandLoaded 是旧值 true，新 img 还没到会闪白圈）
         it.email.brandLoaded = false
+        // 工具栏删除的快照带勾选状态（删时行是勾上的）：撤销只恢复邮件、不恢复勾选，
+        // 不清掉的话列表一直卡在多选模式，点行变成勾选、打不开详情（batch 30 验证 T3 抓到过）
+        it.email.checked = false
         const at = Math.max(0, Math.min(it.index < 0 ? emailList.length : it.index, emailList.length))
         emailList.splice(at, 0, it.email)
         restoredEmailIds.add(it.emailId)
