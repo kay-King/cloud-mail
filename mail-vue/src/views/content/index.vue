@@ -1,42 +1,49 @@
 <template>
   <div class="box" :class="{ pane: props.pane }">
     <div class="header-actions">
-      <el-tooltip v-if="!props.pane" effect="dark" :content="$t('back')">
-        <Icon class="icon" icon="fluent:chevron-left-20-regular" width="20" height="20" @click="handleBack"/>
-      </el-tooltip>
-      <el-tooltip effect="dark" :content="emailStore.contentData.delType === 'trash' ? $t('deleteForever') : $t('delete')">
-        <Icon v-perm="'email:delete'" class="icon icon-huge" icon="hugeicons:delete-02" width="20" height="20" @click="handleDelete"/>
-      </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('restore')">
-        <Icon v-if="emailStore.contentData.delType === 'trash'" v-perm="'email:delete'" class="icon" icon="fluent:arrow-undo-20-regular" width="20" height="20" @click="handleRestore"/>
-      </el-tooltip>
-      <!-- 触屏上标垃圾/取消垃圾/标为未读/导出收进 ⋮ 菜单，电脑端保持直接显示 -->
-      <el-tooltip effect="dark" :content="$t('markSpam')" v-if="uiStore.finePointer">
-        <Icon v-if="emailStore.contentData.showSpam" v-perm="'email:delete'" class="icon icon-huge icon-spam-badge" icon="hugeicons:mail-block-01" width="20" height="20" @click="handleMarkSpam"/>
-      </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('notSpam')" v-if="uiStore.finePointer">
-        <Icon v-if="emailStore.contentData.delType === 'spam'" v-perm="'email:delete'" class="icon" icon="fluent:arrow-undo-20-regular" width="20" height="20" @click="handleUnspam"/>
-      </el-tooltip>
-      <span class="star" v-if="emailStore.contentData.showStar">
-        <el-tooltip v-if="email.isStar" effect="dark" :content="$t('unstar')">
-          <Icon class="icon" @click="changeStar" icon="fluent-color:star-16" width="20" height="20"/>
-        </el-tooltip>
-        <el-tooltip v-else effect="dark" :content="$t('starIt')">
-          <Icon class="icon" @click="changeStar" icon="fluent:star-20-regular" width="20" height="20"/>
-        </el-tooltip>
-      </span>
-      <el-tooltip effect="dark" :content="$t('markAsUnread')" v-if="uiStore.finePointer">
-        <Icon class="icon" v-if="['logic', 'spam'].includes(emailStore.contentData.delType) && email.unread === EmailUnreadEnum.READ" @click="handleMarkUnread" icon="fluent:mail-unread-20-regular" width="20" height="20" />
-      </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('reply')">
-        <Icon class="icon" v-if="emailStore.contentData.showReply" v-perm="'email:send'"  @click="openReply" icon="fluent:arrow-reply-20-regular" width="20" height="20" />
-      </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('forward')">
-        <Icon class="icon" v-if="emailStore.contentData.showReply" v-perm="'email:send'"  @click="openForward" icon="fluent:arrow-forward-20-regular" width="20" height="20" />
-      </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('exportMail')" v-if="uiStore.finePointer">
-        <Icon class="icon" @click="handleExport" icon="fluent:arrow-download-20-regular" width="20" height="20" />
-      </el-tooltip>
+      <!-- 详情页顶栏按钮也带文字，跟列表顶栏同一个 .toolbar-btn 样式（16px 图标 + 13px 文字），
+           间距与内边距也跟列表统一；悬浮提示不要了，文字本身就是说明；
+           触屏上标垃圾/取消垃圾/标为未读/导出收进 ⋮ 菜单，电脑端直接显示 -->
+      <button v-if="!props.pane" class="toolbar-btn" @click="handleBack">
+        <Icon icon="fluent:chevron-left-20-regular" width="16" height="16"/>
+        <span>{{ $t('back') }}</span>
+      </button>
+      <button v-perm="'email:delete'" class="toolbar-btn" @click="handleDelete">
+        <Icon icon="hugeicons:delete-02" width="16" height="16"/>
+        <span>{{ emailStore.contentData.delType === 'trash' ? $t('deleteForever') : $t('delete') }}</span>
+      </button>
+      <button v-if="emailStore.contentData.delType === 'trash'" v-perm="'email:delete'" class="toolbar-btn" @click="handleRestore">
+        <Icon icon="fluent:arrow-undo-20-regular" width="16" height="16"/>
+        <span>{{ $t('restore') }}</span>
+      </button>
+      <button v-if="uiStore.finePointer && emailStore.contentData.showSpam" v-perm="'email:delete'" class="toolbar-btn" @click="handleMarkSpam">
+        <Icon class="icon-spam-badge" icon="hugeicons:mail-block-01" width="16" height="16"/>
+        <span>{{ $t('markSpam') }}</span>
+      </button>
+      <button v-if="uiStore.finePointer && emailStore.contentData.delType === 'spam'" v-perm="'email:delete'" class="toolbar-btn" @click="handleUnspam">
+        <Icon icon="fluent:arrow-undo-20-regular" width="16" height="16"/>
+        <span>{{ $t('notSpam') }}</span>
+      </button>
+      <button v-if="emailStore.contentData.showStar" class="toolbar-btn" @click="changeStar">
+        <Icon :icon="email.isStar ? 'fluent-color:star-16' : 'fluent:star-20-regular'" width="16" height="16"/>
+        <span>{{ email.isStar ? $t('unstar') : $t('starIt') }}</span>
+      </button>
+      <button v-if="uiStore.finePointer && ['logic', 'spam'].includes(emailStore.contentData.delType) && email.unread === EmailUnreadEnum.READ" class="toolbar-btn" @click="handleMarkUnread">
+        <Icon icon="fluent:mail-unread-20-regular" width="16" height="16"/>
+        <span>{{ $t('markAsUnread') }}</span>
+      </button>
+      <button v-if="emailStore.contentData.showReply" v-perm="'email:send'" class="toolbar-btn" @click="openReply">
+        <Icon icon="fluent:arrow-reply-20-regular" width="16" height="16"/>
+        <span>{{ $t('reply') }}</span>
+      </button>
+      <button v-if="emailStore.contentData.showReply" v-perm="'email:send'" class="toolbar-btn" @click="openForward">
+        <Icon icon="fluent:arrow-forward-20-regular" width="16" height="16"/>
+        <span>{{ $t('forward') }}</span>
+      </button>
+      <button v-if="uiStore.finePointer" class="toolbar-btn" @click="handleExport">
+        <Icon icon="fluent:arrow-download-20-regular" width="16" height="16"/>
+        <span>{{ $t('export') }}</span>
+      </button>
       <!-- 触屏详情页 ⋮ 菜单：标为未读/标垃圾（或取消垃圾）/导出；导出始终显示，菜单不会为空；
            bottom-end：⋮ 在顶栏最右端，菜单右缘对齐触发器，不会超出屏幕右缘 -->
       <el-dropdown v-if="!uiStore.finePointer" trigger="click" placement="bottom-end">
@@ -612,6 +619,8 @@ const handleUnspam = () => {
 .box {
   height: 100%;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 三栏阅读窗：正文区收窄一点，附件盒子不设最小宽，避免窄窗下被裁 */
@@ -623,21 +632,21 @@ const handleUnspam = () => {
   .att-box {
     min-width: 0;
   }
+  /* 顶栏右端给阅读栏的两个切换按钮（.reading-pane-toggles，宽约 57px）留 72px，
+     窄窗下按钮换行也不会顶到它们下面 */
+  .header-actions {
+    padding-right: 72px;
+  }
 }
 
 .header-actions {
-  padding: 9px 15px 9px;
+  padding: 8px 10px;
   display: flex;
   align-items: center;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
   box-shadow: var(--header-actions-border);
   font-size: 18px;
-  .star {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 21px;
-  }
   .icon {
     cursor: pointer;
   }
@@ -652,7 +661,8 @@ const handleUnspam = () => {
 
 
 .scrollbar {
-  height: calc(100% - 38px);
+  flex: 1;
+  min-height: 0;
   width: 100%;
 }
 
