@@ -42,16 +42,19 @@ app.put('/setting/setGlobalForward', async (c) => {
 	}
 	// 规则名单匹配方式：user=按用户登录邮箱，其余一律按收件邮箱地址（默认，与旧行为一致）
 	const match = ruleMatch === 'user' ? 'user' : 'mailbox';
+	// 关掉时也保留目标地址：提交了有效地址就存提交的，否则保留原来存的，下次打开不用重填
+	const before = await settingService.query(c);
+	const storedEmail = before?.globalForward?.forwardEmail || '';
+	const keptEmail = targets.length > 0 && targets.every(e => verifyUtils.isEmail(e)) ? targets.join(',') : storedEmail;
 	const values = {
 		globalForward: {
-			forwardEmail: status === settingConst.forwardStatus.OPEN ? targets.join(',') : '',
+			forwardEmail: status === settingConst.forwardStatus.OPEN ? targets.join(',') : keptEmail,
 			forwardStatus: status,
 			ruleType: type,
 			ruleEmail: rules.join(','),
 			ruleMatch: match
 		}
 	};
-	const before = await settingService.query(c);
 	await settingService.set(c, values);
 	const changed = auditService.diffSettingLabels(before, { ...values });
 	if (changed.length > 0) {

@@ -241,8 +241,9 @@ const accountService = {
 			if (targets.length === 0 || targets.some(e => !verifyUtils.isEmail(e))) {
 				throw new BizError(t('notEmail'));
 			}
-		} else {
-			target = '';
+		} else if (targets.length === 0 || targets.some(e => !verifyUtils.isEmail(e))) {
+			// 关掉时也保留目标地址：没提交有效地址就保留原来存的，下次打开不用重填
+			target = accountRow.forwardEmail || '';
 		}
 		// 转发规则：发件人/主题关键词，空 = 不限制；开关关掉时规则保留，下次打开不用重填
 		const ruleFrom = (forwardRuleFrom || '').trim();

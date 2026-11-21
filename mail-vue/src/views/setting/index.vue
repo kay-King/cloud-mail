@@ -532,7 +532,9 @@ function saveForward() {
   const applyAll = forwardApplyAll.value
   return accountSetForward(accountId, target, forwardOn.value, ruleFrom, ruleSubject, applyAll).then((data) => {
     if (accountStore.currentAccount) {
-      accountStore.currentAccount.forwardEmail = forwardOn.value === 0 ? target : ''
+      // 关掉时也保留地址（与后端 setForward 一致）：提交了有效地址就存提交的，否则留原来存的
+      const validTarget = targetList.length > 0 && targetList.every(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
+      accountStore.currentAccount.forwardEmail = validTarget ? target : (accountStore.currentAccount.forwardEmail || '')
       accountStore.currentAccount.forwardStatus = forwardOn.value
       accountStore.currentAccount.forwardRuleFrom = ruleFrom
       accountStore.currentAccount.forwardRuleSubject = ruleSubject
