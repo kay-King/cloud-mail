@@ -16,24 +16,17 @@
       <div ref="headerLeftRef" class="header-left" :style="{ paddingLeft: uiStore.finePointer ? actionLeft : '19px' }">
 
         <!-- 顶栏按钮都带文字（电脑端与手机端一样），一眼看得出是干什么的；
-             批量操作顺序：刷新、删除、标记为、[各视图专属按钮]、导出（删除在标记为
-             左边：收的顺序是从右往左，删除常用、要比标记为晚收）；
+             批量操作顺序：刷新、标记为、删除、[各视图专属按钮]、导出（标记为在删除
+             左边：收的顺序是从右往左，标记为常用、要比删除晚收，用户 2026-11-21 定）；
              标记为下拉收进标已读/标未读/星标/取消星标/标为垃圾，没任何可标记的视图不显示；
              窄了放不下一行就从右往左依次收进 ⋮ 菜单（收的顺序：导出 → 专属按钮 →
-             标记为 → 删除，刷新永远不收），窗口变宽再自动放出来；量的是这一行实际
+             删除 → 标记为，刷新永远不收），窗口变宽再自动放出来；量的是这一行实际
              渲染宽度，不是窗口宽度，三栏窄列、电脑窄窗口、手机宽字体都按实测走
              （用户 2026-11-21 定的规矩，见下面 tucked/updateTuck）；
              未勾选时按钮不置灰、都可点，点了提示「未选中邮件」（用户 2026-11-21 要求） -->
         <button class="toolbar-btn" @click="refresh">
           <Icon icon="fluent:arrow-clockwise-20-regular" width="16" height="16"/>
           <span>{{ $t('refresh') }}</span>
-        </button>
-        <!-- 删除按钮电脑手机都有（2026-11-21 用户指出手机端缺了它）：原来只在电脑端显示，
-             触屏 ⋮ 菜单里的删除又已拿掉，手机上批量删除只能左滑单封删 -->
-        <button v-if="!tucked.delete" v-perm="'email:delete'" class="toolbar-btn"
-                @click="handleDelete">
-          <Icon icon="hugeicons:delete-02" width="16" height="16"/>
-          <span>{{ props.type === 'trash' ? $t('deleteForever') : $t('delete') }}</span>
         </button>
         <el-dropdown v-if="hasMarkActions && !tucked.mark" trigger="click" placement="bottom-start">
           <button class="toolbar-btn">
@@ -77,6 +70,13 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
+        <!-- 删除按钮电脑手机都有（2026-11-21 用户指出手机端缺了它）：原来只在电脑端显示，
+             触屏 ⋮ 菜单里的删除又已拿掉，手机上批量删除只能左滑单封删 -->
+        <button v-if="!tucked.delete" v-perm="'email:delete'" class="toolbar-btn"
+                @click="handleDelete">
+          <Icon icon="hugeicons:delete-02" width="16" height="16"/>
+          <span>{{ props.type === 'trash' ? $t('deleteForever') : $t('delete') }}</span>
+        </button>
         <template v-if="!tucked.slot"><slot name="first"></slot></template>
         <button class="toolbar-btn" v-if="uiStore.finePointer && props.type !== 'draft' && props.type !== 'spam' && props.type !== 'trash' && !tucked.export"
                 @click="handleExport">
@@ -143,7 +143,7 @@
       </div>
 
       <div class="header-right">
-        <span class="email-count" :class="{ 'count-total': checkedEmailCount === 0 }" v-if="displayTotal">{{ checkedEmailCount > 0 ? $t('emailSelectedCount', {count: checkedEmailCount}) : $t('emailCount', {total: displayTotal}) }}</span>
+        <span class="email-count" v-if="displayTotal">{{ checkedEmailCount > 0 ? $t('emailSelectedCount', {count: checkedEmailCount}) : $t('emailCount', {total: displayTotal}) }}</span>
         <!-- 三栏下两个切换按钮移到阅读栏右上角（见 .reading-pane-toggles），这里只留计数 -->
         <el-tooltip v-if="uiStore.finePointer && props.type !== 'draft' && !threePane" effect="dark" :hide-after="0" :content="$t('switchToReadingPane')">
           <Icon class="more-icon icon" width="18" height="18"
@@ -1077,7 +1077,7 @@ const hasMarkActions = computed(() => {
 const headerLeftRef = ref(null)
 const slots = useSlots()
 const tucked = reactive({ export: false, slot: false, mark: false, delete: false })
-const TUCK_ORDER = ['export', 'slot', 'mark', 'delete']
+const TUCK_ORDER = ['export', 'slot', 'delete', 'mark']
 // 各按钮当前是否在顶栏上渲染（没渲染的就不用收）：导出只在电脑端顶栏有，专属按钮
 // 看父视图有没有传 #first，标记为看有没有可标记的操作，删除一直有
 const tuckableVisible = computed(() => ({
@@ -2638,15 +2638,6 @@ function renderHighlight(value) {
     .email-count {
       white-space: nowrap;
       margin-top: 6px;
-    }
-
-    /* 窄屏手机上不显示「共 N 封」总数（选邮件时的「已选 N 封」照常显示）：
-       366px 宽的手机上顶栏只有 238px，3 按钮 + ⋮ 要 268px，差 30px；藏掉计数
-       腾出约 50px，收件箱与全部邮件都能放下 3 个按钮（用户 2026-11-21 实测反馈） */
-    @media (pointer: coarse) and (max-width: 400px) {
-      .email-count.count-total {
-        display: none;
-      }
     }
   }
 
