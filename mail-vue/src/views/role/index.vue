@@ -1,12 +1,15 @@
 <template>
   <div class="perm-box">
     <div class="header-actions">
-      <el-tooltip :hide-after="0" effect="dark" :content="$t('addRoleTitle')">
-        <Icon class="icon" icon="fluent:add-20-regular" width="20" height="20" @click="openAddRole"/>
-      </el-tooltip>
-      <el-tooltip :hide-after="0" effect="dark" :content="$t('refresh')">
-        <Icon class="icon" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="refresh"/>
-      </el-tooltip>
+      <!-- 顶栏按钮带文字，跟邮件列表同一个 .toolbar-btn 样式（2026-11-21 统一） -->
+      <button class="toolbar-btn" @click="openAddRole">
+        <Icon icon="fluent:add-20-regular" width="16" height="16"/>
+        <span>{{ $t('addRoleTitle') }}</span>
+      </button>
+      <button class="toolbar-btn" @click="refresh">
+        <Icon icon="fluent:arrow-clockwise-20-regular" width="16" height="16"/>
+        <span>{{ $t('refresh') }}</span>
+      </button>
     </div>
     <el-scrollbar class="perm-scrollbar">
       <div class="loading" :class="tableLoading ? 'loading-show' : 'loading-hide'"
@@ -444,15 +447,12 @@ window.onresize = () => {
 }
 
 .header-actions {
-  padding: 9px 15px;
+  padding: 8px 10px;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 8px;
   box-shadow: var(--header-actions-border);
   font-size: 18px;
-  @media (max-width: 767px) {
-    gap: 15px;
-  }
 
   .search {
     :deep(.el-input-group) {

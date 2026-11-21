@@ -1,9 +1,11 @@
 <template>
   <div class="reg-key">
     <div class="header-actions">
-      <el-tooltip :hide-after="0" effect="dark" :content="$t('addRegKey')">
-        <Icon class="icon" icon="fluent:add-20-regular" width="20" height="20" @click="openAdd"/>
-      </el-tooltip>
+      <!-- 顶栏按钮带文字，跟邮件列表同一个 .toolbar-btn 样式（2026-11-21 统一）；搜索框不动 -->
+      <button class="toolbar-btn" @click="openAdd">
+        <Icon icon="fluent:add-20-regular" width="16" height="16"/>
+        <span>{{ $t('addRegKey') }}</span>
+      </button>
       <div class="search">
         <el-input
             v-model="params.code"
@@ -12,15 +14,18 @@
         >
         </el-input>
       </div>
-      <el-tooltip :hide-after="0" effect="dark" :content="$t('search')">
-        <Icon class="icon" icon="fluent:search-20-regular" @click="search" width="20" height="20"/>
-      </el-tooltip>
-      <el-tooltip :hide-after="0" effect="dark" :content="$t('refresh')">
-        <Icon class="icon" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="refresh"/>
-      </el-tooltip>
-      <el-tooltip :hide-after="0" effect="dark" :content="$t('clearUnused')">
-        <Icon class="icon" icon="fluent:broom-20-regular" width="20" height="20" @click="clearNotUse"/>
-      </el-tooltip>
+      <button class="toolbar-btn" @click="search">
+        <Icon icon="fluent:search-20-regular" width="16" height="16"/>
+        <span>{{ $t('search') }}</span>
+      </button>
+      <button class="toolbar-btn" @click="refresh">
+        <Icon icon="fluent:arrow-clockwise-20-regular" width="16" height="16"/>
+        <span>{{ $t('refresh') }}</span>
+      </button>
+      <button class="toolbar-btn" @click="clearNotUse">
+        <Icon icon="fluent:broom-20-regular" width="16" height="16"/>
+        <span>{{ $t('clearUnused') }}</span>
+      </button>
     </div>
 
     <el-scrollbar class="scrollbar">
@@ -548,16 +553,13 @@ function openAdd() {
 }
 
 .header-actions {
-  padding: 9px 15px;
+  padding: 8px 10px;
   display: flex;
-  gap: 20px;
+  gap: 8px;
   flex-wrap: wrap;
   align-items: center;
   box-shadow: inset 0 -1px 0 0 rgba(100, 121, 143, 0.12);
   font-size: 18px;
-  @media (max-width: 767px) {
-    gap: 15px;
-  }
 
   .search-input {
     width: min(200px, calc(100vw - 140px));

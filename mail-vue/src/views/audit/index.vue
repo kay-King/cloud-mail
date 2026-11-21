@@ -6,15 +6,19 @@
           <Icon v-if="isAllSelected" icon="fluent:checkmark-20-regular" width="14" height="14"/>
         </div>
       </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('refresh')">
-        <Icon class="icon" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="reload"/>
-      </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('auditClearAll')">
-        <Icon class="icon" icon="fluent:broom-20-regular" width="20" height="20" @click="clearAll"/>
-      </el-tooltip>
-      <el-tooltip effect="dark" :content="$t('auditDeleteSelected')">
-        <Icon v-if="selectedLogs.length > 0" class="icon icon-huge" icon="hugeicons:delete-02" width="20" height="20" @click="deleteSelected"/>
-      </el-tooltip>
+      <!-- 顶栏按钮带文字，跟邮件列表同一个 .toolbar-btn 样式（2026-11-21 统一） -->
+      <button class="toolbar-btn" @click="reload">
+        <Icon icon="fluent:arrow-clockwise-20-regular" width="16" height="16"/>
+        <span>{{ $t('refresh') }}</span>
+      </button>
+      <button class="toolbar-btn" @click="clearAll">
+        <Icon icon="fluent:broom-20-regular" width="16" height="16"/>
+        <span>{{ $t('auditClearAll') }}</span>
+      </button>
+      <button v-if="selectedLogs.length > 0" class="toolbar-btn" @click="deleteSelected">
+        <Icon icon="hugeicons:delete-02" width="16" height="16"/>
+        <span>{{ $t('auditDeleteSelected') }}</span>
+      </button>
     </div>
     <!-- 原生滚动容器：el-scrollbar 的自定义滑块在手机上不可靠，改用浏览器原生滚动条 + 强制常显样式 -->
     <div class="scrollbar" ref="scrollRef" @scroll="onScroll">
@@ -360,12 +364,9 @@ onUnmounted(() => {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 12px 16px;
+  gap: 8px;
+  padding: 8px 10px;
   flex-wrap: wrap;
-  @media (max-width: 767px) {
-    gap: 15px;
-  }
 }
 
 .icon {
