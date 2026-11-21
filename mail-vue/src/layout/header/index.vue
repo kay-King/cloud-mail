@@ -480,7 +480,7 @@ onBeforeUnmount(() => {
 
 .breadcrumb-item {
   font-weight: bold;
-  font-size: 14px;
+  font-size: 17px; /* 2026-11-21 用户觉得 14px 太小，放大一档 */
   color: var(--el-text-color-primary);
   overflow: hidden;
   white-space: nowrap;
