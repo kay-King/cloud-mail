@@ -15,7 +15,8 @@ import {useSettingStore} from '@/store/setting.js'
 defineExpose({
   clearEditor,
   focus,
-  getContent
+  getContent,
+  repaint
 })
 
 const props = defineProps({
@@ -165,6 +166,12 @@ function focus() {
 
 function getContent() {
   return editor.value.getContent()
+}
+
+function repaint() {
+  if (editor.value) {
+    editor.value.execCommand('mceRepaint')
+  }
 }
 
 

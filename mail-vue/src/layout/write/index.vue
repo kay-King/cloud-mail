@@ -181,7 +181,7 @@
 </template>
 <script setup>
 import tinyEditor from '@/components/tiny-editor/index.vue'
-import {h, nextTick, onMounted, onUnmounted, reactive, ref, toRaw, computed} from "vue";
+import {h, nextTick, onMounted, onUnmounted, reactive, ref, toRaw, computed, watch} from "vue";
 import {Icon} from "@iconify/vue";
 import {useUserStore} from "@/store/user.js";
 import {emailSend} from "@/request/email.js";
@@ -600,6 +600,11 @@ async function sendEmail() {
     })
 
     if (form.draftId) {
+      // 发送成功删掉自动存的草稿：直删 IndexedDB，setDraft 只在草稿箱页面挂载时才生效
+      const sentDraftId = form.draftId
+      db.value.draft.delete(sentDraftId).catch(() => {})
+      db.value.att.delete(sentDraftId).catch(() => {})
+      draftStore.refreshList++
       form.subject = ''
       form.content = ''
       form.receiveEmail = []
@@ -647,6 +652,7 @@ function addRecipientRecord() {
 }
 
 function resetForm() {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer)
   form.receiveEmail = []
   form.ccEmail = []
   form.bccEmail = []
@@ -670,6 +676,76 @@ function change(content, text) {
   form.content = content;
   form.text = text
 }
+
+// 草稿自动保存：停笔 2 秒后悄悄存进草稿箱，意外退出（返回键、切后台被杀、闪退）回来草稿还在
+// 直写 IndexedDB，不走 draftStore.setDraft——那个 watcher 在草稿箱页面才挂载，收件箱写信走不到
+let autoSaveTimer = null
+
+function hasDraftContent(content) {
+  return !!(content || form.subject || form.receiveEmail.length > 0 || form.ccEmail.length > 0 || form.bccEmail.length > 0)
+}
+
+function isChangedFromBackReply(content) {
+  if (backReply.sendType !== 'reply' && backReply.sendType !== 'forward') return true
+  const subjectFlag = form.subject === backReply.subject
+  const contentFlag = content === backReply.content
+  let receiveFlag = form.receiveEmail.length === 1 && form.receiveEmail[0] === backReply.receiveEmail[0]
+  if (backReply.sendType === 'forward' && form.receiveEmail.length === 0) {
+    receiveFlag = true
+  }
+  return !(subjectFlag && contentFlag && receiveFlag)
+}
+
+async function autoSaveDraft() {
+  if (!show.value) return
+  const content = editor.value && editor.value.getContent ? editor.value.getContent() : form.content
+  if (!hasDraftContent(content) || !isChangedFromBackReply(content)) return
+  const formData = {...toRaw(form), content}
+  delete formData.draftId
+  delete formData.attachments
+  try {
+    if (form.draftId) {
+      await db.value.draft.update(form.draftId, formData)
+      await db.value.att.put({draftId: form.draftId, attachments: toRaw(form.attachments)})
+    } else {
+      formData.createTime = dayjs().utc().format('YYYY-MM-DD HH:mm:ss')
+      const draftId = await db.value.draft.add(formData)
+      await db.value.att.add({draftId, attachments: toRaw(form.attachments)})
+      if (!show.value) {
+        // 保存完成前窗口已关闭（用户选了丢弃），删掉刚建的草稿，不留孤儿
+        await db.value.draft.delete(draftId)
+        await db.value.att.delete(draftId)
+        return
+      }
+      form.draftId = draftId
+    }
+    draftStore.refreshList++
+  } catch (e) {
+    console.warn('auto save draft failed', e)
+  }
+}
+
+function scheduleAutoSave() {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer)
+  autoSaveTimer = setTimeout(autoSaveDraft, 2000)
+}
+
+watch(() => [form.subject, form.content, form.receiveEmail, form.ccEmail, form.bccEmail, form.attachments], () => {
+  if (show.value) scheduleAutoSave()
+}, {deep: true})
+
+// 写信窗打开后强制编辑器工具栏重算：编辑器在隐藏状态初始化时，
+// floating 工具栏的溢出计算可能没跑（个别手机上工具栏不折进「…」），
+// 显示后再触发一次 resize + 重绘，确保「…」正常出现
+watch(() => show.value, (visible) => {
+  if (!visible) return
+  nextTick(() => {
+    setTimeout(() => {
+      window.dispatchEvent(new Event('resize'))
+      if (editor.value && editor.value.repaint) editor.value.repaint()
+    }, 300)
+  })
+})
 
 function focusChange() {
   closeOpenSuggest()
@@ -860,8 +936,19 @@ function close() {
     await nextTick(() => {
       resetForm()
     })
-  }).catch((action) => {
+  }).catch(async (action) => {
     if (action === 'cancel') {
+      // 用户选了丢弃：自动存的草稿一起删掉，不留
+      if (form.draftId) {
+        const discardedId = form.draftId
+        try {
+          await db.value.draft.delete(discardedId)
+          await db.value.att.delete(discardedId)
+          draftStore.refreshList++
+        } catch (e) {
+          console.warn('delete discarded draft failed', e)
+        }
+      }
       show.value = false
       resetForm()
     }
