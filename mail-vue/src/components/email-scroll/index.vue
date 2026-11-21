@@ -92,8 +92,8 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item v-if="showExportItem" @click="handleExport">
-                <div class="right-dropdown-item">
-                  <Icon icon="fluent:arrow-download-20-regular" width="20" height="20" />
+                <div class="right-dropdown-item more-menu-item">
+                  <Icon icon="fluent:arrow-download-20-regular" width="16" height="16" />
                   <span>{{ $t('exportSelected') }}</span>
                 </div>
               </el-dropdown-item>
@@ -101,38 +101,38 @@
               <template v-if="tucked.slot"><slot name="overflow"></slot></template>
               <!-- 「标记为」被收进来时，它的 5 个操作直接平铺成菜单项（下拉套下拉点起来别扭） -->
               <el-dropdown-item v-if="tucked.mark && showUnread && props.emailRead && props.type !== 'spam'" v-perm="'email:delete'" @click="handleRead">
-                <div class="right-dropdown-item">
-                  <Icon icon="fluent:mail-read-20-regular" width="20" height="20"/>
+                <div class="right-dropdown-item more-menu-item">
+                  <Icon icon="fluent:mail-read-20-regular" width="16" height="16"/>
                   <span>{{ $t('markAsRead') }}</span>
                 </div>
               </el-dropdown-item>
               <el-dropdown-item v-if="tucked.mark && showUnread && props.emailUnread && props.type !== 'spam'" v-perm="'email:delete'" @click="handleUnread">
-                <div class="right-dropdown-item">
-                  <Icon icon="fluent:mail-unread-20-regular" width="20" height="20"/>
+                <div class="right-dropdown-item more-menu-item">
+                  <Icon icon="fluent:mail-unread-20-regular" width="16" height="16"/>
                   <span>{{ $t('markAsUnread') }}</span>
                 </div>
               </el-dropdown-item>
               <el-dropdown-item v-if="tucked.mark && props.starAdd && props.allowStar" @click="handleStarSelected">
-                <div class="right-dropdown-item">
-                  <Icon icon="fluent:star-20-regular" width="20" height="20"/>
+                <div class="right-dropdown-item more-menu-item">
+                  <Icon icon="fluent:star-20-regular" width="16" height="16"/>
                   <span>{{ $t('starSelected') }}</span>
                 </div>
               </el-dropdown-item>
               <el-dropdown-item v-if="tucked.mark && props.starCancel" @click="handleUnstarSelected">
-                <div class="right-dropdown-item">
-                  <Icon icon="fluent:star-off-20-regular" width="20" height="20"/>
+                <div class="right-dropdown-item more-menu-item">
+                  <Icon icon="fluent:star-off-20-regular" width="16" height="16"/>
                   <span>{{ $t('unstarSelected') }}</span>
                 </div>
               </el-dropdown-item>
               <el-dropdown-item v-if="tucked.mark && props.emailSpam" v-perm="'email:delete'" @click="handleSpamSelected">
-                <div class="right-dropdown-item">
-                  <Icon icon="hugeicons:mail-block-01" class="icon-huge icon-spam-badge" width="20" height="20"/>
+                <div class="right-dropdown-item more-menu-item">
+                  <Icon icon="hugeicons:mail-block-01" class="icon-huge icon-spam-badge" width="16" height="16"/>
                   <span>{{ $t('spam') }}</span>
                 </div>
               </el-dropdown-item>
               <el-dropdown-item v-if="tucked.delete" v-perm="'email:delete'" @click="handleDelete">
-                <div class="right-dropdown-item">
-                  <Icon icon="hugeicons:delete-02" width="20" height="20"/>
+                <div class="right-dropdown-item more-menu-item">
+                  <Icon icon="hugeicons:delete-02" width="16" height="16"/>
                   <span>{{ props.type === 'trash' ? $t('deleteForever') : $t('delete') }}</span>
                 </div>
               </el-dropdown-item>
@@ -2665,10 +2665,6 @@ function renderHighlight(value) {
 
 
 
-.right-dropdown-item {
-  display: flex;
-  gap: 10px;
-}
 
 :deep(.el-dropdown-menu__item:last-child) {
   padding-bottom: 10px;

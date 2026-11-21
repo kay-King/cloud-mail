@@ -29,8 +29,8 @@
       <!-- 顶栏窄了邮件清除被收进 ⋮ 时的菜单项（跟顶栏按钮同一个操作） -->
       <template #overflow>
         <el-dropdown-item @click="openBathDelete">
-          <div class="right-dropdown-item">
-            <Icon icon="fluent:broom-20-regular" width="20" height="20"/>
+          <div class="right-dropdown-item more-menu-item">
+            <Icon icon="fluent:broom-20-regular" width="16" height="16"/>
             <span>{{ $t('clearEmail') }}</span>
           </div>
         </el-dropdown-item>
