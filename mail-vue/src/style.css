@@ -304,11 +304,13 @@ html[data-theme-to="light"]::view-transition-old(root) {
   color: var(--el-color-primary);
 }
 /* 三栏阅读时列表列只有 380px：文字按钮放不下，只显示图标（按钮本身还在，点按区域不变）；
-   放全局是因为 slot 里的专属按钮也在三栏容器里，scoped 规则盖不到它们 */
-.email-container.three-pane .toolbar-btn span {
+   放全局是因为 slot 里的专属按钮也在三栏容器里，scoped 规则盖不到它们；
+   只限 .list-col：正文栏的详情按钮是同一批 .toolbar-btn，宽度够、文字要留着
+   （2026-11-21 验证发现不限范围会把正文栏按钮的文字也藏掉） */
+.email-container.three-pane .list-col .toolbar-btn span {
   display: none;
 }
-.email-container.three-pane .toolbar-btn {
+.email-container.three-pane .list-col .toolbar-btn {
   padding: 2px 6px;
 }
 
