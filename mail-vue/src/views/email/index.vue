@@ -15,14 +15,6 @@
                @jump="jumpContent"
                @refresh-success="onRefreshSuccess"
   >
-    <template #first>
-      <!-- 触屏上标垃圾收进 ⋮ 菜单，顶栏只留标已读/标未读 -->
-      <el-tooltip effect="dark" :content="$t('markSpamSelected')" v-if="uiStore.finePointer">
-        <Icon v-perm="'email:delete'" class="icon icon-huge icon-spam-badge" icon="hugeicons:mail-block-01" width="20" height="20"
-              :class="{ 'icon-disabled': selectedIds.length === 0 }"
-              @click="handleMarkSpamSelected"/>
-      </el-tooltip>
-    </template>
   </emailScroll>
 </template>
 
@@ -33,9 +25,8 @@ import {useUiStore} from "@/store/ui.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useSidebarStore} from "@/store/sidebar.js";
 import emailScroll from "@/components/email-scroll/index.vue"
-import {Icon} from "@iconify/vue";
 import {emailList, emailDelete, emailLatest, emailMarkSpam} from "@/request/email.js";
-import {useListHandlers, useSelectedIds} from "@/composables/useListHandlers.js";
+import {useListHandlers} from "@/composables/useListHandlers.js";
 import {defineOptions, onBeforeUnmount, onMounted, ref, watch} from "vue";
 import {ElMessage} from "element-plus";
 import {useI18n} from "vue-i18n";
@@ -111,8 +102,6 @@ function jumpContent(email) {
   router.push({name: 'content', params: {mailbox: 'inbox'}})
 }
 
-const selectedIds = useSelectedIds(scroll)
-
 function markSpamEmails(emailIds) {
   return emailMarkSpam(emailIds).then(() => {
     ElMessage({
@@ -128,13 +117,6 @@ function markSpamEmails(emailIds) {
 
 // 列表里的标已读 / 标为未读 / 星标切换：成功后刷新侧边栏未读数（与星标/垃圾箱视图共用）
 const {handleListRead, handleListUnread, handleStarAdd, handleStarCancel} = useListHandlers()
-
-function handleMarkSpamSelected() {
-  const emailIds = selectedIds.value
-  if (emailIds.length > 0) {
-    markSpamEmails(emailIds)
-  }
-}
 
 // 推送到达：非「全部收取」时忽略其它账号的信。
 function onWsMessage(event) {

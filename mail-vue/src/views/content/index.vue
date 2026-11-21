@@ -306,12 +306,12 @@ async function addSenderFromCard() {
   senderCardAdding.value = false
 }
 
-// 查看往来邮件：跳到收件箱搜对方的来信（不跳全部邮件）
+// 查看往来邮件：进往来邮件视图，看与对方的收发往来（来信 + 自己发给对方的）
+// 不跳全部邮件——普通用户没有全部邮件功能
 function viewExchangedEmails() {
   const addr = String(email.value?.sendEmail || '').trim()
   if (!addr) return
-  emailStore.setSearchParams({type: 'correspondent', text: addr, startDate: '', endDate: ''})
-  router.push({name: 'email'})
+  router.push({name: 'exchanged', query: {address: addr}})
 }
 
 watch(() => accountStore.currentAccountId, () => {

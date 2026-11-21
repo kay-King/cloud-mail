@@ -21,9 +21,10 @@
 
     >
       <template #first>
-        <el-tooltip effect="dark" :content="t('clearEmail')">
-          <Icon class="icon" icon="fluent:broom-20-regular" width="20" height="20" @click="openBathDelete"/>
-        </el-tooltip>
+        <button class="toolbar-btn" @click="openBathDelete">
+          <Icon icon="fluent:broom-20-regular" width="16" height="16"/>
+          <span>{{ $t('clearEmail') }}</span>
+        </button>
       </template>
     </emailScroll>
     <el-dialog v-model="showBathDelete" :title="$t('clearEmail')" width="335"

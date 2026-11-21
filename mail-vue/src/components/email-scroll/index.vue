@@ -15,39 +15,69 @@
            的内容列起头（头像左距 15 + 头像 40 + 右间距 16 = 71）；电脑端仍用各视图传的 actionLeft -->
       <div class="header-left" :style="{ paddingLeft: uiStore.finePointer ? actionLeft : '19px' }">
 
-        <!-- 刷新常驻显示（勾选时也不收起） -->
-        <el-tooltip effect="dark" :hide-after="0" :content="$t('refresh')">
-          <Icon class="icon reload" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="refresh"/>
-        </el-tooltip>
-        <!-- 批量操作顺序：标已读、标未读、删除、[各视图专属图标]、导出；
-             标已读/未读两端都直接显示（垃圾邮件视图不要这两按钮），删除与导出只在
-             电脑端直接显示、触屏上收进 ⋮ 菜单 -->
-        <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsRead')">
-          <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-read-20-regular" width="20" height="20"
-                v-if="showUnread && props.emailRead && props.type !== 'spam'"
+        <!-- 顶栏按钮都带文字（电脑端与手机端一样），一眼看得出是干什么的；
+             批量操作顺序：刷新、标记为、删除、[各视图专属按钮]、导出；
+             标记为下拉收进标已读/标未读/星标/取消星标/标为垃圾，没任何可标记的视图不显示；
+             删除与导出只在电脑端直接显示、触屏上收进 ⋮ 菜单（垃圾邮件视图的 ⋮ 菜单
+             是空的，删除在触屏上也直接显示） -->
+        <button class="toolbar-btn" @click="refresh">
+          <Icon icon="fluent:arrow-clockwise-20-regular" width="16" height="16"/>
+          <span>{{ $t('refresh') }}</span>
+        </button>
+        <el-dropdown v-if="hasMarkActions" :disabled="checkedEmailCount === 0" trigger="click" placement="bottom-start">
+          <button class="toolbar-btn" :class="{ 'icon-disabled': checkedEmailCount === 0 }">
+            <Icon icon="fluent:tag-20-regular" width="16" height="16"/>
+            <span>{{ $t('markAs') }}</span>
+            <Icon icon="fluent:chevron-down-16-regular" width="14" height="14"/>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item v-if="showUnread && props.emailRead && props.type !== 'spam'" v-perm="'email:delete'" @click="handleRead">
+                <div class="right-dropdown-item">
+                  <Icon icon="fluent:mail-read-20-regular" width="20" height="20"/>
+                  <span>{{ $t('markAsRead') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="showUnread && props.emailUnread && props.type !== 'spam'" v-perm="'email:delete'" @click="handleUnread">
+                <div class="right-dropdown-item">
+                  <Icon icon="fluent:mail-unread-20-regular" width="20" height="20"/>
+                  <span>{{ $t('markAsUnread') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="props.starAdd && props.allowStar" @click="handleStarSelected">
+                <div class="right-dropdown-item">
+                  <Icon icon="fluent:star-20-regular" width="20" height="20"/>
+                  <span>{{ $t('starSelected') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="props.starCancel" @click="handleUnstarSelected">
+                <div class="right-dropdown-item">
+                  <Icon icon="fluent:star-off-20-regular" width="20" height="20"/>
+                  <span>{{ $t('unstarSelected') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="props.emailSpam" v-perm="'email:delete'" @click="handleSpamSelected">
+                <div class="right-dropdown-item">
+                  <Icon icon="hugeicons:mail-block-01" class="icon-huge icon-spam-badge" width="20" height="20"/>
+                  <span>{{ $t('markSpam') }}</span>
+                </div>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <button v-perm="'email:delete'" class="toolbar-btn" v-if="uiStore.finePointer || props.type === 'spam'"
                 :class="{ 'icon-disabled': checkedEmailCount === 0 }"
-                @click="handleRead"/>
-        </el-tooltip>
-        <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsUnread')">
-          <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-unread-20-regular" width="20" height="20"
-                v-if="showUnread && props.emailUnread && props.type !== 'spam'"
-                :class="{ 'icon-disabled': checkedEmailCount === 0 }"
-                @click="handleUnread"/>
-        </el-tooltip>
-        <!-- 批量操作图标常驻显示：未勾选时禁用态（半透明、点不动），勾选后恢复可点；
-             垃圾邮件视图的 ⋮ 菜单是空的（不要已读/导出、没有标垃圾项），删除在触屏上也直接显示 -->
-        <el-tooltip effect="dark" :hide-after="0" :content="props.type === 'trash' ? $t('deleteForeverSelected') : $t('deleteSelected')" v-if="uiStore.finePointer || props.type === 'spam'">
-          <Icon v-perm="'email:delete'" class="icon delete icon-huge" icon="hugeicons:delete-02" width="20" height="20"
-                :class="{ 'icon-disabled': checkedEmailCount === 0 }"
-                @click="handleDelete"/>
-        </el-tooltip>
+                @click="handleDelete">
+          <Icon icon="hugeicons:delete-02" width="16" height="16"/>
+          <span>{{ props.type === 'trash' ? $t('deleteForever') : $t('delete') }}</span>
+        </button>
         <slot name="first"></slot>
-        <el-tooltip effect="dark" :hide-after="0" :content="$t('exportSelected')" v-if="uiStore.finePointer">
-          <Icon class="icon" icon="fluent:arrow-download-20-regular" width="20" height="20"
-                v-if="props.type !== 'draft' && props.type !== 'spam'"
+        <button class="toolbar-btn" v-if="uiStore.finePointer && props.type !== 'draft' && props.type !== 'spam'"
                 :class="{ 'icon-disabled': checkedEmailCount === 0 }"
-                @click="handleExport"/>
-        </el-tooltip>
+                @click="handleExport">
+          <Icon icon="fluent:arrow-download-20-regular" width="16" height="16"/>
+          <span>{{ $t('export') }}</span>
+        </button>
         <!-- 触屏 ⋮ 更多菜单：删除/标垃圾/导出收进来，顶栏只留标已读/标未读 + ⋮；
              常驻显示，未勾选时禁用态（半透明、点不开）；电脑端不出现；垃圾邮件视图
              菜单是空的，不显示 ⋮；
@@ -300,7 +330,7 @@
               </div>
             </template>
           </el-dropdown-item>
-          <el-dropdown-item v-if="['email','star'].includes(props.type)" @click="openReply(rightClickEmail)">
+          <el-dropdown-item v-if="['email','star'].includes(props.type) && rightClickEmail.type === 0" @click="openReply(rightClickEmail)">
             <template #default>
               <div class="right-dropdown-item">
                 <Icon icon="fluent:arrow-reply-20-regular" width="20" height="20"  />
@@ -324,7 +354,7 @@
               </div>
             </template>
           </el-dropdown-item>
-          <el-dropdown-item v-if="['email'].includes(props.type)" @click="rightSpam(rightClickEmail.emailId)">
+          <el-dropdown-item v-if="['email'].includes(props.type) && rightClickEmail.type === 0" @click="rightSpam(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
                 <Icon icon="hugeicons:mail-block-01" class="icon-huge icon-spam-badge" width="20" height="20" />
@@ -956,6 +986,43 @@ function handleSpamSelected() {
   const emailIds = getSelectedMailsIds();
   if (emailIds.length === 0 || !props.emailSpam) return;
   props.emailSpam(emailIds);
+}
+
+// 「标记为」下拉有没有可点的项：标已读/未读（垃圾视图不要）、星标/取消星标、标为垃圾，
+// 一项都没有就不显示下拉（回收站、草稿箱都没有这些操作）
+const hasMarkActions = computed(() => {
+  return (props.showUnread && (props.emailRead || props.emailUnread) && props.type !== 'spam')
+    || !!props.starAdd || !!props.starCancel || !!props.emailSpam
+})
+
+// 「标记为」菜单里的批量星标/取消星标：逐封走单封 starChange 的逻辑（乐观更新行状态，
+// 成功后同步星标视图，失败回滚该封）；星标 API 是单封接口，批量只能逐封调
+function handleStarSelected() {
+  if (!props.starAdd) return
+  emailList.filter(e => e.checked && !e.isStar).forEach(email => {
+    email.isStar = 1
+    props.starAdd(email.emailId).then(() => {
+      email.isStar = 1
+      props.starSuccess?.(email)
+    }).catch(e => {
+      console.error(e)
+      email.isStar = 0
+    })
+  })
+}
+
+function handleUnstarSelected() {
+  if (!props.starCancel) return
+  emailList.filter(e => e.checked && e.isStar).forEach(email => {
+    email.isStar = 0
+    props.starCancel(email.emailId).then(() => {
+      email.isStar = 0
+      props.cancelSuccess?.(email)
+    }).catch(e => {
+      console.error(e)
+      email.isStar = 1
+    })
+  })
 }
 
 function emailRead(emailId) {

@@ -12,17 +12,19 @@
                @jump="jumpContent"
   >
     <template #first>
-      <el-tooltip effect="dark" :content="$t('unspamSelected')">
-        <Icon v-perm="'email:delete'" class="icon" icon="fluent:arrow-undo-20-regular" width="20" height="20"
+      <button v-perm="'email:delete'" class="toolbar-btn"
               :class="{ 'icon-disabled': selectedIds.length === 0 }"
-              @click="handleUnspamSelected"/>
-      </el-tooltip>
+              @click="handleUnspamSelected">
+        <Icon icon="fluent:arrow-undo-20-regular" width="16" height="16"/>
+        <span>{{ $t('moveToInbox') }}</span>
+      </button>
       <!-- 清空垃圾箱用扫把图标：原来跟删除选中共用一个垃圾桶图标，顶栏两个垃圾桶分不清 -->
-      <el-tooltip effect="dark" :content="$t('clearSpam')">
-        <Icon v-perm="'email:delete'" class="icon" icon="fluent:broom-20-regular" width="20" height="20"
+      <button v-perm="'email:delete'" class="toolbar-btn"
               v-if="spamCount > 0"
-              @click="handleClearSpam"/>
-      </el-tooltip>
+              @click="handleClearSpam">
+        <Icon icon="fluent:broom-20-regular" width="16" height="16"/>
+        <span>{{ $t('emptySpam') }}</span>
+      </button>
     </template>
   </emailScroll>
 </template>

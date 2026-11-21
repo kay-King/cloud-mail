@@ -30,7 +30,7 @@ const routes = [
                 }
             },
             {
-                path: '/:mailbox(inbox|starred|sent|all-mail|trash|spam)/messages',
+                path: '/:mailbox(inbox|starred|sent|all-mail|trash|spam|exchanged)/messages',
                 name: 'content',
                 component: lazyImport(() => import('@/views/content/index.vue')),
                 meta: {
@@ -77,6 +77,21 @@ const routes = [
                     title: 'spam',
                     name: 'spam',
                     menu: true
+                }
+            },
+            {
+                // 往来邮件：发件人卡片「查看往来邮件」点进来，看与某一个人的收发往来；
+                // 不在侧边栏里（没有菜单项），只从卡片进入；没带 address 直接回收件箱
+                path: '/exchanged',
+                name: 'exchanged',
+                component: lazyImport(() => import('@/views/exchanged/index.vue')),
+                meta: {
+                    title: 'exchanged',
+                    name: 'exchanged',
+                    menu: true
+                },
+                beforeEnter: (to) => {
+                    if (!to.query.address) return {name: 'email'}
                 }
             },
             {
@@ -211,7 +226,7 @@ router.afterEach((to) => {
 
     const uiStore = useUiStore()
     if (to.meta.menu) {
-        if (['content', 'email', 'send', 'trash', 'spam'].includes(to.meta.name)) {
+        if (['content', 'email', 'send', 'trash', 'spam', 'exchanged'].includes(to.meta.name)) {
             uiStore.accountShow = window.innerWidth > 767;
         } else {
             uiStore.accountShow = false
@@ -222,7 +237,7 @@ router.afterEach((to) => {
     // 不受 keep-alive 停用影响（放 email-scroll 的 watch 里不可靠）。去设置/通讯录等页面
     // 再回来不清空（lastListRoute 只记邮件列表路由，首次为 null 时只记录不清空）。
     const emailStore = useEmailStore()
-    if (['email', 'send', 'star', 'all-email', 'trash', 'spam'].includes(to.name)) {
+    if (['email', 'send', 'star', 'all-email', 'trash', 'spam', 'exchanged'].includes(to.name)) {
         if (emailStore.lastListRoute !== null && to.name !== emailStore.lastListRoute) {
             emailStore.contentData.email = null
         }

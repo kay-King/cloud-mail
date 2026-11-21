@@ -31,3 +31,29 @@ app.mount('#app');
 // 挂载完成标记：index.html 里的第二层自救 150 秒后检查；init 挂起（最长约 2 分钟）时挂载
 // 一直没发生，说明真卡住了才自救——不等 25 秒那层，避免慢网下打断一次可能成功的 init
 window.__APP_MOUNTED__ = true;
+
+// 启动后后台预取各页面代码：每次部署都会换掉页面代码的文件名，手机上开着的旧页面
+// 点开还没访问过的页面时，旧文件已不在服务器上（构建时 dist 会清空重建），请求拿到
+// 的是首页 HTML，当成代码加载失败，触发整页刷新——只在部署后第一次点开某页面时发生，
+// 所以“有时候”才触发。启动时（文件还在服务器上）先把各页面的代码下载到缓存里，
+// 之后点开直接用缓存，部署后也不用刷新。等浏览器空闲再取，不抢首屏带宽；取失败只记日志。
+// 登录/测试/404 很少从站内点开，不预取，省点流量。
+const prefetchRouteChunks = () => {
+  const names = ['email', 'star', 'send', 'trash', 'spam', 'attachments', 'contacts', 'setting', 'content', 'exchanged', 'all-email', 'draft']
+  for (const name of names) {
+    try {
+      const route = router.getRoutes().find(r => r.name === name)
+      const loader = route?.components?.default
+      if (typeof loader === 'function') {
+        loader().catch(() => {})
+      }
+    } catch (e) {
+      // 预取失败不影响使用（点开时再正常加载，失败了走路由的自动恢复）
+    }
+  }
+}
+if (typeof window.requestIdleCallback === 'function') {
+  window.requestIdleCallback(prefetchRouteChunks, {timeout: 8000})
+} else {
+  setTimeout(prefetchRouteChunks, 3000)
+}

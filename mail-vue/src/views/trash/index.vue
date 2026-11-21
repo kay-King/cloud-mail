@@ -10,11 +10,12 @@
                @jump="jumpContent"
   >
     <template #first>
-      <el-tooltip effect="dark" :content="$t('restoreSelected')">
-        <Icon v-perm="'email:delete'" class="icon" icon="fluent:arrow-undo-20-regular" width="20" height="20"
+      <button v-perm="'email:delete'" class="toolbar-btn"
               :class="{ 'icon-disabled': selectedIds.length === 0 }"
-              @click="handleRestoreSelected"/>
-      </el-tooltip>
+              @click="handleRestoreSelected">
+        <Icon icon="fluent:arrow-undo-20-regular" width="16" height="16"/>
+        <span>{{ $t('restore') }}</span>
+      </button>
     </template>
   </emailScroll>
 </template>
