@@ -67,7 +67,9 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <button v-perm="'email:delete'" class="toolbar-btn" v-if="uiStore.finePointer || props.type === 'spam'"
+        <!-- 删除按钮电脑手机都有（2026-11-21 用户指出手机端缺了它）：原来只在电脑端显示，
+             触屏 ⋮ 菜单里的删除又已拿掉，手机上批量删除只能左滑单封删 -->
+        <button v-perm="'email:delete'" class="toolbar-btn"
                 @click="handleDelete">
           <Icon icon="hugeicons:delete-02" width="16" height="16"/>
           <span>{{ props.type === 'trash' ? $t('deleteForever') : $t('delete') }}</span>
