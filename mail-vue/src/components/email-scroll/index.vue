@@ -1722,6 +1722,13 @@ function handleUndoToast() {
           silentRefresh()
         }
       } else if (email && !emailList.some(e => e.emailId === emailId)) {
+        // 删时行是滑出去的，swipeState 还指着这封邮件：不先清掉，恢复的行会带着
+        // 偏移渲染（红底露着、行在屏幕外），之后才滑回来，看着像倒放（用户 2026-11-21 反馈）
+        if (swipeState.emailId === emailId) {
+          swipeState.emailId = null
+          swipeState.offset = 0
+          swipeState.dragging = false
+        }
         // 品牌头像重新加载前先显示首字母占位（brandLoaded 是旧值 true，新 img 还没到会闪白圈）
         email.brandLoaded = false
         const at = Math.max(0, Math.min(index < 0 ? emailList.length : index, emailList.length))
@@ -1884,6 +1891,13 @@ function onRowTouchEnd() {
               emailList.splice(at, 1)
               total.value = Math.max(0, total.value - 1)
               if (noLoading.value) total.value = emailList.length
+            }
+            // 行已拼掉，滑动状态顺手清掉（否则这封邮件以后再出现——比如别的设备
+            // 恢复了它、重拉把它拉回来——会带着滑出偏移渲染，红底露着）
+            if (swipeState.emailId === email.emailId) {
+              swipeState.emailId = null
+              swipeState.offset = 0
+              swipeState.dragging = false
             }
             showUndoToast('delete', email.emailId, email, undoIndex)
             pendingDelete = props.emailDelete([email.emailId]).then(() => {
