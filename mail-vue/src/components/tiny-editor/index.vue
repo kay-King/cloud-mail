@@ -124,6 +124,18 @@ function initTinyMCE() {
   })
 }
 
+// 按窗口大小选工具集（照列表顶栏按实测宽度收进 ⋯ 的做法）：
+// 窗口 <390（小屏手机）：只留最常用的 5 个，实测约 210px，320px 屏也放得下；
+// 390–767：加前景/背景色（约 332px，390px 屏容器 360px 放得下）；
+// ≥768：全量工具，floating 折叠。手机端不再靠 floating 的溢出计算
+// （个别手机上不生效），工具集本身就是放得下的。
+function toolbarForWidth() {
+  const w = window.innerWidth
+  if (w < 390) return 'undo redo | bold italic underline'
+  if (w < 768) return 'undo redo | bold italic underline | forecolor backcolor'
+  return 'undo redo | bold italic underline | forecolor backcolor | fontsize | emoticons | alignleft aligncenter alignright alignjustify | outdent indent | bullist numlist | link image | table code preview fullscreen'
+}
+
 function initEditor() {
   window.tinymce.init({
     selector: `#${props.editorId}`,
@@ -140,7 +152,7 @@ function initEditor() {
          --scrollbar-thumb-color: ${uiStore.dark ? '#8D9095' : '#A8ABB2'};
     }`,
     plugins: 'link image advlist lists  emoticons fullscreen  table preview code',
-    toolbar: 'undo redo | bold italic underline | forecolor backcolor | fontsize | emoticons | alignleft aligncenter alignright alignjustify | outdent indent | bullist numlist | link image | table code preview fullscreen',
+    toolbar: toolbarForWidth(),
     toolbar_mode: 'floating',
     font_size_formats: '8px 10px 12px 14px 16px 18px 24px 36px',
     emoticons_search: false,

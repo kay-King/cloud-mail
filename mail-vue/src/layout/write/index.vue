@@ -665,6 +665,7 @@ function resetForm() {
   form.sendType = ''
   form.emailId = 0
   form.draftId = null
+  autoSavedDraft = false
   backReply.content = ''
   backReply.subject = ''
   backReply.receiveEmail = []
@@ -680,6 +681,12 @@ function change(content, text) {
 // 草稿自动保存：停笔 2 秒后悄悄存进草稿箱，意外退出（返回键、切后台被杀、闪退）回来草稿还在
 // 直写 IndexedDB，不走 draftStore.setDraft——那个 watcher 在草稿箱页面才挂载，收件箱写信走不到
 let autoSaveTimer = null
+// 自动保存是否触发过：触发过说明草稿是自动存的，关窗时仍弹确认让用户选保留还是丢弃
+// （用户 2026-11-21 要求保留弹窗）；没触发过的已有草稿走原版静默保存
+let autoSavedDraft = false
+// 打开已有草稿时填表会触发一次自动保存 watcher，置 true 让 watcher 跳过这一次
+// （否则打开草稿看一眼就关也要弹确认）；watcher 消费后立即清掉
+let suppressAutoSaveOnce = false
 
 function hasDraftContent(content) {
   return !!(content || form.subject || form.receiveEmail.length > 0 || form.ccEmail.length > 0 || form.bccEmail.length > 0)
@@ -719,6 +726,7 @@ async function autoSaveDraft() {
       }
       form.draftId = draftId
     }
+    autoSavedDraft = true
     draftStore.refreshList++
   } catch (e) {
     console.warn('auto save draft failed', e)
@@ -731,6 +739,7 @@ function scheduleAutoSave() {
 }
 
 watch(() => [form.subject, form.content, form.receiveEmail, form.ccEmail, form.bccEmail, form.attachments], () => {
+  if (suppressAutoSaveOnce) { suppressAutoSaveOnce = false; return }
   if (show.value) scheduleAutoSave()
 }, {deep: true})
 
@@ -867,6 +876,7 @@ function open() {
 }
 
 function openDraft(draft) {
+  suppressAutoSaveOnce = true
   Object.assign(form, {...draft, manyType: draft.manyType || 'together'})
   form.ccEmail = draft.ccEmail || []
   form.bccEmail = draft.bccEmail || []
@@ -903,7 +913,9 @@ function close() {
     form.content = editor.value.getContent();
   }
 
-  if (form.draftId) {
+  // 打开的已有草稿且没改过（自动保存没触发过）：静默保存，原版行为。
+  // 自动保存过的草稿：仍弹确认，让用户选保留还是丢弃（用户要求保留弹窗）
+  if (form.draftId && !autoSavedDraft) {
     draftStore.setDraft = {...toRaw(form)}
     show.value = false
     resetForm()
@@ -937,11 +949,19 @@ function close() {
     distinguishCancelAndClose: true
   }).then(async () => {
     const formData = {...toRaw(form)};
-    delete formData.draftId
     delete formData.attachments
     formData.createTime = dayjs().utc().format('YYYY-MM-DD HH:mm:ss');
-    const draftId = await db.value.draft.add({...formData})
-    db.value.att.add({draftId, attachments: toRaw(form.attachments)})
+    if (form.draftId) {
+      // 自动保存已建过行：就地更新，不另建重复草稿
+      const existingId = form.draftId
+      delete formData.draftId
+      await db.value.draft.update(existingId, {...formData})
+      await db.value.att.put({draftId: existingId, attachments: toRaw(form.attachments)})
+    } else {
+      delete formData.draftId
+      const draftId = await db.value.draft.add({...formData})
+      db.value.att.add({draftId, attachments: toRaw(form.attachments)})
+    }
     draftStore.refreshList++
     show.value = false
     await nextTick(() => {
