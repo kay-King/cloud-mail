@@ -24,6 +24,13 @@ export function applyRemoteOp(payload, { pullLatest } = {}) {
     if (ids.length) {
       emailStore.deleteIds = [...ids];
     }
+    if (op === 'restore' || op === 'unspam') {
+      // 恢复/取消标垃圾的邮件回到了收件箱：deleteIds 只会拼掉各列表里已有的行，
+      // 收件箱里本来没有这封，光靠标脏要等切走再回来才重拉；正在看收件箱或
+      // 全部邮件的话直接静默重拉，恢复立刻看得见（没挂载时跳过，进来时本来就拉新的）
+      emailStore.emailScroll?.silentRefresh?.();
+      emailStore.allEmailScroll?.silentRefresh?.();
+    }
   } else if (op === 'read') {
     ids.forEach(id => emailStore.markListRead(id));
   } else if (op === 'unread') {

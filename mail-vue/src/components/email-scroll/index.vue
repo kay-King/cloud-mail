@@ -649,6 +649,7 @@ const queryParam = reactive({
 
 defineExpose({
   refreshList,
+  silentRefresh,
   deleteEmail,
   addItem,
   handleList,
@@ -1649,6 +1650,11 @@ function refreshList() {
   checkAll.value = false;
   isIndeterminate.value = false;
   getEmailList(true);
+}
+
+// 静默重拉（跨设备同步用）：不显示加载圈、不回顶、不清勾选，后台把新行拉进来
+function silentRefresh() {
+  return getEmailList(true, true)
 }
 
 function loadData() {
