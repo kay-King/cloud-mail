@@ -543,6 +543,7 @@ const zh = {
     banRestore: '确认禁用 {msg} 吗？',
     logOut: '退出',
     clearContentConfirm: '确定要清空所有内容吗？',
+    clearContent: '清空内容',
     emptyRecipientMsg: '收件人邮箱地址不能为空',
     emptySubjectMsg: '主题不能为空',
     emptyContentMsg: '邮件正文不能为空',

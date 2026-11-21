@@ -543,6 +543,7 @@ const en = {
     banRestore: 'Confirm banning {msg}?',
     logOut: 'Sign out',
     clearContentConfirm: 'Are you sure to clear all content?',
+    clearContent: 'Clear content',
     emptyRecipientMsg: 'Recipient email cannot be empty',
     emptySubjectMsg: 'Subject cannot be empty',
     emptyContentMsg: 'Content cannot be empty',

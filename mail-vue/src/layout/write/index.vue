@@ -116,9 +116,9 @@
             <Icon icon="fluent:attach-20-regular" width="20" height="20"/>
           </button>
           <input ref="fileInputRef" type="file" multiple style="display: none" @change="onFilesSelected"/>
-          <div class="att-clear" @click="clearContent">
+          <button type="button" class="att-clear" @click="clearContent" :aria-label="$t('clearContent')">
             <Icon icon="fluent:clear-formatting-20-regular" width="20" height="20"/>
-          </div>
+          </button>
           <div class="att-list">
             <div class="att-item" v-for="(item,index) in form.attachments" :key="index">
               <Icon v-bind="getIconByName(item.filename)"/>
@@ -1045,6 +1045,12 @@ function close() {
         .att-clear {
           cursor: pointer;
           margin-left: 20px;
+          background: transparent;
+          border: none;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          color: inherit;
         }
 
         .att-list {
