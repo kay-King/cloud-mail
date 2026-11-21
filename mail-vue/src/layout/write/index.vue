@@ -40,8 +40,7 @@
             </template>
             <template #suffix>
               <div class="address-actions">
-                <button type="button" class="address-toggle" v-if="form.manyType !== 'divide' && !showCc" @click.stop="openCc">CC</button>
-                <button type="button" class="address-toggle" v-if="form.manyType !== 'divide' && !showBcc" @click.stop="openBcc">BCC</button>
+                <button type="button" class="address-toggle" v-if="form.manyType !== 'divide'" @click.stop="toggleCcBcc">{{ $t('cc') }}/{{ $t('bcc') }}</button>
                 <el-tooltip effect="dark" :content="$t('chooseContacts')">
                   <Icon icon="fluent:person-add-20-regular" width="20" height="20" class="add-contact" @click.stop="openContacts('receive')" />
                 </el-tooltip>
@@ -457,14 +456,14 @@ function addBccTag(val) {
   if (addAddressTag(form.bccEmail, val) && suggestOpen.bcc) toggleSuggest('bcc')
 }
 
-function openCc() {
-  showCc.value = true
-  nextTick(() => ccInputRef.value?.focus?.())
-}
-
-function openBcc() {
-  showBcc.value = true
-  nextTick(() => bccInputRef.value?.focus?.())
+function toggleCcBcc() {
+  // 一个开关同时管抄送和密送两行：都没展开就一起展开；已展开就收起空行，有收件人的行留着
+  if (showCc.value || showBcc.value) {
+    hideEmptyCcBcc()
+  } else {
+    showCc.value = true
+    showBcc.value = true
+  }
 }
 
 function hideEmptyCcBcc() {
