@@ -16,6 +16,7 @@ import {useSettingStore} from "@/store/setting.js";
 import {computed, onBeforeUnmount, onMounted, watch} from "vue";
 import { useRoute } from 'vue-router'
 import { hasPerm } from "@/perm/perm.js"
+import { startInboxWs, stopInboxWs, syncInboxWs } from "@/websocket/inbox-sync.js";
 
 const settingStore = useSettingStore()
 const uiStore = useUiStore();
@@ -88,10 +89,19 @@ function showNotice(data) {
 onMounted(() => {
   window.addEventListener('resize', handleResize)
   handleResize()
+  // 实时同步挂在布局上：登录会话全程在线，不依赖收件箱视图是否挂载过
+  // （原来在收件箱视图里，会话从 /spam 等路由开始时 WS 根本不连，收不到任何广播）
+  startInboxWs()
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
+  stopInboxWs()
+})
+
+// 自动刷新开关变了就同步 WS 连接状态（原来在收件箱视图里，收件箱没挂载时改开关不同步）
+watch(() => settingStore.settings.autoRefresh, () => {
+  syncInboxWs()
 })
 
 const handleResize = () => {

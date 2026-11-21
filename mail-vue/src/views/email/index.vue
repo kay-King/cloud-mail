@@ -22,21 +22,15 @@
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
 import {useUiStore} from "@/store/ui.js";
-import {useSettingStore} from "@/store/setting.js";
 import {useSidebarStore} from "@/store/sidebar.js";
 import emailScroll from "@/components/email-scroll/index.vue"
-import {emailList, emailDelete, emailLatest, emailMarkSpam} from "@/request/email.js";
+import {emailList, emailDelete, emailMarkSpam} from "@/request/email.js";
 import {useListHandlers} from "@/composables/useListHandlers.js";
-import {defineOptions, onBeforeUnmount, onMounted, ref, watch} from "vue";
+import {defineOptions, onMounted, ref, watch} from "vue";
 import {ElMessage} from "element-plus";
 import {useI18n} from "vue-i18n";
-import {sleep} from "@/utils/time-utils.js";
 import router from "@/router/index.js";
-import {
-  inboxWs,
-  isAutoRefreshEnabled,
-} from "@/websocket/client.js";
-import { applyRemoteOp } from "@/websocket/remote-op.js";
+import { retryInboxWsNow } from "@/websocket/inbox-sync.js";
 
 defineOptions({
   name: 'email'
@@ -45,29 +39,12 @@ defineOptions({
 const emailStore = useEmailStore();
 const uiStore = useUiStore();
 const accountStore = useAccountStore();
-const settingStore = useSettingStore();
 const sidebarStore = useSidebarStore();
 const {t} = useI18n()
 const scroll = ref({})
-const existIds = new Set();
-let pullTimer = null
 
 onMounted(() => {
   emailStore.emailScroll = scroll;
-  // 收件箱实时：推送或重连后再拉 emailLatest，不按间隔轮询
-  inboxWs.start({
-    isEnabled: () => isAutoRefreshEnabled(settingStore.settings.autoRefresh),
-    onMessage: onWsMessage,
-    onReconnect: () => schedulePullLatest(),
-  });
-})
-
-onBeforeUnmount(() => {
-  if (pullTimer) {
-    window.clearTimeout(pullTimer)
-    pullTimer = null
-  }
-  inboxWs.stop()
 })
 
 
@@ -83,12 +60,9 @@ watch(
   {deep: true}
 )
 
-watch(() => settingStore.settings.autoRefresh, () => {
-  inboxWs.sync()
-})
 
 function onRefreshSuccess() {
-  inboxWs.retryNow()
+  retryInboxWsNow()
 }
 
 function jumpContent(email) {
@@ -118,86 +92,6 @@ function markSpamEmails(emailIds) {
 // 列表里的标已读 / 标为未读 / 星标切换：成功后刷新侧边栏未读数（与星标/垃圾箱视图共用）
 const {handleListRead, handleListUnread, handleStarAdd, handleStarCancel} = useListHandlers()
 
-// 推送到达：非「全部收取」时忽略其它账号的信。
-function onWsMessage(event) {
-  // 远端操作事件（另一台设备上删/标已读/星标等）：直接应用到各列表，不走补拉
-  if (event?.type === 'mail_op') {
-    applyRemoteOp(event);
-    return;
-  }
-  // 新邮件到达可能改变星标/垃圾箱未读数（未读数是按用户汇总的，不分当前账号）
-  sidebarStore.refreshUnread()
-  const allReceive = accountStore.currentAccount.allReceive
-  if (!allReceive && event?.accountId != null && Number(event.accountId) !== Number(accountStore.currentAccountId)) {
-    return
-  }
-  schedulePullLatest()
-}
-
-// 短时间多条推送合并成一次补拉。
-function schedulePullLatest() {
-  if (pullTimer) {
-    window.clearTimeout(pullTimer)
-  }
-  pullTimer = window.setTimeout(() => {
-    pullTimer = null
-    void pullLatest()
-  }, 150)
-}
-
-// 按当前列表最新 id 拉取之后的新邮件并插入。
-async function pullLatest() {
-  const searchParams = emailStore.searchParams
-  if (searchParams.text || searchParams.startDate || searchParams.endDate) {
-    return
-  }
-
-  if (scroll.value.firstLoad) {
-    return
-  }
-
-  const latestId = scroll.value.latestEmail?.emailId
-  const accountId = accountStore.currentAccountId
-  const allReceive = scroll.value.latestEmail?.allReceive
-
-  if (accountId !== scroll.value.latestEmail?.reqAccountId) {
-    return
-  }
-
-  try {
-    const list = await emailLatest(latestId, accountId, allReceive);
-
-    if (accountId !== accountStore.currentAccountId || allReceive !== accountStore.currentAccount.allReceive) {
-      return
-    }
-
-    if (list.length > 0) {
-      emailStore.applyFullList(list)
-
-      for (let email of list) {
-
-        email.reqAccountId = accountId;
-        email.allReceive = allReceive;
-
-        if (!existIds.has(email.emailId)) {
-
-          existIds.add(email.emailId)
-          scroll.value.addItem(email)
-
-          await sleep(50)
-        }
-
-      }
-
-    }
-  } catch (e) {
-    if (e.code === 401 || e.code === 403) {
-      settingStore.settings.autoRefresh = 1;
-      inboxWs.sync();
-    }
-    console.error(e)
-  }
-}
 
 function addStar(email) {
   emailStore.starScroll?.addItem(email)
