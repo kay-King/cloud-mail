@@ -212,31 +212,37 @@
       </div>
     </el-dialog>
     <el-dialog class="account-dialog" v-model="accountShow" :title="t('userAccount')" @closed="resetAccountList" >
-      <el-table :data="accountList" style="height: 480px" v-loading="accountLoading" element-loading-background="transparent" :empty-text="accountLoading ? '' : null">
-        <el-table-column property="email" :label="t('emailAccount')" >
-          <template #default="props">
-            <div class="email-row">{{ props.row.email }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column property="address" :label="t('tabStatus')"  :width="locale === 'en' ? 75 : 65" >
-          <template #default="props">
-            <el-tag type="primary" disable-transitions v-if="props.row.isDel === 0">{{$t('active')}}</el-tag>
-            <el-tag type="info" disable-transitions v-if="props.row.isDel === 1">{{$t('deleted')}}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('action')" :width="locale === 'en' ? 75 : 65" >
-          <template #default="props">
-            <el-dropdown trigger="click">
-              <el-button type="primary" size="small">{{t('action')}}</el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item @click="deleteAccount(props.row)">{{ $t('delete') }}</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="account-list-wrap">
+        <!-- 加载遮罩：跟全站同一个四点加载图标（2026-11-21 统一，弹窗内账号表格最后一处 v-loading） -->
+        <div class="loading" :class="accountLoading ? 'loading-show' : 'loading-hide'">
+          <loading/>
+        </div>
+        <el-table :data="accountList" style="height: 480px" :empty-text="accountLoading ? '' : null">
+          <el-table-column property="email" :label="t('emailAccount')" >
+            <template #default="props">
+              <div class="email-row">{{ props.row.email }}</div>
+            </template>
+          </el-table-column>
+          <el-table-column property="address" :label="t('tabStatus')"  :width="locale === 'en' ? 75 : 65" >
+            <template #default="props">
+              <el-tag type="primary" disable-transitions v-if="props.row.isDel === 0">{{$t('active')}}</el-tag>
+              <el-tag type="info" disable-transitions v-if="props.row.isDel === 1">{{$t('deleted')}}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="t('action')" :width="locale === 'en' ? 75 : 65" >
+            <template #default="props">
+              <el-dropdown trigger="click">
+                <el-button type="primary" size="small">{{t('action')}}</el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item @click="deleteAccount(props.row)">{{ $t('delete') }}</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
       <div class="account-pagination">
         <el-pagination
             :disabled="accountLoading"
@@ -1257,6 +1263,10 @@ function adjustWidth() {
   width: 100px;
   opacity: 0;
   pointer-events: none;
+}
+
+.account-list-wrap {
+  position: relative;
 }
 
 .loading {
