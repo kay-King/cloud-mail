@@ -740,6 +740,9 @@ watch(() => [form.subject, form.content, form.receiveEmail, form.ccEmail, form.b
 watch(() => show.value, (visible) => {
   if (!visible) return
   nextTick(() => {
+    // 写信窗可见后再初始化编辑器（首次打开时）：隐藏状态初始化会让
+    // floating 工具栏溢出计算按 0 宽算，个别手机上工具栏不折进「…」
+    if (editor.value && editor.value.ensureInit) editor.value.ensureInit()
     setTimeout(() => {
       window.dispatchEvent(new Event('resize'))
       if (editor.value && editor.value.repaint) editor.value.repaint()

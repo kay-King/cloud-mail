@@ -16,7 +16,8 @@ defineExpose({
   clearEditor,
   focus,
   getContent,
-  repaint
+  repaint,
+  ensureInit
 })
 
 const props = defineProps({
@@ -41,7 +42,10 @@ const uiStore = useUiStore();
 const settingStore = useSettingStore();
 
 onMounted(() => {
-  initTinyMCE();
+  // 只预加载 TinyMCE 脚本，不初始化：编辑器在隐藏状态（写信窗 v-show 关闭时）
+  // 初始化，floating 工具栏的溢出计算会按 0 宽算，个别手机上工具栏不折进「…」；
+  // 等写信窗打开、可见了再初始化（ensureInit），工具栏才能正确折叠
+  loadTinyMCE();
 });
 
 onBeforeUnmount(() => {
@@ -55,6 +59,7 @@ watch(() => props.defValue, (newValue) => {
 });
 
 watch(() => [uiStore.dark, settingStore.lang], () => {
+  if (!hasInit) return;
   destroyEditor();
   initEditor();
 });
@@ -73,17 +78,41 @@ function clearEditor() {
   }
 }
 
+let tinymceScriptPromise = null
+function loadTinyMCE() {
+  if (window.tinymce) return Promise.resolve()
+  if (!tinymceScriptPromise) {
+    tinymceScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = '/tinymce/tinymce.min.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    })
+  }
+  return tinymceScriptPromise
+}
+
+let hasInit = false
+function ensureInit() {
+  if (hasInit) return
+  hasInit = true
+  initTinyMCE()
+}
+
 function initTinyMCE() {
   if (window.tinymce) {
     initEditor();
-  } else {
-    showLoading.value = true;
-    const script = document.createElement('script');
-    script.src = '/tinymce/tinymce.min.js';
-    script.onload = () => initEditor();
-    document.head.appendChild(script);
-    showLoading.value = false;
+    return
   }
+  showLoading.value = true;
+  loadTinyMCE().then(() => {
+    showLoading.value = false;
+    // 等 textarea 重新渲染出来再初始化，否则 selector 找不到元素
+    nextTick(() => initEditor());
+  }).catch(() => {
+    showLoading.value = false;
+  })
 }
 
 function initEditor() {
@@ -160,12 +189,12 @@ function initEditor() {
 
 function focus() {
   nextTick(() => {
-    editor.value.focus()
+    if (editor.value) editor.value.focus()
   })
 }
 
 function getContent() {
-  return editor.value.getContent()
+  return editor.value ? editor.value.getContent() : ''
 }
 
 function repaint() {
