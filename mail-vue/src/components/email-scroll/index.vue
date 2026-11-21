@@ -78,10 +78,11 @@
           <Icon icon="fluent:arrow-download-20-regular" width="16" height="16"/>
           <span>{{ $t('export') }}</span>
         </button>
-        <!-- 触屏 ⋮ 更多菜单：只剩导出——删除是顶栏直接按钮、标垃圾在「标记为」下拉里，
-             再放菜单就是重复（2026-11-21 用户指出收件箱重复后去掉）；常驻显示，未勾选时点开
-             菜单、点具体操作时提示「未选中邮件」；电脑端不出现；草稿箱、垃圾邮件与回收站视
-             图菜单是空的，不显示 ⋮（回收站不要导出，菜单只剩导出就等于是空的）；
+        <!-- 触屏 ⋮ 更多菜单：导出 + 全部邮件的邮件清除（清除是低频管理操作，放顶栏会把
+             全部邮件顶栏挤成两行，2026-11-21 用户截图指出后收进菜单；删除是顶栏直接按钮、
+             标垃圾在「标记为」下拉里，再放菜单就是重复）；常驻显示，未勾选时点开菜单、点具
+             体操作时提示「未选中邮件」；电脑端不出现；草稿箱、垃圾邮件与回收站视图菜单是空
+             的，不显示 ⋮（回收站不要导出，菜单只剩导出就等于是空的）；
              bottom-start：⋮ 在顶栏左侧，菜单左缘对齐触发器，不会超出屏幕左缘 -->
         <el-dropdown v-if="!uiStore.finePointer && props.type !== 'spam' && props.type !== 'draft' && props.type !== 'trash'" trigger="click" placement="bottom-start">
           <Icon class="icon" icon="fluent:more-vertical-20-regular" width="20" height="20" />
@@ -91,6 +92,12 @@
                 <div class="right-dropdown-item">
                   <Icon icon="fluent:arrow-download-20-regular" width="20" height="20" />
                   <span>{{ $t('exportSelected') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="props.type === 'all-email'" @click="emit('clear-email')">
+                <div class="right-dropdown-item">
+                  <Icon icon="fluent:broom-20-regular" width="20" height="20" />
+                  <span>{{ $t('clearEmail') }}</span>
                 </div>
               </el-dropdown-item>
             </el-dropdown-menu>
@@ -525,7 +532,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['jump', 'refresh-before', 'refresh-success', 'delete-draft', 'right-search'])
+const emit = defineEmits(['jump', 'refresh-before', 'refresh-success', 'delete-draft', 'right-search', 'clear-email'])
 
 const {t} = useI18n()
 const settingStore = useSettingStore()

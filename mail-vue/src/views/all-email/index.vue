@@ -14,6 +14,7 @@
                  :time-sort="params.timeSort"
                  :item-height="65"
                  @jump="jumpContent"
+                 @clear-email="openBathDelete"
                  @refresh-success="onRefreshSuccess"
                  @right-search="rightSearch"
                  :highlight-text="allEmailStore.searchParams.text"
@@ -21,7 +22,8 @@
 
     >
       <template #first>
-        <button class="toolbar-btn" @click="openBathDelete">
+        <!-- 手机端不显示顶栏按钮，改走 ⋮ 菜单里的邮件清除（顶栏放不下会挤成两行） -->
+        <button v-if="uiStore.finePointer" class="toolbar-btn" @click="openBathDelete">
           <Icon icon="fluent:broom-20-regular" width="16" height="16"/>
           <span>{{ $t('clearEmail') }}</span>
         </button>
