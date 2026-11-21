@@ -11,7 +11,7 @@
       <el-button type="primary" @click="openAdd">{{ $t('addContact') }}</el-button>
     </div>
 
-    <el-table :data="list" v-loading="loading" :empty-text="loaded ? $t('noContacts') : ' '" class="contacts-table" v-if="!isMobile">
+    <el-table :data="list" v-loading="loading" :empty-text="loaded ? $t('noContacts') : ' '" class="contacts-table" v-if="!isMobile" @row-click="openEdit">
       <el-table-column :label="$t('contactName')" min-width="160">
         <template #default="{row}">
           <div class="name-cell">
@@ -28,16 +28,16 @@
       </el-table-column>
       <el-table-column width="200" align="right">
         <template #default="{row}">
-          <el-button link type="primary" v-perm="'email:send'" @click="writeTo(row)">{{ $t('writeMail') }}</el-button>
-          <el-button link type="primary" @click="openEdit(row)">{{ $t('change') }}</el-button>
-          <el-button link type="danger" @click="deleteRow(row)">{{ $t('deleted') }}</el-button>
+          <el-button link type="primary" v-perm="'email:send'" @click.stop="writeTo(row)">{{ $t('writeMail') }}</el-button>
+          <el-button link type="primary" @click.stop="openEdit(row)">{{ $t('change') }}</el-button>
+          <el-button link type="danger" @click.stop="deleteRow(row)">{{ $t('deleted') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
 
     <div class="contacts-cards" v-else v-loading="loading">
       <div v-if="list.length === 0 && !loading" class="contacts-empty">{{ $t('noContacts') }}</div>
-      <div class="contact-card" v-for="row in list" :key="row.contactId">
+      <div class="contact-card" v-for="row in list" :key="row.contactId" @click="openEdit(row)">
         <span class="avatar">{{ avatarText(row) }}</span>
         <div class="card-body">
           <div class="card-name">{{ row.name || row.email }}</div>
@@ -45,9 +45,9 @@
           <div class="card-remark" v-if="row.remark">{{ row.remark }}</div>
         </div>
         <div class="card-actions">
-          <Icon icon="fluent:send-20-regular" width="20" height="20" v-perm="'email:send'" @click="writeTo(row)"/>
-          <Icon icon="fluent:edit-20-regular" width="20" height="20" @click="openEdit(row)"/>
-          <Icon class="icon-huge" icon="hugeicons:delete-02" width="20" height="20" @click="deleteRow(row)"/>
+          <Icon icon="fluent:send-20-regular" width="20" height="20" v-perm="'email:send'" @click.stop="writeTo(row)"/>
+          <Icon icon="fluent:edit-20-regular" width="20" height="20" @click.stop="openEdit(row)"/>
+          <Icon class="icon-huge" icon="hugeicons:delete-02" width="20" height="20" @click.stop="deleteRow(row)"/>
         </div>
       </div>
     </div>
@@ -272,6 +272,12 @@ function writeTo(row) {
   border-radius: 10px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
+  cursor: pointer;
+}
+
+// 桌面表格行可点：鼠标放上去是手形
+:deep(.contacts-table .el-table__row) {
+  cursor: pointer;
 }
 
 .card-body {
