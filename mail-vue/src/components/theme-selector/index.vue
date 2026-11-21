@@ -173,7 +173,7 @@ function changeDark(nextIsDark, origin) {
   max-width: 640px;
 
   @media (max-width: 767px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
 }

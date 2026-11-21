@@ -292,7 +292,7 @@ const en = {
     unauthorized: 'Unauthorized',
     unlimited: 'Unlimited',
     sendCount: 'Send email : ',
-    accountCount: 'Add address : ',
+    accountCount: 'Mailbox limit: ',
     action: 'Action',
     chgPwd: 'Password',
     perm: 'Role',

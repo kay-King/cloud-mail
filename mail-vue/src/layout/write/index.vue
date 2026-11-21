@@ -682,7 +682,11 @@ function openForward(email) {
 
   email.subject = email.subject || ''
 
-  form.subject = email.subject
+  form.subject = (
+      email.subject.startsWith('Fw:') ||
+      email.subject.startsWith('Fw：') ||
+      email.subject.startsWith('转发：') ||
+      email.subject.startsWith('转发:')) ? email.subject : 'Fw: ' + email.subject
   form.sendType = 'forward'
 
   defValue.value = ''

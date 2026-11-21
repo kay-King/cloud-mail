@@ -528,7 +528,7 @@ async function jumpToEmail(row) {
 
 .cat-tabs {
   display: flex;
-  gap: 22px;
+  gap: 14px;
   overflow-x: auto;
   scrollbar-width: none;
   border-bottom: 1px solid var(--el-border-color-lighter);

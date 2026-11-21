@@ -45,9 +45,9 @@
           <div class="card-remark" v-if="row.remark">{{ row.remark }}</div>
         </div>
         <div class="card-actions">
-          <Icon icon="fluent:send-20-regular" width="20" height="20" v-perm="'email:send'" @click.stop="writeTo(row)"/>
-          <Icon icon="fluent:edit-20-regular" width="20" height="20" @click.stop="openEdit(row)"/>
-          <Icon class="icon-huge" icon="hugeicons:delete-02" width="20" height="20" @click.stop="deleteRow(row)"/>
+          <button type="button" class="card-action-btn" :aria-label="$t('writeMail')" v-perm="'email:send'" @click.stop="writeTo(row)"><Icon icon="fluent:send-20-regular" width="20" height="20"/></button>
+          <button type="button" class="card-action-btn" :aria-label="$t('change')" @click.stop="openEdit(row)"><Icon icon="fluent:edit-20-regular" width="20" height="20"/></button>
+          <button type="button" class="card-action-btn" :aria-label="$t('deleted')" @click.stop="deleteRow(row)"><Icon class="icon-huge" icon="hugeicons:delete-02" width="20" height="20"/></button>
         </div>
       </div>
     </div>
@@ -300,6 +300,16 @@ function writeTo(row) {
   display: flex;
   gap: 16px;
   color: var(--secondary-text-color);
+}
+
+.card-action-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
 }
 
 .contacts-empty {

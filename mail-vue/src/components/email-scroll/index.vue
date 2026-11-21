@@ -36,13 +36,13 @@
           </button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item v-if="showUnread && props.emailRead && props.type !== 'spam'" v-perm="'email:delete'" @click="handleRead">
+              <el-dropdown-item v-if="showUnread && props.emailRead" v-perm="'email:delete'" @click="handleRead">
                 <div class="right-dropdown-item">
                   <Icon icon="fluent:mail-read-20-regular" width="20" height="20"/>
                   <span>{{ $t('markAsRead') }}</span>
                 </div>
               </el-dropdown-item>
-              <el-dropdown-item v-if="showUnread && props.emailUnread && props.type !== 'spam'" v-perm="'email:delete'" @click="handleUnread">
+              <el-dropdown-item v-if="showUnread && props.emailUnread" v-perm="'email:delete'" @click="handleUnread">
                 <div class="right-dropdown-item">
                   <Icon icon="fluent:mail-unread-20-regular" width="20" height="20"/>
                   <span>{{ $t('markAsUnread') }}</span>
@@ -95,13 +95,13 @@
               <!-- 各视图专属按钮收进来时的菜单项（父视图的 #overflow 插槽，顶栏按钮被收时显示） -->
               <template v-if="tucked.slot"><slot name="overflow"></slot></template>
               <!-- 「标记为」被收进来时，它的 5 个操作直接平铺成菜单项（下拉套下拉点起来别扭） -->
-              <el-dropdown-item v-if="tucked.mark && showUnread && props.emailRead && props.type !== 'spam'" v-perm="'email:delete'" @click="handleRead">
+              <el-dropdown-item v-if="tucked.mark && showUnread && props.emailRead" v-perm="'email:delete'" @click="handleRead">
                 <div class="right-dropdown-item more-menu-item">
                   <Icon icon="fluent:mail-read-20-regular" width="16" height="16"/>
                   <span>{{ $t('markAsRead') }}</span>
                 </div>
               </el-dropdown-item>
-              <el-dropdown-item v-if="tucked.mark && showUnread && props.emailUnread && props.type !== 'spam'" v-perm="'email:delete'" @click="handleUnread">
+              <el-dropdown-item v-if="tucked.mark && showUnread && props.emailUnread" v-perm="'email:delete'" @click="handleUnread">
                 <div class="right-dropdown-item more-menu-item">
                   <Icon icon="fluent:mail-unread-20-regular" width="16" height="16"/>
                   <span>{{ $t('markAsUnread') }}</span>
@@ -1071,10 +1071,10 @@ function handleSpamSelected() {
   })
 }
 
-// 「标记为」下拉有没有可点的项：标已读/未读（垃圾视图不要）、星标/取消星标、标为垃圾，
+// 「标记为」下拉有没有可点的项：标已读/未读、星标/取消星标、标为垃圾，
 // 一项都没有就不显示下拉（回收站、草稿箱都没有这些操作）
 const hasMarkActions = computed(() => {
-  return (props.showUnread && (props.emailRead || props.emailUnread) && props.type !== 'spam')
+  return (props.showUnread && (props.emailRead || props.emailUnread))
     || !!props.starAdd || !!props.starCancel || !!props.emailSpam
 })
 
