@@ -1,20 +1,19 @@
 <template>
-  <!-- 顶栏通栏：el-header 在最上层横贯整屏，☰ 固定在屏幕左上角，侧边栏展开/收起时位置不变；侧边栏与内容区在顶栏下方 -->
-  <el-container class="layout" direction="vertical">
-    <el-header>
-      <Header />
-    </el-header>
+  <el-container class="layout">
+    <el-aside
+        class="aside"
+        :class="uiStore.asideShow ? 'aside-show' : 'el-aside-hide'">
+      <Aside />
+    </el-aside>
+    <div
+        :class="(uiStore.asideShow && isMobile)? 'overlay-show':'overlay-hide'"
+        @click="uiStore.asideShow = false"
+    ></div>
     <el-container class="main-container">
-      <el-aside
-          class="aside"
-          :class="uiStore.asideShow ? 'aside-show' : 'el-aside-hide'">
-        <Aside />
-      </el-aside>
-      <div
-          :class="(uiStore.asideShow && isMobile)? 'overlay-show':'overlay-hide'"
-          @click="uiStore.asideShow = false"
-      ></div>
       <el-main>
+        <el-header>
+            <Header />
+        </el-header>
         <Main />
       </el-main>
     </el-container>
@@ -109,16 +108,15 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-/* 顶栏已移到布局最上层：这里只放侧边栏与内容区，高度由 flex 分配（顶栏 60px，其余归这里）；滚动改由 el-main 承担，侧边栏不跟着滚 */
 .main-container {
+  min-height: 100%;
   background: var(--el-bg-color);
-  overflow: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .el-main {
   padding: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .el-header {

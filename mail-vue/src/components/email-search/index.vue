@@ -296,20 +296,13 @@ onBeforeUnmount(() => {
 }
 
 @media (min-width: 768px) {
-  /* 桌面端搜索框左缘下限 260px：账号栏折叠时不再回到 left: -1 盖住左上角的 ☰（原版同款问题，
-     原版里搜索框也会回到顶栏左缘盖住汉堡）；260px 既对齐侧边栏右缘（列表左缘），也让开标题 */
+  /* 搜索框左缘 259px：账号栏显示时对齐邮件列表左缘（账号栏宽 259px）；账号栏折叠时也停在这里，
+     不再回到 left: -1 盖住顶栏左上角的 ☰（原版同款问题：顶栏左缘就是汉堡的位置） */
   .email-search {
-    left: 260px;
+    left: 259px;
   }
   .email-search.account-show {
     left: 259px;
-  }
-}
-
-/* 顶栏通栏后：桌面端（≥1026px）侧边栏在文档流里占 260px，账号栏显示时搜索框要再往右挪一个侧边栏的宽度，对齐邮件列表左缘 */
-@media (min-width: 1026px) {
-  .email-search.account-show.aside-show {
-    left: 519px;
   }
 }
 
