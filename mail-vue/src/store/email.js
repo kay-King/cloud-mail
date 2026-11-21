@@ -6,6 +6,7 @@ export const useEmailStore = defineStore('email', {
     state: () => ({
         deleteIds: 0,
         starScroll: null,
+        spamScroll: null,
         emailScroll: null,
         cancelStarEmailId: 0,
         addStarEmailId: 0,
@@ -84,7 +85,7 @@ export const useEmailStore = defineStore('email', {
             }
         },
         markListRead(emailId) {
-            const scrolls = [this.emailScroll, this.starScroll, this.sendScroll, this.allEmailScroll]
+            const scrolls = [this.emailScroll, this.starScroll, this.sendScroll, this.allEmailScroll, this.spamScroll]
             for (const scroll of scrolls) {
                 const list = scroll?.emailList
                 if (!list?.length) continue
@@ -94,7 +95,7 @@ export const useEmailStore = defineStore('email', {
         },
         // 详情页标为未读的镜像：把各列表里同一封的本地状态改回未读（跟 markListRead 一对）
         markListUnread(emailId) {
-            const scrolls = [this.emailScroll, this.starScroll, this.sendScroll, this.allEmailScroll]
+            const scrolls = [this.emailScroll, this.starScroll, this.sendScroll, this.allEmailScroll, this.spamScroll]
             for (const scroll of scrolls) {
                 const list = scroll?.emailList
                 if (!list?.length) continue
@@ -105,7 +106,7 @@ export const useEmailStore = defineStore('email', {
         // 远端星标同步：把各列表里同一封的星标状态改掉（跟 markListRead 一对）；
         // 星标视图的成员变化（多一行/少一行）由调用方 refreshList 重拉
         markListStar(emailId, starred) {
-            const scrolls = [this.emailScroll, this.starScroll, this.sendScroll, this.allEmailScroll]
+            const scrolls = [this.emailScroll, this.starScroll, this.sendScroll, this.allEmailScroll, this.spamScroll]
             for (const scroll of scrolls) {
                 const list = scroll?.emailList
                 if (!list?.length) continue

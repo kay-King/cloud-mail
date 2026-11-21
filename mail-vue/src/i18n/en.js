@@ -562,6 +562,7 @@ const en = {
     saving: 'Saving email...',
     sendingErrorMsg: 'Sending in progress',
     networkErrorMsg: 'Network error. Check your internet',
+    forbiddenMsg: 'Access denied. Please try again later',
     timeoutErrorMsg: 'Timeout. Try again later',
     userInfoLoadFailed: 'Failed to load user info. Some menus are unavailable. Please refresh and try again',
     serverBusyErrorMsg: 'Server busy. Please try again later',

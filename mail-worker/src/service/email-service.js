@@ -30,6 +30,10 @@ import { matchesForwardRule } from '../utils/forward-rule';
 import verifyUtils from '../utils/verify-utils';
 import proxyService from './proxy-service';
 
+// LIKE 转义：用户输入里的 \ % _ 在 LIKE 里是通配符/转义符，不转义会扩大匹配
+// （搜 100% 会匹配所有含 100 的主题）；配合各 LIKE 子句的 ESCAPE '\' 使用
+const escapeLike = (value) => String(value).replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+
 const emailService = {
 
 	async list(c, params, userId) {
@@ -255,11 +259,11 @@ const emailService = {
 	// 显式指定索引，避免 D1 为 UNION 合并排序而改用表扫描。
 	emailAddressCondition(pattern) {
 		return sql`${email.emailId} IN (
-			SELECT e.email_id FROM email AS e INDEXED BY idx_email_to_email_nocase WHERE e.to_email COLLATE NOCASE LIKE ${pattern}
+			SELECT e.email_id FROM email AS e INDEXED BY idx_email_to_email_nocase WHERE e.to_email COLLATE NOCASE LIKE ${pattern} ESCAPE '\\'
 			UNION
-			SELECT e.email_id FROM email AS e INDEXED BY idx_email_send_email_nocase WHERE e.send_email COLLATE NOCASE LIKE ${pattern}
+			SELECT e.email_id FROM email AS e INDEXED BY idx_email_send_email_nocase WHERE e.send_email COLLATE NOCASE LIKE ${pattern} ESCAPE '\\'
 			UNION
-			SELECT e.email_id FROM email AS e WHERE e.recipient COLLATE NOCASE LIKE ${'%"address":"' + pattern}
+			SELECT e.email_id FROM email AS e WHERE e.recipient COLLATE NOCASE LIKE ${'%"address":"' + pattern} ESCAPE '\\'
 		)`;
 	},
 
@@ -295,38 +299,38 @@ const emailService = {
 		}
 
 		if (text?.trim() && searchType) {
-			const searchText = `%${text.trim()}%`;
+			const searchText = `%${escapeLike(text.trim())}%`;
 
 			if (searchType === 'subject') {
-				conditions.push(sql`${email.subject} COLLATE NOCASE LIKE ${searchText}`);
+				conditions.push(sql`${email.subject} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`);
 			}
 
 			if (searchType === 'content') {
 				conditions.push(
 					or(
-						sql`${email.text} COLLATE NOCASE LIKE ${searchText}`,
-						sql`${email.content} COLLATE NOCASE LIKE ${searchText}`,
+						sql`${email.text} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`,
+						sql`${email.content} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`,
 					)
 				);
 			}
 
 			if (searchType === 'sender') {
-				conditions.push(sql`${email.name} COLLATE NOCASE LIKE ${searchText}`);
+				conditions.push(sql`${email.name} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`);
 			}
 
 			if (searchType === 'senderAddress') {
-				conditions.push(sql`${email.sendEmail} COLLATE NOCASE LIKE ${searchText}`);
+				conditions.push(sql`${email.sendEmail} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`);
 			}
 
 			if (searchType === 'recipientAddress') {
-				conditions.push(sql`${email.toEmail} COLLATE NOCASE LIKE ${searchText}`);
+				conditions.push(sql`${email.toEmail} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`);
 			}
 
 			// 往来邮件：对方发来的（发件地址是对方）或我发给对方的（收件地址是对方）
 			if (searchType === 'correspondent') {
 				conditions.push(or(
-					sql`${email.sendEmail} COLLATE NOCASE LIKE ${searchText}`,
-					sql`${email.toEmail} COLLATE NOCASE LIKE ${searchText}`,
+					sql`${email.sendEmail} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`,
+					sql`${email.toEmail} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`,
 				));
 			}
 		}
@@ -380,46 +384,46 @@ const emailService = {
 		}
 
 		if (userEmail) {
-			conditions.push(sql`${user.email} COLLATE NOCASE LIKE ${userEmail + '%'}`);
+			conditions.push(sql`${user.email} COLLATE NOCASE LIKE ${escapeLike(userEmail) + '%'} ESCAPE '\\'`);
 		}
 
 		if (accountEmail) {
-			conditions.push(this.emailAddressCondition(accountEmail + '%'));
+			conditions.push(this.emailAddressCondition(escapeLike(accountEmail) + '%'));
 		}
 
 		if (name) {
-			conditions.push(sql`${email.name} COLLATE NOCASE LIKE ${name + '%'}`);
+			conditions.push(sql`${email.name} COLLATE NOCASE LIKE ${escapeLike(name) + '%'} ESCAPE '\\'`);
 		}
 
 		if (subject) {
-			conditions.push(sql`${email.subject} COLLATE NOCASE LIKE ${subject + '%'}`);
+			conditions.push(sql`${email.subject} COLLATE NOCASE LIKE ${escapeLike(subject) + '%'} ESCAPE '\\'`);
 		}
 
 		if (text?.trim() && searchType) {
-			const searchText = `%${text.trim()}%`;
+			const searchText = `%${escapeLike(text.trim())}%`;
 
 			if (searchType === 'subject') {
-				conditions.push(sql`${email.subject} COLLATE NOCASE LIKE ${searchText}`);
+				conditions.push(sql`${email.subject} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`);
 			}
 
 			if (searchType === 'sender') {
-				conditions.push(sql`${email.name} COLLATE NOCASE LIKE ${searchText}`);
+				conditions.push(sql`${email.name} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`);
 			}
 
 			if (searchType === 'senderAddress') {
-				conditions.push(sql`${email.sendEmail} COLLATE NOCASE LIKE ${searchText}`);
+				conditions.push(sql`${email.sendEmail} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`);
 			}
 
 			// 往来邮件：对方发来的或我发给对方的（发件人卡片「查看往来邮件」用）
 			if (searchType === 'correspondent') {
 				conditions.push(or(
-					sql`${email.sendEmail} COLLATE NOCASE LIKE ${searchText}`,
-					sql`${email.toEmail} COLLATE NOCASE LIKE ${searchText}`,
+					sql`${email.sendEmail} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`,
+					sql`${email.toEmail} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`,
 				));
 			}
 
 			if (searchType === 'user') {
-				conditions.push(sql`${user.email} COLLATE NOCASE LIKE ${searchText}`);
+				conditions.push(sql`${user.email} COLLATE NOCASE LIKE ${searchText} ESCAPE '\\'`);
 			}
 
 			if (searchType === 'account') {
@@ -439,7 +443,7 @@ const emailService = {
 
 	async delete(c, params, userId) {
 		const { emailIds } = params;
-		const emailIdList = emailIds.split(',').map(Number);
+		const emailIdList = emailIds.split(',').map(Number).filter(Number.isFinite);
 		const { syncDelete } = await settingService.query(c);
 
 		if (syncDelete === settingConst.syncDelete.OPEN) {
@@ -529,7 +533,7 @@ const emailService = {
 	// 回收站彻底删除：只删自己的邮件，附件按去重规则连带删除
 	async physicsDeleteByUser(c, params, userId) {
 		const { emailIds } = params;
-		const emailIdList = emailIds.split(',').map(Number);
+		const emailIdList = emailIds.split(',').map(Number).filter(Number.isFinite);
 		const owned = await orm(c).select({ emailId: email.emailId }).from(email)
 			.where(and(eq(email.userId, userId), inArray(email.emailId, emailIdList)))
 			.all();

@@ -20,7 +20,7 @@ app.delete('/allEmail/delete', async (c) => {
 	const query = c.req.query();
 	const notify = query.notify === '1';
 	const reason = (query.reason || '').slice(0, 200);
-	let emailIds = (query.emailIds || '').split(',').filter(Boolean).map(Number);
+	let emailIds = (query.emailIds || '').split(',').filter(Boolean).map(Number).filter(Number.isFinite);
 	// pair=1：成对删除，把同一批发送的发件份与收件份一起删掉
 	if (query.pair === '1' && emailIds.length > 0) {
 		emailIds = await emailService.expandToSendGroup(c, emailIds);

@@ -1,5 +1,5 @@
 import http from '@/axios/index.js';
-import { markLocalOp } from '@/websocket/remote-op.js';
+import { markLocalOp, unmarkLocalOp } from '@/websocket/remote-op.js';
 
 export function emailList(accountId, allReceive, emailId, timeSort, size, type, full, searchParams = {}, del = 0, spam = 0) {
     const {type: searchType, text, startDate, endDate} = searchParams
@@ -8,22 +8,34 @@ export function emailList(accountId, allReceive, emailId, timeSort, size, type, 
 
 export function emailDelete(emailIds) {
     markLocalOp('delete', emailIds)
-    return http.delete('/email/delete?emailIds=' + emailIds)
+    return http.delete('/email/delete?emailIds=' + emailIds).catch(e => {
+        unmarkLocalOp('delete', emailIds)
+        throw e
+    })
 }
 
 export function emailRestore(emailIds) {
     markLocalOp('restore', emailIds)
-    return http.put('/email/restore', {emailIds})
+    return http.put('/email/restore', {emailIds}).catch(e => {
+        unmarkLocalOp('restore', emailIds)
+        throw e
+    })
 }
 
 export function emailMarkSpam(emailIds) {
     markLocalOp('spam', emailIds)
-    return http.put('/email/spam', {emailIds})
+    return http.put('/email/spam', {emailIds}).catch(e => {
+        unmarkLocalOp('spam', emailIds)
+        throw e
+    })
 }
 
 export function emailUnmarkSpam(emailIds) {
     markLocalOp('unspam', emailIds)
-    return http.put('/email/unspam', {emailIds})
+    return http.put('/email/unspam', {emailIds}).catch(e => {
+        unmarkLocalOp('unspam', emailIds)
+        throw e
+    })
 }
 
 export function emailClearSpam(accountId, allReceive) {
@@ -32,7 +44,10 @@ export function emailClearSpam(accountId, allReceive) {
 
 export function emailPhysicsDelete(emailIds) {
     markLocalOp('delete', emailIds)
-    return http.delete('/email/physics-delete?emailIds=' + emailIds)
+    return http.delete('/email/physics-delete?emailIds=' + emailIds).catch(e => {
+        unmarkLocalOp('delete', emailIds)
+        throw e
+    })
 }
 
 export function emailLatest(emailId, accountId, allReceive) {
@@ -45,12 +60,18 @@ export function emailInfo(emailId) {
 
 export function emailRead(emailIds) {
     markLocalOp('read', emailIds)
-    return http.put('/email/read', {emailIds})
+    return http.put('/email/read', {emailIds}).catch(e => {
+        unmarkLocalOp('read', emailIds)
+        throw e
+    })
 }
 
 export function emailUnread(emailIds) {
     markLocalOp('unread', emailIds)
-    return http.put('/email/unread', {emailIds})
+    return http.put('/email/unread', {emailIds}).catch(e => {
+        unmarkLocalOp('unread', emailIds)
+        throw e
+    })
 }
 
 export function emailSend(form,progress) {

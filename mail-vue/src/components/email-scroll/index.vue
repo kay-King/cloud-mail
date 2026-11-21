@@ -1378,13 +1378,14 @@ function handleDelete() {
 
 function deleteEmail(emailIds) {
   let removed = 0
+  // 倒序删：正序 forEach 里 splice 会让后面的元素前移一位，下标继续递增就跳过相邻元素
   emailIds.forEach(emailId => {
-    emailList.forEach((item, index) => {
-      if (emailId === item.emailId) {
+    for (let index = emailList.length - 1; index >= 0; index--) {
+      if (emailId === emailList[index].emailId) {
         emailList.splice(index, 1);
         removed++
       }
-    })
+    }
   })
   // 删完总数马上跟着变（只按实际从列表里移除的行数减）
   if (removed > 0) {
@@ -1393,7 +1394,9 @@ function deleteEmail(emailIds) {
   // 全部数据已加载完时，计数以实际行数为准（跟拉列表时的兜底同理）
   if (noLoading.value) total.value = emailList.length
   if (emailList.length < queryParam.size && !noLoading.value) {
-    getEmailList()
+    // 补拉被 reqLock 挡住（正有请求在跑）时 getEmailList 返回 false：标脏，下次切回来再拉，
+    // 否则列表一直偏短（原来返回值被丢弃，没人重试）
+    getEmailList().then(ok => { if (!ok) needsRefresh = true }).catch(() => { needsRefresh = true })
   }
   return removed
 }
@@ -2022,12 +2025,13 @@ function refresh() {
 function refreshList() {
   checkAll.value = false;
   isIndeterminate.value = false;
-  getEmailList(true);
+  getEmailList(true).catch(() => {});
 }
 
 // 静默重拉（跨设备同步用）：不显示加载圈、不回顶、不清勾选，后台把新行拉进来
 function silentRefresh() {
-  return getEmailList(true, true)
+  // 失败不抛 rejection（调用方多处不处理，会变未处理 rejection），改标脏下次切回来再拉
+  return getEmailList(true, true).catch(() => { needsRefresh = true; return false })
 }
 
 function loadData() {

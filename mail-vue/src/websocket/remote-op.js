@@ -23,6 +23,11 @@ export function markLocalOp(op, emailIds) {
     if (now - at > LOCAL_OP_WINDOW_MS) recentLocalOps.delete(key)
   }
 }
+// 本地请求失败时清除标记：否则 15 秒内另一台设备对同一封邮件的同一操作广播回来，
+// 会被当作自己的回声跳过，本视图状态不更新
+export function unmarkLocalOp(op, emailIds) {
+  for (const id of toIdList(emailIds)) recentLocalOps.delete(op + ':' + id)
+}
 function isLocalOp(op, emailId) {
   const at = recentLocalOps.get(op + ':' + emailId)
   return at != null && Date.now() - at < LOCAL_OP_WINDOW_MS
@@ -59,6 +64,9 @@ export function applyRemoteOp(payload, { pullLatest } = {}) {
       emailStore.emailScroll?.silentRefresh?.();
       emailStore.allEmailScroll?.silentRefresh?.();
     }
+  } else if (op === 'clear-spam') {
+    // 清空垃圾箱：广播没带 id，只能整表重拉（垃圾箱视图的 scroll 已注册在 store 里）
+    emailStore.spamScroll?.refreshList?.();
   } else if (op === 'read') {
     ids.forEach(id => emailStore.markListRead(id));
   } else if (op === 'unread') {

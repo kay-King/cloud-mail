@@ -60,14 +60,18 @@ function showNotice(data) {
     elNotification.close()
   }
 
-  const style = document.createElement('style');
+  // 公告宽度样式只建一次、重复利用：原来每次展示都追加一个新 <style>，旧的不删，head 越堆越多
+  let style = document.getElementById('cloud-mail-notice-style');
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'cloud-mail-notice-style';
+    document.head.appendChild(style);
+  }
   style.innerHTML = `
   .custom-notice.el-notification {
     --el-notification-width: min(${data.noticeWidth}px,calc(100% - 30px)) !important;
   }
   `;
-
-  document.head.appendChild(style);
 
   elNotification = ElNotification({
     title: data.noticeTitle,

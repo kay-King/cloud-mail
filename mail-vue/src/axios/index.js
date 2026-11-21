@@ -81,11 +81,25 @@ http.interceptors.response.use((res) => {
     (error) => {
 
         if (error.status === 403) {
-            location.reload();
+            // 403 就整页重载：持续 403（CF 质询/限流未解除）时重载后还会 403，形成刷新循环；
+            // 60 秒内只重载一次，第二次起只弹错不再重载
+            const now = Date.now()
+            const last = Number(sessionStorage.getItem('cloudMail403ReloadAt') || 0)
+            if (now - last > 60000) {
+                sessionStorage.setItem('cloudMail403ReloadAt', String(now))
+                location.reload();
+            } else {
+                ElMessage({
+                    message: i18n.global.t('forbiddenMsg'),
+                    type: 'error',
+                    plain: true,
+                    grouping: true,
+                })
+            }
             return;
         }
 
-        const noMsg = error.config.noMsg;
+        const noMsg = error.config?.noMsg;
 
         if (noMsg) {
             return Promise.reject(error)

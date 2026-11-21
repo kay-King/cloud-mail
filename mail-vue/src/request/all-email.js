@@ -1,5 +1,5 @@
 import http from '@/axios/index.js';
-import { markLocalOp } from '@/websocket/remote-op.js';
+import { markLocalOp, unmarkLocalOp } from '@/websocket/remote-op.js';
 
 export function allEmailList(params) {
     return http.get('/allEmail/list', {params: {...params}})
@@ -14,7 +14,10 @@ export function allEmailDelete(emailIds, opts = {}) {
     if (opts.pair) {
         url += '&pair=1'
     }
-    return http.delete(url)
+    return http.delete(url).catch(e => {
+        unmarkLocalOp('delete', emailIds)
+        throw e
+    })
 }
 
 export function allEmailBatchDelete(params) {

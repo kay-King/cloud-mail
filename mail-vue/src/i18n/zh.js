@@ -562,6 +562,7 @@ const zh = {
     saving: '邮件正在保存中',
     sendingErrorMsg: '邮件正在发送中',
     networkErrorMsg: '网络错误，请检查网络连接',
+    forbiddenMsg: '访问被拒绝，请稍后再试',
     timeoutErrorMsg: '请求超时，请稍后重试',
     userInfoLoadFailed: '用户信息加载失败，部分菜单不可用，请刷新页面重试',
     serverBusyErrorMsg: '服务器繁忙，请稍后重试',

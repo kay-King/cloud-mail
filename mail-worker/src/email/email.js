@@ -224,9 +224,12 @@ export async function email(message, env, ctx) {
 
 function checkBlock(blackSubjectStr, blackContentStr, blackFromStr, email) {
 
-	const blackFromList = blackFromStr ? blackFromStr.split(',') : []
-	const blackContentList = blackContentStr ? blackContentStr.split(',') : []
-	const blackSubjectList = blackSubjectStr ? blackSubjectStr.split(',') : []
+	// 关键词先 trim 再去空：空串 includes 恒为 true，漏进来会把全部邮件送进垃圾箱；
+	// 发件人比较转小写（与转发规则一致），大小写地址都能命中
+	const cleanKeywords = (str) => str ? str.split(',').map(k => k.trim()).filter(k => k) : []
+	const blackFromList = cleanKeywords(blackFromStr).map(k => k.toLowerCase())
+	const blackContentList = cleanKeywords(blackContentStr)
+	const blackSubjectList = cleanKeywords(blackSubjectStr)
 
 	for (const blackSubject of blackSubjectList) {
 		if (email.subject?.includes(blackSubject)) {
@@ -241,7 +244,8 @@ function checkBlock(blackSubjectStr, blackContentStr, blackFromStr, email) {
 	}
 
 	for (const blackFrom of blackFromList) {
-		if (email.from.address === blackFrom || emailUtils.getDomain(email.from.address) === blackFrom) {
+		const fromAddr = email.from?.address
+		if (fromAddr && (fromAddr.toLowerCase() === blackFrom || emailUtils.getDomain(fromAddr)?.toLowerCase() === blackFrom)) {
 			return true
 		}
 	}

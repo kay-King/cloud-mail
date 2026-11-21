@@ -14,6 +14,10 @@ import { unzipSync } from '../utils/fflate.js';
 
 export const MAX_IMPORT_MAILS = 100;
 export const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
+// 解压预算：Worker 内存只有 128MB，unzipSync 会把全部内容一次性解进内存；
+// 25MB 高压缩比 zip 能解出数百 MB，解压前先读中央目录算总体积，超预算直接拒掉
+export const MAX_UNZIPPED_BYTES = 64 * 1024 * 1024;
+export const MAX_ZIP_ENTRIES = 500;
 
 // Date 头转 D1 时间格式（UTC）；解析失败返回 undefined（用入库时间）
 function toSqlTime(dateValue) {
@@ -21,6 +25,31 @@ function toSqlTime(dateValue) {
 	const d = new Date(dateValue);
 	if (isNaN(d.getTime())) return undefined;
 	return d.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+// 读 zip 中央目录（不解压）：返回 {totalEntries, totalUncompressed}；
+// 不是合法 zip（找不到 EOCD）返回 null，让 unzipSync 自己报错；
+// zip64（尺寸字段为 0xFFFFFFFF）直接按超预算处理
+function checkZipBudget(buf) {
+	const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+	let eocd = -1
+	const minPos = Math.max(0, buf.length - 65557)
+	for (let i = buf.length - 22; i >= minPos; i--) {
+		if (view.getUint32(i, true) === 0x06054b50) { eocd = i; break }
+	}
+	if (eocd < 0) return null
+	const totalEntries = view.getUint16(eocd + 10, true)
+	const cdOffset = view.getUint32(eocd + 16, true)
+	let totalUncompressed = 0
+	let pos = cdOffset
+	for (let n = 0; n < totalEntries; n++) {
+		if (pos + 46 > buf.length || view.getUint32(pos, true) !== 0x02014b50) break
+		const size = view.getUint32(pos + 24, true)
+		if (size === 0xFFFFFFFF) return { totalEntries, totalUncompressed: Infinity }
+		totalUncompressed += size
+		pos += 46 + view.getUint16(pos + 28, true) + view.getUint16(pos + 30, true) + view.getUint16(pos + 32, true)
+	}
+	return { totalEntries, totalUncompressed }
 }
 
 const mailImportService = {
@@ -102,6 +131,12 @@ const mailImportService = {
 			const name = (file.name || '').toLowerCase();
 			const emlList = [];
 			if (name.endsWith('.zip')) {
+				const budget = checkZipBudget(buf);
+				if (budget && (budget.totalUncompressed > MAX_UNZIPPED_BYTES || budget.totalEntries > MAX_ZIP_ENTRIES)) {
+					summary.failed++;
+					summary.errors.push(`${file.name}: 压缩包解压后过大，请拆小再导入（上限 64MB / 500 个文件）`);
+					continue;
+				}
 				let entries;
 				try {
 					entries = unzipSync(buf);
