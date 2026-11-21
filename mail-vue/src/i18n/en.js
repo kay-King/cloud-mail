@@ -204,6 +204,7 @@ const en = {
     addedToContacts: 'Added to contacts',
     alreadyInContacts: 'Already in contacts',
     markSpamSelected: 'Mark selected as spam',
+    markSpamSelectedConfirm: 'Confirm marking the selected emails as spam?',
     notSpam: 'Not spam',
     unspamSelected: 'Move selected to inbox',
     clearSpam: 'Empty spam',

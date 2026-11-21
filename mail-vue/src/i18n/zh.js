@@ -204,6 +204,7 @@ const zh = {
     addedToContacts: '已添加到通讯录',
     alreadyInContacts: '已在通讯录中',
     markSpamSelected: '标记所选为垃圾',
+    markSpamSelectedConfirm: '确认把选中的邮件标记为垃圾吗？',
     notSpam: '不是垃圾',
     unspamSelected: '将所选移回收件箱',
     clearSpam: '清空垃圾邮件',

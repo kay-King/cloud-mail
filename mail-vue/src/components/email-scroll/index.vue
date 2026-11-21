@@ -1006,7 +1006,14 @@ const handleUnread = () => {
 function handleSpamSelected() {
   if (!props.emailSpam) return;
   if (!requireSelection()) return
-  props.emailSpam(getSelectedMailsIds());
+  // 批量标垃圾是破坏性批量操作（邮件会离开收件箱），加二次确认，跟批量删除一致
+  ElMessageBox.confirm(t('markSpamSelectedConfirm'), {
+    confirmButtonText: t('confirm'),
+    cancelButtonText: t('cancel'),
+    type: 'warning'
+  }).then(() => {
+    props.emailSpam(getSelectedMailsIds());
+  })
 }
 
 // 「标记为」下拉有没有可点的项：标已读/未读（垃圾视图不要）、星标/取消星标、标为垃圾，
