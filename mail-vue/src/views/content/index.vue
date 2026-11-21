@@ -191,8 +191,6 @@ import {contactAdd, contactSuggest} from "@/request/contact.js";
 import {avatarLetter} from "@/utils/avatar.js";
 import {Icon} from "@iconify/vue";
 import {useEmailStore} from "@/store/email.js";
-import {useAllEmailStore} from "@/store/all-email.js";
-import {hasPerm} from "@/perm/perm.js";
 import {useSidebarStore} from "@/store/sidebar.js";
 import {useUserStore} from "@/store/user.js";
 import {useAccountStore} from "@/store/account.js";
@@ -222,7 +220,6 @@ const uiStore = useUiStore();
 const settingStore = useSettingStore();
 const accountStore = useAccountStore();
 const emailStore = useEmailStore();
-const allEmailStore = useAllEmailStore();
 const sidebarStore = useSidebarStore();
 const userStore = useUserStore();
 const router = useRouter()
@@ -309,18 +306,12 @@ async function addSenderFromCard() {
   senderCardAdding.value = false
 }
 
-// 查看往来邮件：管理员走全部邮件（收发两边都有，一次看全）；
-// 普通用户没有全部邮件权限，只看收件箱里对方的来信
+// 查看往来邮件：跳到收件箱搜对方的来信（不跳全部邮件）
 function viewExchangedEmails() {
   const addr = String(email.value?.sendEmail || '').trim()
   if (!addr) return
-  if (hasPerm('all-email:query')) {
-    allEmailStore.setSearchParams({type: 'correspondent', text: addr, status: 'all', startDate: '', endDate: ''})
-    router.push({name: 'all-email'})
-  } else {
-    emailStore.setSearchParams({type: 'correspondent', text: addr, startDate: '', endDate: ''})
-    router.push({name: 'email'})
-  }
+  emailStore.setSearchParams({type: 'correspondent', text: addr, startDate: '', endDate: ''})
+  router.push({name: 'email'})
 }
 
 watch(() => accountStore.currentAccountId, () => {
