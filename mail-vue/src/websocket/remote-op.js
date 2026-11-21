@@ -2,14 +2,39 @@
 // 星标/发信，服务端经 WebSocket 广播过来后，在本设备上应用。
 // 复用本地同一套 store 信号，各列表现成的监听器会自己拼行/重拉/改状态；
 // 重复收到同一事件（个人 hub 与全部邮件 hub 各推一次）也是幂等的，最多多一次静默重拉。
+// 服务端广播没有发送方标识，自己做的操作也会广播回自己：请求层发起操作时记一笔
+// （markLocalOp，15 秒有效），收到广播时跳过自己刚做过的那几封——本地已经应用过了，
+// 再应用会出毛病（撤销后刚长回来的行被自己晚到的 delete 广播拼掉，又被 restore
+// 广播的重拉拉回来，看起来就是出现又消失又出现，用户 2026-11-21 反馈）。
 import { useEmailStore } from "@/store/email.js";
 import { useSidebarStore } from "@/store/sidebar.js";
+
+const recentLocalOps = new Map()
+const LOCAL_OP_WINDOW_MS = 15000
+function toIdList(value) {
+  if (value == null || value === '') return []
+  const arr = Array.isArray(value) ? value : String(value).split(',')
+  return arr.map(v => Number(v)).filter(Number.isFinite)
+}
+export function markLocalOp(op, emailIds) {
+  const now = Date.now()
+  for (const id of toIdList(emailIds)) recentLocalOps.set(op + ':' + id, now)
+  for (const [key, at] of recentLocalOps) {
+    if (now - at > LOCAL_OP_WINDOW_MS) recentLocalOps.delete(key)
+  }
+}
+function isLocalOp(op, emailId) {
+  const at = recentLocalOps.get(op + ':' + emailId)
+  return at != null && Date.now() - at < LOCAL_OP_WINDOW_MS
+}
 
 export function applyRemoteOp(payload, { pullLatest } = {}) {
   const emailStore = useEmailStore();
   const sidebarStore = useSidebarStore();
   const { op, emailIds } = payload || {};
-  const ids = (emailIds || []).map(Number).filter(Number.isFinite);
+  const rawIds = toIdList(emailIds);
+  // 自己刚做过的操作广播回来了：只跳过那几封，别的照常应用
+  const ids = rawIds.filter(id => !isLocalOp(op, id));
 
   if (op === 'send') {
     // 发件份是新行：已发送视图整表重拉；全部邮件视图增量补拉（调用方传 pullLatest）
@@ -17,6 +42,9 @@ export function applyRemoteOp(payload, { pullLatest } = {}) {
     pullLatest?.();
     return;
   }
+
+  // 全是自己刚做过的：本地已经应用过，跳过（clear-spam 本来就没 id，不走这条）
+  if (rawIds.length && !ids.length) return;
 
   if (op === 'delete' || op === 'restore' || op === 'spam' || op === 'unspam') {
     // 归属变化走现成的 deleteIds 信号：收件箱/星标等拼掉行，全部邮件静默重拉，

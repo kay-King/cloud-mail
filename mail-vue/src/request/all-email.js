@@ -1,10 +1,12 @@
 import http from '@/axios/index.js';
+import { markLocalOp } from '@/websocket/remote-op.js';
 
 export function allEmailList(params) {
     return http.get('/allEmail/list', {params: {...params}})
 }
 
 export function allEmailDelete(emailIds, opts = {}) {
+    markLocalOp('delete', emailIds)
     let url = '/allEmail/delete?emailIds=' + emailIds
     if (opts.notify) {
         url += '&notify=1&reason=' + encodeURIComponent(opts.reason || '')

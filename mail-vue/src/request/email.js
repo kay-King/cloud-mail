@@ -1,4 +1,5 @@
 import http from '@/axios/index.js';
+import { markLocalOp } from '@/websocket/remote-op.js';
 
 export function emailList(accountId, allReceive, emailId, timeSort, size, type, full, searchParams = {}, del = 0, spam = 0) {
     const {type: searchType, text, startDate, endDate} = searchParams
@@ -6,18 +7,22 @@ export function emailList(accountId, allReceive, emailId, timeSort, size, type, 
 }
 
 export function emailDelete(emailIds) {
+    markLocalOp('delete', emailIds)
     return http.delete('/email/delete?emailIds=' + emailIds)
 }
 
 export function emailRestore(emailIds) {
+    markLocalOp('restore', emailIds)
     return http.put('/email/restore', {emailIds})
 }
 
 export function emailMarkSpam(emailIds) {
+    markLocalOp('spam', emailIds)
     return http.put('/email/spam', {emailIds})
 }
 
 export function emailUnmarkSpam(emailIds) {
+    markLocalOp('unspam', emailIds)
     return http.put('/email/unspam', {emailIds})
 }
 
@@ -26,6 +31,7 @@ export function emailClearSpam(accountId, allReceive) {
 }
 
 export function emailPhysicsDelete(emailIds) {
+    markLocalOp('delete', emailIds)
     return http.delete('/email/physics-delete?emailIds=' + emailIds)
 }
 
@@ -38,10 +44,12 @@ export function emailInfo(emailId) {
 }
 
 export function emailRead(emailIds) {
+    markLocalOp('read', emailIds)
     return http.put('/email/read', {emailIds})
 }
 
 export function emailUnread(emailIds) {
+    markLocalOp('unread', emailIds)
     return http.put('/email/unread', {emailIds})
 }
 
