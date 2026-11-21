@@ -773,6 +773,12 @@ watch(
 
 watch(() => emailStore.deleteIds, () => {
   if (emailStore.deleteIds) {
+    // 滑出删除的行已拼掉，顺手清掉残留的滑动状态（否则恢复后同 id 的行会带着偏移渲染）
+    if (swipeState.emailId && Array.isArray(emailStore.deleteIds) && emailStore.deleteIds.includes(swipeState.emailId)) {
+      swipeState.emailId = null;
+      swipeState.offset = 0;
+      swipeState.dragging = false;
+    }
     if (props.type === 'all-email') {
       // 全部邮件含已删邮件（带回收站角标）：删/恢复只改行状态不改归属，
       // 本地拼掉行是错的（刷新后行又回来）；真删后配对的发件份还会冒头，
@@ -1050,15 +1056,17 @@ function rightDelete(emailId) {
       const hasPair = hasPairIds([emailId])
       if (showNotify || hasPair) {
         openNotifyDialog([emailId], t('delOneEmailConfirm'), {showNotify, hasPair})
-        return
+        // 通知弹窗是独立对话框、结果不走 Promise：先当没删成，让行滑回来；
+        // 用户在弹窗里确认后行再直接消失
+        return Promise.resolve(false)
       }
     }
-    ElMessageBox.confirm(props.type === 'trash' ? t('delForeverOneConfirm') : t('delOneEmailConfirm'), {
+    return ElMessageBox.confirm(props.type === 'trash' ? t('delForeverOneConfirm') : t('delOneEmailConfirm'), {
       confirmButtonText: t('confirm'),
       cancelButtonText: t('cancel'),
       type: 'warning'
     }).then(() => {
-      props.emailDelete([emailId]).then(() => {
+      return props.emailDelete([emailId]).then(() => {
         ElMessage({
           message: t('delSuccessMsg'),
           type: 'success',
@@ -1067,11 +1075,11 @@ function rightDelete(emailId) {
         emailStore.deleteIds = [emailId];
         // 删掉未读邮件会改变侧边栏未读数，立即刷新（左滑删除也走这里）
         sidebarStore.refreshUnread()
-      })
-    })
-    return;
+        return true
+      }).catch(() => false)
+    }).catch(() => false)
   }
-  props.emailDelete([emailId]).then(() => {
+  return props.emailDelete([emailId]).then(() => {
     ElMessage({
       message: t('delSuccessMsg'),
       type: 'success',
@@ -1080,7 +1088,8 @@ function rightDelete(emailId) {
     emailStore.deleteIds = [emailId];
     // 删掉未读邮件会改变侧边栏未读数，立即刷新（左滑删除也走这里）
     sidebarStore.refreshUnread()
-  })
+    return true
+  }).catch(() => false)
 }
 
 function handleSearch(type, value) {
@@ -1419,8 +1428,9 @@ function swipeStyle(item) {
   return { transform: `translateX(${swipeState.offset}px)` }
 }
 // 左滑删除：走右键单封删除的现有流程（全部邮件视图里含确认框与管理员删他人邮件的通知弹窗，不能绕过）
+// 返回 Promise：删成功 true，取消/失败 false（滑动动画靠它决定行滑回来还是保持滑出）
 function swipeDelete(email) {
-  rightDelete(email.emailId)
+  return rightDelete(email.emailId)
 }
 // 右滑标已读/未读切换：走现有 handler（视图层成功后会刷新侧边栏未读数）
 function swipeToggleRead(email) {
@@ -1517,17 +1527,27 @@ function onRowTouchEnd() {
     }
     if (offset <= -threshold || (offset >= threshold && canSwipeRight(email))) {
       const dir = offset < 0 ? -1 : 1;
-      const doAction = offset < 0 ? swipeDelete : swipeToggleRead;
       // 先把行滑出去：去掉 swiping（恢复 transform 0.2s 过渡），偏移拉满整行宽
       swipeState.dragging = false;
       swipeState.offset = dir * swipeRowWidth;
       window.setTimeout(() => {
-        doAction(email);
-        // 220ms 内用户可能已开始滑另一行，只复位仍属于这封邮件的状态
-        if (swipeState.emailId === email.emailId) {
-          swipeState.emailId = null;
-          swipeState.offset = 0;
-          swipeState.dragging = false;
+        if (dir < 0) {
+          // 删除：行保持滑出状态，等接口成功后拼掉行；取消/失败则滑回来
+          Promise.resolve(swipeDelete(email)).then(done => {
+            if (!done && swipeState.emailId === email.emailId) {
+              swipeState.emailId = null;
+              swipeState.offset = 0;
+              swipeState.dragging = false;
+            }
+          });
+        } else {
+          // 标已读/未读：动作发出后行滑回来
+          swipeToggleRead(email);
+          if (swipeState.emailId === email.emailId) {
+            swipeState.emailId = null;
+            swipeState.offset = 0;
+            swipeState.dragging = false;
+          }
         }
       }, 220);
     } else {
