@@ -1,7 +1,7 @@
 <template>
-  <div class="editor-box" :class="showLoading ? 'editor-box-loading' : ''">
-    <loading class="loading" v-if="showLoading"/>
-    <textarea v-else style="outline: none" :id="editorId" ref="editorRef"></textarea>
+  <div class="editor-box">
+    <div class="editor-loading-mask" v-if="showLoading"><loading/></div>
+    <textarea style="outline: none" :id="editorId" ref="editorRef"></textarea>
   </div>
 </template>
 
@@ -46,7 +46,7 @@ function whenReady(cb) {
   else readyCallbacks.push(cb)
 }
 const editorRef = ref(null);
-const showLoading = ref(false);
+const showLoading = ref(true); // 初始即加载中：脚本加载 + 初始化完成前都显示转圈，init 事件才消失
 const uiStore = useUiStore();
 const settingStore = useSettingStore();
 
@@ -114,29 +114,29 @@ function initTinyMCE() {
     initEditor();
     return
   }
-  showLoading.value = true;
+  // textarea 常驻在 DOM 里，脚本到后直接初始化，不用等重渲染
   loadTinyMCE().then(() => {
-    showLoading.value = false;
-    // 等 textarea 重新渲染出来再初始化，否则 selector 找不到元素
-    nextTick(() => initEditor());
+    initEditor();
   }).catch(() => {
     showLoading.value = false;
+    hasInit = false;
   })
 }
 
 // 按窗口大小选工具集（照列表顶栏按实测宽度收进 ⋯ 的做法）：
-// 窗口 <390（小屏手机）：只留最常用的 5 个，实测约 210px，320px 屏也放得下；
-// 390–767：加前景/背景色（约 332px，390px 屏容器 360px 放得下）；
+// 窗口 <350（小屏手机）：只留最常用的 5 个，实测约 200px，320px 屏也放得下；
+// 350–767：加前景/背景色，实测内容宽 307px（366px 窗口容器 336px，放得下）；
 // ≥768：全量工具，floating 折叠。手机端不再靠 floating 的溢出计算
 // （个别手机上不生效），工具集本身就是放得下的。
 function toolbarForWidth() {
   const w = window.innerWidth
-  if (w < 390) return 'undo redo | bold italic underline'
+  if (w < 350) return 'undo redo | bold italic underline'
   if (w < 768) return 'undo redo | bold italic underline | forecolor backcolor'
   return 'undo redo | bold italic underline | forecolor backcolor | fontsize | emoticons | alignleft aligncenter alignright alignjustify | outdent indent | bullist numlist | link image | table code preview fullscreen'
 }
 
 function initEditor() {
+  showLoading.value = true
   window.tinymce.init({
     selector: `#${props.editorId}`,
     statusbar: false,
@@ -166,6 +166,7 @@ function initEditor() {
       ed.on('init', () => {
         ed.setContent(props.defValue);
         isInitialized.value = true;
+        showLoading.value = false;
         while (readyCallbacks.length) readyCallbacks.shift()();
       });
       ed.on('input change', () => {
@@ -241,16 +242,18 @@ function destroyEditor() {
 .editor-box {
   height: 100%;
   width: 100%;
+  position: relative;
 }
 
-.loading {
-  margin: auto;
-}
-
-.editor-box-loading {
+// 初始化完成前的转圈遮罩：盖住空白 textarea，初始化完成（init 事件）才消失
+.editor-loading-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--el-bg-color);
 }
 
 :deep(.tox-tbtn.tox-tbtn--select.tox-tbtn--bespoke) {
