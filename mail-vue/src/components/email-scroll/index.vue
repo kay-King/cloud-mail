@@ -169,7 +169,9 @@
         >
           <template #default="{ data: item, index }" >
             <!-- 滑动手势外壳：背景层（删除/标已读）在行后面，行平移时露出来；虚拟列表每项外层已有固定高 + overflow hidden，这里只补相对定位 -->
-            <div class="email-row-wrap" v-if="!item.expand" :key="item.emailId">
+            <div class="email-row-wrap" v-if="!item.expand" :key="item.emailId"
+                 :class="{ 'row-restored': restoredEmailId === item.emailId }"
+                 :style="restoredEmailId === item.emailId ? { '--restore-h': itemHeight + 'px' } : null">
               <div class="swipe-bg swipe-bg-delete" v-if="swipeState.emailId === item.emailId && swipeState.offset < 0">
                 <Icon class="icon-huge" icon="hugeicons:delete-02" width="22" height="22" />
               </div>
@@ -1636,10 +1638,12 @@ let suppressClickUntil = 0;
 let pressingEmail = null;
 
 // 手机端左滑右滑手势（Gmail 做法）：左滑删除、右滑标已读/未读切换。
-// 只在触屏设备上启用（finePointer 为 false）；回收站禁用（左滑会变成彻底删除，太容易误触）。
+// 只在触屏设备上启用（finePointer 为 false）；回收站左滑是彻底删除，靠确认弹窗兜底
+// （rightDelete 里 trash 分支本来就有确认框），删了找不回来所以不弹撤销提示；
+// 右滑在回收站/草稿箱/全部邮件/已发送不动（没传已读/未读 handler，见 canSwipeRight）。
 // 偏移状态只记一封邮件（单指同时只能滑一行），跟 emailId 绑定：虚拟列表把行复用给
 // 另一封邮件时条件不成立、偏移自动不显示，不会串行。
-const SWIPE_VIEWS = ['email', 'star', 'spam', 'all-email', 'send']
+const SWIPE_VIEWS = ['email', 'star', 'spam', 'all-email', 'send', 'trash']
 const swipeEnabled = computed(() => !uiStore.finePointer && SWIPE_VIEWS.includes(props.type))
 const swipeState = reactive({ emailId: null, offset: 0, dragging: false })
 let swipeEmail = null
@@ -1675,6 +1679,9 @@ function swipeToggleRead(email) {
 // 左滑/右滑后的撤销提示条：动作已立即执行，提示 5 秒内点撤销就反向操作；
 // 只保留最新一次操作（再滑一封就替换掉上一次，之前那次就此定案）；超时后提示消失。
 const undoToast = reactive({ visible: false, text: '', action: null, emailId: null, email: null, index: -1 })
+// 撤销恢复动效：刚插回来的行带 row-restored 类长出来（0.28s），跑完清除
+const restoredEmailId = ref(null)
+let restoreAnimTimer = null
 let undoToastTimer = null
 const UNDO_TOAST_MS = 5000
 function showUndoToast(action, emailId, email = null, index = -1) {
@@ -1717,6 +1724,9 @@ function handleUndoToast() {
       } else if (email && !emailList.some(e => e.emailId === emailId)) {
         const at = Math.max(0, Math.min(index < 0 ? emailList.length : index, emailList.length))
         emailList.splice(at, 0, email)
+        restoredEmailId.value = emailId
+        clearTimeout(restoreAnimTimer)
+        restoreAnimTimer = setTimeout(() => { restoredEmailId.value = null }, 320)
         if (noLoading.value) total.value = emailList.length
         else total.value++
       } else if (!email) {
@@ -1825,7 +1835,8 @@ function onRowTouchEnd() {
           // 先记下行原来的位置：撤销时把行原样插回去，不用整列重拉
           const undoIndex = emailList.findIndex(e => e.emailId === email.emailId)
           Promise.resolve(swipeDelete(email)).then(done => {
-            if (done) {
+            // 回收站里删的是彻底删除、恢复不了，不弹撤销提示（确认弹窗就是兜底）
+            if (done && props.type !== 'trash') {
               showUndoToast('delete', email.emailId, email, undoIndex)
             } else if (swipeState.emailId === email.emailId) {
               swipeState.emailId = null;
@@ -2189,6 +2200,18 @@ function renderHighlight(value) {
   background: var(--el-color-primary);
   justify-content: flex-start;
   padding-left: 24px;
+}
+
+/* 撤销恢复的行：从 0 高长出来 + 淡入，下面的行被往下顶（虚拟列表是流式布局，
+   行高变化会推开下方的行；满高走 --restore-h，跟当前行高一致，跑完类就摘掉） */
+.email-row-wrap.row-restored {
+  height: auto;
+  overflow: hidden;
+  animation: row-restore-in 0.28s ease-out;
+}
+@keyframes row-restore-in {
+  from { max-height: 0; opacity: 0; }
+  to { max-height: var(--restore-h, 83px); opacity: 1; }
 }
 
 /* 撤销提示条：深底白字，照用户发的参考图（勾 + 文案 + 右侧撤销）；
