@@ -60,7 +60,8 @@
               <el-dropdown-item v-if="props.emailSpam" v-perm="'email:delete'" @click="handleSpamSelected">
                 <div class="right-dropdown-item">
                   <Icon icon="hugeicons:mail-block-01" class="icon-huge icon-spam-badge" width="20" height="20"/>
-                  <span>{{ $t('markSpam') }}</span>
+                  <!-- 下拉按钮本身已是「标记为」，这里只说目标「垃圾邮件」，不重复写「标记为垃圾」 -->
+                  <span>{{ $t('spam') }}</span>
                 </div>
               </el-dropdown-item>
             </el-dropdown-menu>
@@ -77,26 +78,15 @@
           <Icon icon="fluent:arrow-download-20-regular" width="16" height="16"/>
           <span>{{ $t('export') }}</span>
         </button>
-        <!-- 触屏 ⋮ 更多菜单：删除/标垃圾/导出收进来，顶栏只留标已读/标未读 + ⋮；
-             常驻显示，未勾选时点开菜单、点具体操作时提示「未选中邮件」；电脑端不出现；垃圾邮件视图
-             菜单是空的，不显示 ⋮；
+        <!-- 触屏 ⋮ 更多菜单：只剩导出——删除是顶栏直接按钮、标垃圾在「标记为」下拉里，
+             再放菜单就是重复（2026-11-21 用户指出收件箱重复后去掉）；常驻显示，未勾选时点开
+             菜单、点具体操作时提示「未选中邮件」；电脑端不出现；草稿箱与垃圾邮件视图菜单是
+             空的，不显示 ⋮；
              bottom-start：⋮ 在顶栏左侧，菜单左缘对齐触发器，不会超出屏幕左缘 -->
-        <el-dropdown v-if="!uiStore.finePointer && props.type !== 'spam'" trigger="click" placement="bottom-start">
+        <el-dropdown v-if="!uiStore.finePointer && props.type !== 'spam' && props.type !== 'draft'" trigger="click" placement="bottom-start">
           <Icon class="icon" icon="fluent:more-vertical-20-regular" width="20" height="20" />
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item v-perm="'email:delete'" @click="handleDelete">
-                <div class="right-dropdown-item">
-                  <Icon icon="hugeicons:delete-02" class="icon-huge" width="20" height="20" />
-                  <span>{{ props.type === 'trash' ? $t('deleteForeverSelected') : $t('deleteSelected') }}</span>
-                </div>
-              </el-dropdown-item>
-              <el-dropdown-item v-if="props.emailSpam" v-perm="'email:delete'" @click="handleSpamSelected">
-                <div class="right-dropdown-item">
-                  <Icon icon="hugeicons:mail-block-01" class="icon-huge icon-spam-badge" width="20" height="20" />
-                  <span>{{ $t('markSpamSelected') }}</span>
-                </div>
-              </el-dropdown-item>
               <el-dropdown-item v-if="props.type !== 'draft'" @click="handleExport">
                 <div class="right-dropdown-item">
                   <Icon icon="fluent:arrow-download-20-regular" width="20" height="20" />
