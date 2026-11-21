@@ -3,7 +3,8 @@
     <div class="header-actions">
       <!-- 详情页顶栏按钮也带文字，跟列表顶栏同一个 .toolbar-btn 样式（16px 图标 + 13px 文字），
            间距与内边距也跟列表统一；悬浮提示不要了，文字本身就是说明；
-           触屏上标垃圾/取消垃圾/标为未读/导出收进 ⋮ 菜单，电脑端直接显示 -->
+           触屏上标垃圾/取消垃圾/标为未读/导出/星标/恢复收进 ⋮ 菜单，电脑端直接显示
+           （手机端顶栏一行放不下，星标与恢复也收进来，2026-11-21 用户要求） -->
       <button v-if="!props.pane" class="toolbar-btn" @click="handleBack">
         <Icon icon="fluent:chevron-left-20-regular" width="16" height="16"/>
         <span>{{ $t('back') }}</span>
@@ -12,7 +13,7 @@
         <Icon icon="hugeicons:delete-02" width="16" height="16"/>
         <span>{{ emailStore.contentData.delType === 'trash' ? $t('deleteForever') : $t('delete') }}</span>
       </button>
-      <button v-if="emailStore.contentData.delType === 'trash'" v-perm="'email:delete'" class="toolbar-btn" @click="handleRestore">
+      <button v-if="uiStore.finePointer && emailStore.contentData.delType === 'trash'" v-perm="'email:delete'" class="toolbar-btn" @click="handleRestore">
         <Icon icon="fluent:arrow-undo-20-regular" width="16" height="16"/>
         <span>{{ $t('restore') }}</span>
       </button>
@@ -24,7 +25,7 @@
         <Icon icon="fluent:arrow-undo-20-regular" width="16" height="16"/>
         <span>{{ $t('notSpam') }}</span>
       </button>
-      <button v-if="emailStore.contentData.showStar" class="toolbar-btn" @click="changeStar">
+      <button v-if="uiStore.finePointer && emailStore.contentData.showStar" class="toolbar-btn" @click="changeStar">
         <Icon :icon="email.isStar ? 'fluent-color:star-16' : 'fluent:star-20-regular'" width="16" height="16"/>
         <span>{{ email.isStar ? $t('unstar') : $t('starIt') }}</span>
       </button>
@@ -44,7 +45,7 @@
         <Icon icon="fluent:arrow-download-20-regular" width="16" height="16"/>
         <span>{{ $t('export') }}</span>
       </button>
-      <!-- 触屏详情页 ⋮ 菜单：标为未读/标垃圾（或取消垃圾）/导出；导出始终显示，菜单不会为空；
+      <!-- 触屏详情页 ⋮ 菜单：标为未读/标垃圾（或取消垃圾）/恢复/星标/导出；导出始终显示，菜单不会为空；
            bottom-end：⋮ 在顶栏最右端，菜单右缘对齐触发器，不会超出屏幕右缘 -->
       <el-dropdown v-if="!uiStore.finePointer" trigger="click" placement="bottom-end">
         <Icon class="icon" icon="fluent:more-vertical-20-regular" width="20" height="20" />
@@ -66,6 +67,18 @@
               <div class="more-menu-item">
                 <Icon icon="fluent:arrow-undo-20-regular" width="20" height="20" />
                 <span>{{ $t('notSpam') }}</span>
+              </div>
+            </el-dropdown-item>
+            <el-dropdown-item v-if="emailStore.contentData.delType === 'trash'" v-perm="'email:delete'" @click="handleRestore">
+              <div class="more-menu-item">
+                <Icon icon="fluent:arrow-undo-20-regular" width="20" height="20" />
+                <span>{{ $t('restore') }}</span>
+              </div>
+            </el-dropdown-item>
+            <el-dropdown-item v-if="emailStore.contentData.showStar" @click="changeStar">
+              <div class="more-menu-item">
+                <Icon :icon="email.isStar ? 'fluent-color:star-16' : 'fluent:star-20-regular'" width="20" height="20" />
+                <span>{{ email.isStar ? $t('unstar') : $t('starIt') }}</span>
               </div>
             </el-dropdown-item>
             <el-dropdown-item @click="handleExport">
