@@ -17,8 +17,9 @@
               :class="{ 'icon-disabled': selectedIds.length === 0 }"
               @click="handleUnspamSelected"/>
       </el-tooltip>
+      <!-- 清空垃圾箱用扫把图标：原来跟删除选中共用一个垃圾桶图标，顶栏两个垃圾桶分不清 -->
       <el-tooltip effect="dark" :content="$t('clearSpam')">
-        <Icon v-perm="'email:delete'" class="icon icon-huge" icon="hugeicons:delete-02" width="20" height="20"
+        <Icon v-perm="'email:delete'" class="icon" icon="fluent:broom-20-regular" width="20" height="20"
               v-if="spamCount > 0"
               @click="handleClearSpam"/>
       </el-tooltip>

@@ -19,58 +19,60 @@
         <el-tooltip effect="dark" :hide-after="0" :content="$t('refresh')" v-if="checkedEmailCount === 0">
           <Icon class="icon reload" icon="fluent:arrow-clockwise-20-regular" width="20" height="20" @click="refresh"/>
         </el-tooltip>
-        <slot name="first"></slot>
-        <!-- 批量操作图标常驻显示：未勾选时禁用态（半透明、点不动），勾选后恢复可点 -->
-        <el-tooltip effect="dark" :hide-after="0" :content="props.type === 'trash' ? $t('deleteForeverSelected') : $t('deleteSelected')">
+        <!-- 批量操作顺序：标已读、标未读、删除、[各视图专属图标]、导出；
+             标已读/未读两端都直接显示（垃圾邮件视图不要这两按钮），删除与导出只在
+             电脑端直接显示、触屏上收进 ⋮ 菜单 -->
+        <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsRead')">
+          <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-read-20-regular" width="20" height="20"
+                v-if="showUnread && props.emailRead && props.type !== 'spam'"
+                :class="{ 'icon-disabled': checkedEmailCount === 0 }"
+                @click="handleRead"/>
+        </el-tooltip>
+        <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsUnread')">
+          <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-unread-20-regular" width="20" height="20"
+                v-if="showUnread && props.emailUnread && props.type !== 'spam'"
+                :class="{ 'icon-disabled': checkedEmailCount === 0 }"
+                @click="handleUnread"/>
+        </el-tooltip>
+        <!-- 批量操作图标常驻显示：未勾选时禁用态（半透明、点不动），勾选后恢复可点；
+             垃圾邮件视图的 ⋮ 菜单是空的（不要已读/导出、没有标垃圾项），删除在触屏上也直接显示 -->
+        <el-tooltip effect="dark" :hide-after="0" :content="props.type === 'trash' ? $t('deleteForeverSelected') : $t('deleteSelected')" v-if="uiStore.finePointer || props.type === 'spam'">
           <Icon v-perm="'email:delete'" class="icon delete icon-huge" icon="hugeicons:delete-02" width="20" height="20"
                 :class="{ 'icon-disabled': checkedEmailCount === 0 }"
                 @click="handleDelete"/>
         </el-tooltip>
-        <!-- 电脑端导出/标已读/标未读直接显示在顶栏；触屏上收进下面的 ⋮ 菜单（顶栏放不下 5 个，
-             垃圾箱视图还有取消垃圾/清空两个额外图标，360px 宽会溢出换行） -->
+        <slot name="first"></slot>
         <el-tooltip effect="dark" :hide-after="0" :content="$t('exportSelected')" v-if="uiStore.finePointer">
           <Icon class="icon" icon="fluent:arrow-download-20-regular" width="20" height="20"
-                v-if="props.type !== 'draft'"
+                v-if="props.type !== 'draft' && props.type !== 'spam'"
                 :class="{ 'icon-disabled': checkedEmailCount === 0 }"
                 @click="handleExport"/>
         </el-tooltip>
-        <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsRead')" v-if="uiStore.finePointer">
-          <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-read-20-regular" width="20" height="20"
-                v-if="showUnread && props.emailRead"
-                :class="{ 'icon-disabled': checkedEmailCount === 0 }"
-                @click="handleRead"/>
-        </el-tooltip>
-        <el-tooltip effect="dark" :hide-after="0" :content="$t('markAsUnread')" v-if="uiStore.finePointer">
-          <Icon v-perm="'email:delete'" class="icon delete" icon="fluent:mail-unread-20-regular" width="20" height="20"
-                v-if="showUnread && props.emailUnread"
-                :class="{ 'icon-disabled': checkedEmailCount === 0 }"
-                @click="handleUnread"/>
-        </el-tooltip>
-        <!-- 触屏 ⋮ 更多菜单：导出/标已读/标未读收进来，顶栏只留删除 + slot + ⋮；
-             常驻显示，未勾选时禁用态（半透明、点不开）；草稿视图三项条件都不满足、菜单会是空的，
-             不显示 ⋮；电脑端不出现；
+        <!-- 触屏 ⋮ 更多菜单：删除/标垃圾/导出收进来，顶栏只留标已读/标未读 + ⋮；
+             常驻显示，未勾选时禁用态（半透明、点不开）；电脑端不出现；垃圾邮件视图
+             菜单是空的，不显示 ⋮；
              bottom-start：⋮ 在顶栏左侧，菜单左缘对齐触发器，不会超出屏幕左缘 -->
-        <el-dropdown v-if="!uiStore.finePointer && props.type !== 'draft'" trigger="click" placement="bottom-start">
+        <el-dropdown v-if="!uiStore.finePointer && props.type !== 'spam'" trigger="click" placement="bottom-start">
           <Icon class="icon" icon="fluent:more-vertical-20-regular" width="20" height="20"
                 :class="{ 'icon-disabled': checkedEmailCount === 0 }" />
           <template #dropdown>
             <el-dropdown-menu>
+              <el-dropdown-item v-perm="'email:delete'" @click="handleDelete">
+                <div class="right-dropdown-item">
+                  <Icon icon="hugeicons:delete-02" class="icon-huge" width="20" height="20" />
+                  <span>{{ props.type === 'trash' ? $t('deleteForeverSelected') : $t('deleteSelected') }}</span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item v-if="props.emailSpam" v-perm="'email:delete'" @click="handleSpamSelected">
+                <div class="right-dropdown-item">
+                  <Icon icon="hugeicons:mail-block-01" class="icon-huge icon-spam-badge" width="20" height="20" />
+                  <span>{{ $t('markSpamSelected') }}</span>
+                </div>
+              </el-dropdown-item>
               <el-dropdown-item v-if="props.type !== 'draft'" @click="handleExport">
                 <div class="right-dropdown-item">
                   <Icon icon="fluent:arrow-download-20-regular" width="20" height="20" />
                   <span>{{ $t('exportSelected') }}</span>
-                </div>
-              </el-dropdown-item>
-              <el-dropdown-item v-if="showUnread && props.emailRead" v-perm="'email:delete'" @click="handleRead">
-                <div class="right-dropdown-item">
-                  <Icon icon="fluent:mail-read-20-regular" width="20" height="20" />
-                  <span>{{ $t('markAsRead') }}</span>
-                </div>
-              </el-dropdown-item>
-              <el-dropdown-item v-if="showUnread && props.emailUnread" v-perm="'email:delete'" @click="handleUnread">
-                <div class="right-dropdown-item">
-                  <Icon icon="fluent:mail-unread-20-regular" width="20" height="20" />
-                  <span>{{ $t('markAsUnread') }}</span>
                 </div>
               </el-dropdown-item>
             </el-dropdown-menu>
@@ -946,6 +948,13 @@ const handleUnread = () => {
   const emailIds = getSelectedMailsIds();
   props.emailUnread(emailIds);
   localUnread(emailIds);
+}
+
+// 触屏 ⋮ 菜单里的标为垃圾邮件：批量版的 rightSpam（收件箱视图传了 emailSpam 才有这项）
+function handleSpamSelected() {
+  const emailIds = getSelectedMailsIds();
+  if (emailIds.length === 0 || !props.emailSpam) return;
+  props.emailSpam(emailIds);
 }
 
 function emailRead(emailId) {

@@ -16,7 +16,8 @@
                @refresh-success="onRefreshSuccess"
   >
     <template #first>
-      <el-tooltip effect="dark" :content="$t('markSpamSelected')">
+      <!-- 触屏上标垃圾收进 ⋮ 菜单，顶栏只留标已读/标未读 -->
+      <el-tooltip effect="dark" :content="$t('markSpamSelected')" v-if="uiStore.finePointer">
         <Icon v-perm="'email:delete'" class="icon icon-huge icon-spam-badge" icon="hugeicons:mail-block-01" width="20" height="20"
               :class="{ 'icon-disabled': selectedIds.length === 0 }"
               @click="handleMarkSpamSelected"/>

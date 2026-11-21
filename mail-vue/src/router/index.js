@@ -5,17 +5,24 @@ import {useEmailStore} from "@/store/email.js";
 import {useSettingStore} from "@/store/setting.js";
 import {cvtR2Url} from "@/utils/convert.js";
 
+// 懒加载页面失败时先重试一次再报错：国内到 Cloudflare 的链路偶有抖动，
+// 动态 import 一次失败常常是瞬时的，重试一次能成就不用整页刷新；
+// 两次都失败再走下面的 router.onError 自动恢复（注销离线缓存 + 刷新）。
+function lazyImport(loader) {
+    return () => loader().catch(() => loader());
+}
+
 const routes = [
     {
         path: '/',
         name: 'layout',
         redirect: '/inbox',
-        component: () => import('@/layout/index.vue'),
+        component: lazyImport(() => import('@/layout/index.vue')),
         children: [
             {
                 path: '/inbox',
                 name: 'email',
-                component: () => import('@/views/email/index.vue'),
+                component: lazyImport(() => import('@/views/email/index.vue')),
                 meta: {
                     title: 'inbox',
                     name: 'email',
@@ -25,7 +32,7 @@ const routes = [
             {
                 path: '/:mailbox(inbox|starred|sent|all-mail|trash|spam)/messages',
                 name: 'content',
-                component: () => import('@/views/content/index.vue'),
+                component: lazyImport(() => import('@/views/content/index.vue')),
                 meta: {
                     title: 'message',
                     name: 'content',
@@ -35,7 +42,7 @@ const routes = [
             {
                 path: '/settings',
                 name: 'setting',
-                component: () => import('@/views/setting/index.vue'),
+                component: lazyImport(() => import('@/views/setting/index.vue')),
                 meta: {
                     title: 'settings',
                     name: 'setting',
@@ -45,7 +52,7 @@ const routes = [
             {
                 path: '/starred',
                 name: 'star',
-                component: () => import('@/views/star/index.vue'),
+                component: lazyImport(() => import('@/views/star/index.vue')),
                 meta: {
                     title: 'starred',
                     name: 'star',
@@ -55,7 +62,7 @@ const routes = [
             {
                 path: '/trash',
                 name: 'trash',
-                component: () => import('@/views/trash/index.vue'),
+                component: lazyImport(() => import('@/views/trash/index.vue')),
                 meta: {
                     title: 'trash',
                     name: 'trash',
@@ -65,7 +72,7 @@ const routes = [
             {
                 path: '/spam',
                 name: 'spam',
-                component: () => import('@/views/spam/index.vue'),
+                component: lazyImport(() => import('@/views/spam/index.vue')),
                 meta: {
                     title: 'spam',
                     name: 'spam',
@@ -75,7 +82,7 @@ const routes = [
             {
                 path: '/attachments',
                 name: 'attachments',
-                component: () => import('@/views/attachments/index.vue'),
+                component: lazyImport(() => import('@/views/attachments/index.vue')),
                 meta: {
                     title: 'myAttachments',
                     name: 'attachments',
@@ -85,7 +92,7 @@ const routes = [
             {
                 path: '/contacts',
                 name: 'contacts',
-                component: () => import('@/views/contacts/index.vue'),
+                component: lazyImport(() => import('@/views/contacts/index.vue')),
                 meta: {
                     title: 'contacts',
                     name: 'contacts',
@@ -102,17 +109,17 @@ const routes = [
     {
         path: '/login',
         name: 'login',
-        component: () => import('@/views/login/index.vue')
+        component: lazyImport(() => import('@/views/login/index.vue'))
     },
     {
         path: '/test',
         name: 'test',
-        component: () => import('@/views/test/index.vue')
+        component: lazyImport(() => import('@/views/test/index.vue'))
     },
     {
         path: '/:pathMatch(.*)*',
         name: '404',
-        component: () => import('@/views/404/index.vue')
+        component: lazyImport(() => import('@/views/404/index.vue'))
     }
 ]
 
