@@ -1,5 +1,5 @@
 <template>
-  <div class="send" v-show="show">
+  <div class="send" v-show="show" :style="sendStyle">
     <div class="write-box">
       <div class="title">
         <div class="title-left">
@@ -231,6 +231,19 @@ const showContacts = ref(false)
 const contactTarget = ref('receive')
 const showCc = ref(false)
 const showBcc = ref(false)
+// 键盘高度（visualViewport 方案）：viewport 的 interactive-widget=resizes-content
+// 在用户手机浏览器上不生效（2026-11-21 实测底部按钮仍被键盘盖住），改用
+// visualViewport 兜底——键盘弹起时 visualViewport 变矮、layout viewport 不变，
+// 差值就是键盘高度；支持 resizes-content 的浏览器上两者同步变矮、差值为 0，
+// 两套机制不冲突。阈值 100px：过滤浏览器底部工具栏显隐造成的小幅变化。
+const keyboardHeight = ref(0)
+function onVisualViewportResize() {
+  const vv = window.visualViewport
+  if (!vv) return
+  const diff = window.innerHeight - vv.height
+  keyboardHeight.value = diff > 100 ? diff : 0
+}
+const sendStyle = computed(() => keyboardHeight.value > 0 ? {height: `calc(100% - ${keyboardHeight.value}px)`} : undefined)
 const ccInputRef = ref()
 const bccInputRef = ref()
 const mySelect = ref()
@@ -747,7 +760,10 @@ watch(() => [form.subject, form.content, form.receiveEmail, form.ccEmail, form.b
 // floating 工具栏的溢出计算可能没跑（个别手机上工具栏不折进「…」），
 // 显示后再触发一次 resize + 重绘，确保「…」正常出现
 watch(() => show.value, (visible) => {
-  if (!visible) return
+  if (!visible) {
+    keyboardHeight.value = 0
+    return
+  }
   nextTick(() => {
     // 写信窗可见后再初始化编辑器（首次打开时）：隐藏状态初始化会让
     // floating 工具栏溢出计算按 0 宽算，个别手机上工具栏不折进「…」
@@ -899,10 +915,16 @@ const handleKeyDown = (event) => {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', onVisualViewportResize);
+  }
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
+  if (window.visualViewport) {
+    window.visualViewport.removeEventListener('resize', onVisualViewportResize);
+  }
 });
 
 function close() {
