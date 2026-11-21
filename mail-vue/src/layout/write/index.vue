@@ -776,10 +776,14 @@ function openForward(email) {
     open()
 
     nextTick(() => {
-      backReply.content = editor.value.getContent()
-      backReply.subject = form.subject
-      backReply.receiveEmail = form.receiveEmail
-      backReply.sendType = form.sendType
+      // 等编辑器就绪后再抓：延迟初始化下此时内容还未被 TinyMCE 规范化，
+      // 抓原始字符串会导致 close() 比对恒不等
+      editor.value.whenReady(() => {
+        backReply.content = editor.value.getContent()
+        backReply.subject = form.subject
+        backReply.receiveEmail = form.receiveEmail
+        backReply.sendType = form.sendType
+      })
     })
 
   });
@@ -823,10 +827,14 @@ function openReply(email) {
     open()
 
     nextTick(() => {
-      backReply.content = editor.value.getContent()
-      backReply.subject = form.subject
-      backReply.receiveEmail = form.receiveEmail
-      backReply.sendType = form.sendType
+      // 等编辑器就绪后再抓：延迟初始化下此时内容还未被 TinyMCE 规范化，
+      // 抓原始字符串会导致 close() 比对恒不等
+      editor.value.whenReady(() => {
+        backReply.content = editor.value.getContent()
+        backReply.subject = form.subject
+        backReply.receiveEmail = form.receiveEmail
+        backReply.sendType = form.sendType
+      })
     })
   })
 

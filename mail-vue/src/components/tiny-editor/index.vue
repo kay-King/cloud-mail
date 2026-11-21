@@ -17,7 +17,8 @@ defineExpose({
   focus,
   getContent,
   repaint,
-  ensureInit
+  ensureInit,
+  whenReady
 })
 
 const props = defineProps({
@@ -36,6 +37,14 @@ const {locale} = useI18n()
 const emit = defineEmits(['change','focus']);
 const editor = shallowRef(null);
 const isInitialized = ref(false);
+const readyCallbacks = [];
+
+// 编辑器初始化完成后执行回调；已就绪则立即执行（用于 backReply 抓取等
+// 必须读到规范化后内容的场景）
+function whenReady(cb) {
+  if (isInitialized.value) cb()
+  else readyCallbacks.push(cb)
+}
 const editorRef = ref(null);
 const showLoading = ref(false);
 const uiStore = useUiStore();
@@ -145,6 +154,7 @@ function initEditor() {
       ed.on('init', () => {
         ed.setContent(props.defValue);
         isInitialized.value = true;
+        while (readyCallbacks.length) readyCallbacks.shift()();
       });
       ed.on('input change', () => {
         const content = ed.getContent();
